@@ -40,7 +40,7 @@ input { background: #0f0b1a; color: var(--text); border: 1px solid var(--line); 
 .reward { padding: 16px; border-radius: 12px; text-align: center; display: grid; gap: 4px; background: var(--panel2); border: 2px solid var(--line); cursor: pointer; }
 .reward.rare { border-color: #4aa3ff; } .reward.legend { border-color: var(--accent); box-shadow: 0 0 24px #c9a24b66; }
 .talent { display: grid; gap: 2px; text-align: left; flex: 1; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; } .talent.owned { border-color: var(--ok); } .talent small { color: var(--muted); } .talent em { color: var(--accent); font-style: normal; }
-.tiers { display: grid; gap: 6px; } .tierrow { display: flex; gap: 6px; } .tierrow > .talent { min-width: 0; } .talent.locked { opacity: .55; }
+
 .confirm { background: var(--panel2); border: 1px solid var(--accent); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
 .radar { width: 100%; max-width: 320px; margin: 0 auto; } .radar text { fill: var(--text); font-size: 10px; } .radar .val { fill: var(--accent); }
 .grid-line { fill: none; stroke: var(--line); } .radar-area { fill: #c9a24b55; stroke: var(--accent); stroke-width: 2; }
@@ -145,3 +145,18 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .roster { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .roster li { display: grid; grid-template-columns: 1.4rem 2.2rem 1fr 4.5rem; align-items: center; gap: 8px; background: var(--panel2); border-left: 4px solid; border-radius: 10px; padding: 6px 10px; } .roster li.me { background: #3a2f63; }
 .r-pos { color: var(--muted); font-weight: 700; text-align: center; } .r-av { width: 2.2rem; height: 2.2rem; border: 2px solid; border-radius: 50%; display: grid; place-items: center; font-size: 1.2rem; background: #120d22; }
 .r-main { display: grid; line-height: 1.2; min-width: 0; } .r-main small { color: var(--muted); font-size: .76rem; } .r-bar { height: 8px; background: #0f0b1a; border-radius: 999px; overflow: hidden; } .r-bar i { display: block; height: 100%; border-radius: 999px; }
+
+/* Дерево талантов */
+.tt { display: grid; gap: 8px; } .tt-svg { width: 100%; height: auto; display: block; background: radial-gradient(ellipse at 50% 100%, #2a1d52 0, transparent 70%); border-radius: 14px; border: 1px solid var(--line); }
+.te { fill: none; stroke: #3a2f63; stroke-width: 3; stroke-linecap: round; } .te.on { stroke: var(--accent); stroke-width: 3.5; filter: drop-shadow(0 0 4px #c9a24b); } .te.next { stroke: #8f7bd0; stroke-dasharray: 2 6; } .te.peak { stroke-width: 2; }
+.tn { cursor: pointer; } .tn-ring { fill: #1b1433; stroke: #4a3d7a; stroke-width: 2.5; } .tn-halo { fill: none; } .tn-ico { pointer-events: none; }
+.tn.locked .tn-ico { opacity: .45; filter: grayscale(1); } .tn.locked.blocked { opacity: .35; } .tn.locked .tn-ring { stroke: #35294f; fill: #150f27; }
+.tn.open .tn-ring { stroke: #b9a5ff; fill: #2a1f4d; } .tn.open .tn-halo { fill: #b9a5ff; opacity: .18; animation: tt-pulse 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.tn.owned .tn-ring { stroke: var(--accent); fill: #3a2c14; } .tn.owned .tn-halo { fill: var(--accent); opacity: .22; } .tn.max .tn-ring { stroke: #ffd24a; stroke-width: 3.5; fill: #4a3a10; } .tn.max .tn-halo { fill: #ffd24a; opacity: .35; }
+.tn.sel .tn-ring { stroke: #fff; } .tn-pip { fill: #3a2f63; } .tn-pip.on { fill: #ffd24a; }
+.tt-dir { fill: var(--text); font: 600 11px Georgia, serif; } .tt-pts { fill: var(--muted); font-size: 10px; } .tt-peak { fill: var(--muted); font-size: 9.5px; }
+.tt-notes { display: grid; gap: 2px; } .tt-fam { margin-top: 8px; }
+.tt-detail { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; position: sticky; bottom: 8px; box-shadow: 0 6px 20px #000a; } .tt-detail.owned, .tt-detail.max { border-color: var(--accent); }
+.tt-big { font-size: 2rem; } .tt-ranks { display: flex; align-items: center; gap: 6px; } .tt-ranks i { width: 14px; height: 14px; border-radius: 50%; background: #3a2f63; display: inline-block; } .tt-ranks i.on { background: #ffd24a; box-shadow: 0 0 6px #ffd24a; }
+.tt-hint { text-align: center; }
+@keyframes tt-pulse { 0%, 100% { transform: scale(.9); opacity: .12; } 50% { transform: scale(1.12); opacity: .3; } }
