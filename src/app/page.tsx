@@ -57,6 +57,7 @@ export default function Today() {
         <Bar value={Math.max(0, b.hp - b.damage)} max={b.hp} color="var(--danger)" label={`${Math.max(0, b.hp - b.damage)} / ${b.hp} HP`} />
         <p className="muted">{b.defeated ? '🏆 Босс повержен!' : 'Вся семья бьёт босса своими очками.'}</p>
       </Section>
+      <p className="muted small version">Мой рост · демо {process.env.NEXT_PUBLIC_APP_VERSION?.replace(/\.0$/, '')}</p>
     </>
   );
 }
