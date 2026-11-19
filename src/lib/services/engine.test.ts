@@ -55,7 +55,7 @@ describe('движок семьи', () => {
     raw.quests.push({ memberId: 1, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] });
     raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 100 });
     const plain = buildFamily(raw, '2026-11-19').boss.damage;
-    raw.heroes[0].talents = ['h1a'];
+    raw.heroes[0].talents = ['wc1', 'wc1', 'wc1'];
     expect(buildFamily(raw, '2026-11-19').boss.damage).toBeGreaterThan(plain);
   });
   it('победа над боссом прошлой недели даёт сундуки', () => {

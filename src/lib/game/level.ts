@@ -1,10 +1,18 @@
+/**
+ * Кривая уровней: переход 1→2 стоит 50 XP, каждый следующий уровень в 1,5 раза дольше предыдущего.
+ * Всего до уровня n нужно 100·(1,5^(n−1) − 1) XP.
+ */
+export const LEVEL_FIRST = 50;
+export const LEVEL_GROWTH = 1.5;
+
 /** XP, нужный для достижения уровня n (уровень 1 = 0 XP). */
-export const xpNeed = (n: number): number => 25 * (n - 1) * n;
+export const xpNeed = (n: number): number =>
+  n <= 1 ? 0 : Math.round((2 * LEVEL_FIRST) * (LEVEL_GROWTH ** (n - 1) - 1));
 
 /** Максимальный n, для которого xpNeed(n) <= xp. */
 export function levelFromXp(xp: number): number {
-  if (xp <= 0) return 1;
-  let n = Math.floor((1 + Math.sqrt(1 + (4 * xp) / 25)) / 2);
+  if (!(xp > 0)) return 1;
+  let n = Math.floor(Math.log(xp / (2 * LEVEL_FIRST) + 1) / Math.log(LEVEL_GROWTH)) + 1;
   while (xpNeed(n + 1) <= xp) n++;
   while (n > 1 && xpNeed(n) > xp) n--;
   return n;

@@ -1,5 +1,5 @@
 import { CLASS_SPHERES, MAIN_BONUS, subBonus } from './classes';
-import { talentById } from './talents';
+import { activeTalents } from './talents';
 import type { DayStats, HeroBuild, Sphere, StudyKind } from './types';
 
 export const POINTS = { warmup: 10, habit: 5, habitCap: 6, book: 50 } as const;
@@ -11,10 +11,10 @@ export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true)
   let m = 1;
   if (hero.cls && CLASS_SPHERES[hero.cls].includes(sphere)) m += MAIN_BONUS;
   if (useSub && hero.cls && hero.sub && hero.sub !== hero.cls && CLASS_SPHERES[hero.sub].includes(sphere)) m += subBonus(hero.level);
-  for (const id of hero.talents) {
-    const e = talentById(id)?.effect;
-    if (e?.type === 'mult' && e.spheres.includes(sphere)) m += e.pct;
-    if (e?.type === 'all') m += e.pct;
+  for (const { t, rank } of activeTalents(hero.talents, hero.cls)) {
+    const e = t.effect;
+    if (e.type === 'mult' && e.spheres.includes(sphere)) m += e.pct * rank;
+    if (e.type === 'all') m += e.pct * rank;
   }
   return m;
 }
@@ -34,10 +34,10 @@ export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = tru
   add('book', d.books * POINTS.book);
 
   let flat = 0;
-  for (const id of hero.talents) {
-    const e = talentById(id)?.effect;
-    if (e?.type === 'flat' && e.when(d)) flat += e.bonus;
-    if (e?.type === 'streak' && streak > 0) flat += Math.min(e.max, streak * e.perDay);
+  for (const { t, rank } of activeTalents(hero.talents, hero.cls)) {
+    const e = t.effect;
+    if (e.type === 'flat' && e.when(d)) flat += e.bonus * rank;
+    if (e.type === 'streak' && streak > 0) flat += Math.min(e.max, streak * e.perDay) * rank;
   }
   const sphereTotal = Object.values(bySphere).reduce((a, b) => a + (b ?? 0), 0);
   const total = Math.round(sphereTotal + flat + d.questXp);

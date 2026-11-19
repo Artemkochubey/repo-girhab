@@ -113,7 +113,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     const questsFor = (date: string) => overrides.find((q) => q.date === date)?.items ?? tpl ?? defaultQuests(m.id, date, m.goal);
 
     const active = (d: string) => basePoints(stats.get(d)!) >= m.goal * 0.5;
-    const streaks = streakForward(dates, active, hasShield(hero.talents), today);
+    const streaks = streakForward(dates, active, hasShield(hero.talents, cls), today);
 
     const questXp = new Map<string, number>();
     let questDays = 0;
@@ -182,7 +182,7 @@ export function buildFamily(raw: Raw, today: string): Family {
         sum += dc.total;
         for (const [s, v] of Object.entries(dc.bySphere)) if (weak.has(s)) weakPts += v ?? 0;
       }
-      const bb = bossBonuses(members.get(m.id)?.hero.talents ?? []);
+      const bb = bossBonuses(members.get(m.id)?.hero.talents ?? [], members.get(m.id)?.hero.cls ?? null);
       byMember[m.id] = Math.round(sum * (1 + bb.boss)); total += byMember[m.id];
       weakExtra += weakPts * (WEAK_BONUS + bb.weak);
     }

@@ -3,7 +3,7 @@ import { subBonus, canChangeClass, recommendSub, HOUR } from './classes';
 
 describe('классы', () => {
   it('бонус подкласса', () => {
-    expect([1, 4, 5, 9, 10, 19, 20, 50].map(subBonus)).toEqual([0, 0, 0.1, 0.1, 0.15, 0.15, 0.2, 0.2]);
+    expect([1, 4, 5, 7, 8, 11, 12, 50].map(subBonus)).toEqual([0, 0, 0.1, 0.1, 0.15, 0.15, 0.2, 0.2]);
   });
   it('смена класса: 24 ч бесплатно, затем пауза 7 дней', () => {
     expect(canChangeClass(0, 23 * HOUR).ok).toBe(true);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dayPoints, streakLength } from './points';
-import { canBuyTalent, talentCost, TALENTS, talentById, bossBonuses, luckBonuses } from './talents';
+import { canBuyTalent, TALENTS, bossBonuses, luckBonuses, spentPoints, directionPoints, hasShield } from './talents';
 import { defaultQuests, questDone, validQuestList, allQuestsDone } from './quests';
 import { emptyDay, type HeroBuild } from './types';
 
@@ -19,15 +19,15 @@ describe('очки дня', () => {
     expect(dayPoints(day({ workoutMinutes: 100 }), { ...h, level: 4 }).total).toBe(100);
   });
   it('таланты складываются аддитивно с классом', () => {
-    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['w1b', 'w2a'] })).total).toBe(155);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(132);
   });
   it('плоские бонусы по порогам', () => {
-    const h = hero({ talents: ['w3a'] });
+    const h = hero({ talents: ['wa2'] });
     expect(dayPoints(day({ workoutMinutes: 19 }), h).flat).toBe(0);
-    expect(dayPoints(day({ workoutMinutes: 20 }), h).flat).toBe(10);
+    expect(dayPoints(day({ workoutMinutes: 20 }), h).flat).toBe(2);
   });
-  it('серийник ограничен +10', () => {
-    expect(dayPoints(day(), hero({ talents: ['p2b'] }), 25).flat).toBe(10);
+  it('серийник ограничен +3 на ранг', () => {
+    expect(dayPoints(day(), hero({ cls: 'p', talents: ['pb1'] }), 25).flat).toBe(3);
   });
   it('опыт квестов входит в очки', () => expect(dayPoints(day({ questXp: 40 }), hero()).total).toBe(40));
 });
@@ -47,37 +47,55 @@ describe('серия', () => {
 });
 
 describe('таланты', () => {
-  it('42 таланта в 7 ветках, уникальные id', () => {
-    expect(TALENTS).toHaveLength(42);
-    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(42);
-    for (const b of ['w', 'm', 'b', 'p', 'u', 'h', 'l']) expect(TALENTS.filter((t) => t.branch === b)).toHaveLength(6);
+  it('48 талантов: 4 класса × 3 направления × 4 яруса, уникальные id', () => {
+    expect(TALENTS).toHaveLength(48);
+    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(48);
+    for (const c of ['w', 'm', 'b', 'p']) for (const d of [0, 1, 2]) expect(TALENTS.filter((t) => t.cls === c && t.dir === d).map((t) => t.tier)).toEqual([1, 2, 3, 4]);
   });
-  it('общие ветки: скидки на свой класс нет', () => {
-    expect(talentCost(talentById('u2a')!, 'w')).toBe(2);
-    expect(talentCost(talentById('h3a')!, 'm')).toBe(3);
-    expect(canBuyTalent('u2a', ['u1a'], 'w', 4).ok).toBe(true);
-    expect(canBuyTalent('h2a', [], 'w', 10).ok).toBe(false);
+  it('каждый уровень со 2-го по 13-й открывает новый талант класса', () => {
+    for (const c of ['w', 'm', 'b', 'p']) expect(TALENTS.filter((t) => t.cls === c).map((t) => t.unlock).sort((x, y) => x - y)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
   });
-  it('«все очки» суммируются с классом, бонусы босса и удачи считаются', () => {
-    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['u1b', 'u2b'] })).total).toBe(128);
-    expect(dayPoints(day({ workoutMinutes: 40, study: { Языки: 25 } }), hero({ talents: ['u1a', 'u2a'] })).flat).toBe(25);
-    expect(bossBonuses(['h1a', 'h2b'])).toEqual({ boss: 0.05, weak: 0.2 });
-    expect(luckBonuses(['l1a', 'l1b', 'l3a'])).toEqual({ legend: 0.08, rare: 0.1 });
+  it('бонус ранга маленький и умножается на ранг', () => {
+    const base = dayPoints(day({ workoutMinutes: 100 }), hero({ talents: [] })).total;
+    expect(base).toBe(120);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1'] })).total).toBe(124);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(132);
   });
-  it('стоимость', () => {
-    expect(talentCost(talentById('w1a')!, 'w')).toBe(1);
-    expect(talentCost(talentById('w3a')!, 'w')).toBe(2);
-    expect(talentCost(talentById('w3a')!, 'm')).toBe(3);
-    expect(talentCost(talentById('m1a')!, 'w')).toBe(1);
+  it('плоские бонусы и «все очки» по рангам', () => {
+    expect(dayPoints(day({ workoutMinutes: 45 }), hero({ talents: ['wa2', 'wa2', 'wa3'] })).flat).toBe(4 + 3);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa4', 'wa4'] })).total).toBe(Math.round(100 * 1.24));
   });
-  it('требует предыдущий ярус и очки', () => {
-    expect(canBuyTalent('w2a', [], 'w', 10).ok).toBe(false);
-    expect(canBuyTalent('w1a', [], 'w', 1).ok).toBe(false); // 0 очков на 1 ур.
-    expect(canBuyTalent('w1a', [], 'w', 2).ok).toBe(true);
-    expect(canBuyTalent('w2a', ['w1a'], 'w', 3).ok).toBe(true);
+  it('чужой класс не действует', () => {
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ cls: 'm', talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(100);
+    expect(spentPoints(['wa1', 'ma1'], 'w')).toBe(1);
+    expect(hasShield(['pb3'], 'w')).toBe(false);
+    expect(hasShield(['pb3'], 'p')).toBe(true);
   });
-  it('варианты яруса взаимоисключающие', () => {
-    expect(canBuyTalent('w1b', ['w1a'], 'w', 10).ok).toBe(false);
+  it('старые id талантов игнорируются', () => {
+    expect(spentPoints(['w1a', 'u2b'], 'w')).toBe(0);
+  });
+  it('бонусы босса и удачи считаются по рангам', () => {
+    expect(bossBonuses(['wc1', 'wc1', 'wc2'], 'w')).toEqual({ boss: 0.04, weak: 0.04 });
+    expect(luckBonuses(['mc1', 'mc3', 'mc3'], 'm')).toEqual({ legend: 0.02, rare: 0.02 });
+  });
+  it('серия: ранги умножают бонус', () => {
+    expect(dayPoints(day(), hero({ cls: 'p', talents: ['pb1', 'pb1'] }), 20).flat).toBe(6);
+  });
+  it('покупка: уровень, очки, ранги, очки в направлении', () => {
+    expect(canBuyTalent('wa1', [], 'w', 1).ok).toBe(false); // нет очков
+    expect(canBuyTalent('wa1', [], 'w', 2).ok).toBe(true);
+    expect(canBuyTalent('wa1', [], null, 5).ok).toBe(false);
+    expect(canBuyTalent('ma1', [], 'w', 5).ok).toBe(false); // чужой класс
+    expect(canBuyTalent('wa2', ['wa1', 'wa1'], 'w', 4).ok).toBe(false); // ещё закрыт уровнем 5
+    expect(canBuyTalent('wa2', ['wa1', 'wa1'], 'w', 5).ok).toBe(true);
+    expect(canBuyTalent('wa2', ['wa1'], 'w', 5).ok).toBe(false); // нужно 2 оч. в направлении
+    expect(canBuyTalent('wa1', ['wa1', 'wa1', 'wa1'], 'w', 10).ok).toBe(false); // макс. ранг
+    expect(canBuyTalent('wa1', ['wa1'], 'w', 2).ok).toBe(false); // очки закончились
+    expect(canBuyTalent('pb3', [], 'p', 12).ok).toBe(false);
+    expect(directionPoints(['wa1', 'wa2', 'wb1'], 'w', 0)).toBe(2);
+  });
+  it('щит серии качается только на 1 ранг', () => {
+    expect(canBuyTalent('pb3', ['pb1', 'pb1', 'pb1', 'pb2', 'pb2', 'pb3'], 'p', 20).ok).toBe(false);
   });
 });
 

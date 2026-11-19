@@ -64,10 +64,10 @@ describe('действия', () => {
     runAction(db, { ...kid, now: new Date('2026-11-09T10:00:00Z') }, 'setClass', { cls: 'b', confirm: true });
   });
   it('таланты: нужны очки и уровень', () => {
-    expect(err(() => runAction(db, kid, 'buyTalent', { id: 'w1a' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'buyTalent', { id: 'wa1' }))?.status).toBe(400);
     runAction(db, kid, 'addWorkout', { minutes: 200 });
-    runAction(db, kid, 'buyTalent', { id: 'w1a' });
-    expect(db.select().from(s.hero).all()[1].talents).toEqual(['w1a']);
+    runAction(db, kid, 'buyTalent', { id: 'wa1' });
+    expect(db.select().from(s.hero).all()[1].talents).toEqual(['wa1']);
   });
   it('сундук: только доступные, сохраняется', () => {
     expect(err(() => runAction(db, kid, 'openChest', {}))?.status).toBe(400);
@@ -122,7 +122,7 @@ describe('действия', () => {
     const st = () => loadFamily(db, NOW).family.members.get(2)!;
     expect(st().hero.cls).toBeNull();
     const base = st().xp;
-    expect(err(() => runAction(db, kid, 'buyTalent', { id: 'w1a' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'buyTalent', { id: 'wa1' }))?.status).toBe(400);
     expect(err(() => runAction(db, kid, 'setSub', { sub: 'm' }))?.status).toBe(400);
     expect(err(() => runAction(db, kid, 'setClass', { cls: 'w' }))?.status).toBe(400); // нужно confirm
     runAction(db, kid, 'setClass', { cls: 'w', confirm: true }); // выбор «воин» тоже засчитывается как выбор

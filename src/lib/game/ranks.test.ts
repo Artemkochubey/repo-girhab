@@ -22,8 +22,8 @@ describe('звания «Восхождение»', () => {
     expect(rankFor(1).rank.name).toBe('Подножие');
     expect(rankFor(2).rank.name).toBe('Подножие');
     expect(rankFor(3).rank.name).toBe('Тропа');
-    expect(rankFor(29).rank.name).toBe('Пик');
-    expect(rankFor(30).rank.name).toBe('Вершина');
+    expect(rankFor(16).rank.name).toBe('Пик');
+    expect(rankFor(17).rank.name).toBe('Вершина');
     expect(rankFor(100).rank.name).toBe('Покоритель неба');
     expect(rankFor(100)).toMatchObject({ next: null, progress: 1 });
     const mid = rankFor(3, (xpNeed(3) + xpNeed(5)) / 2);

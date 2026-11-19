@@ -20,10 +20,10 @@ export const SUBCLASS_NAMES: Record<Cls, Record<Exclude<Cls, never>, string>> = 
 
 export const MAIN_BONUS = 0.2;
 
-/** Бонус второй сферы: с 5 ур. +10%, с 10 ур. +15%, с 20 ур. +20%. */
+/** Бонус второй сферы: с 5 ур. +10%, с 8 ур. +15%, с 12 ур. +20%. */
 export function subBonus(level: number): number {
-  if (level >= 20) return 0.2;
-  if (level >= 10) return 0.15;
+  if (level >= 12) return 0.2;
+  if (level >= 8) return 0.15;
   if (level >= 5) return 0.1;
   return 0;
 }
@@ -59,7 +59,7 @@ export const CLASS_INFO: Record<Cls, {
     bonus: '+20% очков за тренировки и зарядку',
     pitch: 'Для тех, кто любит движение и спорт: каждая минута тренировки стоит больше.',
     examples: 'Тренировки, зарядка, бег, турник, танцы, игры во дворе',
-    talents: 'Таланты: сильнее тренировки и ежедневные бонусы за долгую тренировку (20 и 45 минут).',
+    talents: 'Таланты: сила, закалка и охота на боссов. Бонусы за долгую тренировку и зарядку.',
   },
   m: {
     sphere: 'Ум',

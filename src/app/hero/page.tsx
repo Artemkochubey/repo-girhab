@@ -9,7 +9,7 @@ import { rankFor } from '@/lib/game/ranks';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
-import { BRANCHES, BRANCH_NAMES, BRANCH_NOTES, TALENTS, canBuyTalent, talentCost } from '@/lib/game/talents';
+import { DIRECTIONS, MAX_RANK, TALENTS, canBuyTalent, directionPoints, rankOf, tierNeed } from '@/lib/game/talents';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -81,7 +81,7 @@ export default function Hero() {
           </div>
         )}
         <h3>Подкласс</h3>
-        <p className="muted small">Вторая сфера усиливается дополнительно: с 5 уровня +10%, с 10 — +15%, с 20 — +20%. Сейчас у вас уровень {d.level}{d.level >= 5 ? `, бонус +${Math.round(subBonus(d.level) * 100)}%` : ''}.</p>
+        <p className="muted small">Вторая сфера усиливается дополнительно: с 5 уровня +10%, с 8 — +15%, с 12 — +20%. Сейчас у вас уровень {d.level}{d.level >= 5 ? `, бонус +${Math.round(subBonus(d.level) * 100)}%` : ''}.</p>
         {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его подклассы.</p> : (
           <div className="grid">
             {CLS.filter((c) => c !== h.cls).map((c) => {
@@ -120,27 +120,32 @@ export default function Hero() {
       </Section>
 
       <Section title="🌳 Таланты" right={<b>очков: {d.talentPointsFree}</b>}>
-        <p className="muted small">Семь веток: четыре классовые (в ветке своего класса таланты на 1 очко дешевле) и три общие. В каждом ярусе можно выбрать один из двух талантов, для яруса нужен талант предыдущего. Очко таланта даётся за каждый уровень.</p>
-        {BRANCHES.map((br) => (
-          <div key={br} className="branch">
-            <h3>{BRANCH_NAMES[br]}{h.cls === br ? ' · ваш класс' : ''}</h3>
-            <p className="muted small">{BRANCH_NOTES[br]}</p>
-            {[1, 2, 3].map((tier) => (
-              <div key={tier} className="row tier">
-                {TALENTS.filter((t) => t.branch === br && t.tier === tier).map((t) => {
-                  const owned = h.talents.includes(t.id);
-                  const ok = canBuyTalent(t.id, h.talents, h.cls, d.level);
-                  return (
-                    <button key={t.id} className={`talent ${owned ? 'owned' : ''}`} disabled={owned || !ok.ok}
-                      title={ok.reason} onClick={() => act('buyTalent', { id: t.id }).catch(() => toast('Не получилось'))}>
-                      <b>{t.name}</b><small>{t.text}</small><em>{owned ? '✔' : `${talentCost(t, h.cls)} оч.`}</em>
-                    </button>
-                  );
-                })}
+        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p> : (
+          <>
+            <p className="muted small">Три направления вашего класса. Новый талант открывается с каждым уровнем, каждый качается до {MAX_RANK} рангов, ранг стоит 1 очко и даёт небольшой бонус. Талант яруса 2, 3 и 4 требует 2, 4 и 6 очков в направлении. Очко таланта даётся за каждый уровень. Таланты другого класса не действуют, очки за них возвращаются.</p>
+            {DIRECTIONS[h.cls].map((dir, di) => (
+              <div key={di} className="branch">
+                <h3>{dir.name} <small className="muted">· {directionPoints(h.talents, h.cls, di)} оч.</small></h3>
+                <p className="muted small">{dir.note}</p>
+                <div className="tiers">
+                  {TALENTS.filter((t) => t.cls === h.cls && t.dir === di).map((t) => {
+                    const rank = rankOf(h.talents, t.id);
+                    const ok = canBuyTalent(t.id, h.talents, h.cls, d.level);
+                    const locked = d.level < t.unlock;
+                    const lackDir = !locked && directionPoints(h.talents, h.cls, di) < tierNeed(t.tier);
+                    return (
+                      <button key={t.id} className={`talent ${rank ? 'owned' : ''} ${locked || lackDir ? 'locked' : ''}`} disabled={!ok.ok}
+                        title={ok.reason} onClick={() => act('buyTalent', { id: t.id }).catch(() => toast('Не получилось'))}>
+                        <b>{locked ? '🔒 ' : ''}{t.name}</b><small>{t.text}</small>
+                        <em>{'●'.repeat(rank)}{'○'.repeat(t.maxRank - rank)}{locked ? ` · ур. ${t.unlock}` : lackDir ? ` · ${tierNeed(t.tier)} оч. в ветке` : rank >= t.maxRank ? ' · макс.' : ' · +1 ранг'}</em>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ))}
-          </div>
-        ))}
+          </>
+        )}
         {s.parent && <button className="btn ghost" onClick={() => act('resetTalents')}>Сбросить таланты (родитель)</button>}
       </Section>
 

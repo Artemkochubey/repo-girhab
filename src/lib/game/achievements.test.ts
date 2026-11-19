@@ -31,7 +31,7 @@ describe('достижения', () => {
     expect(get(r, 'work10').earnedOn).toBe('2026-11-12');
   });
   it('уровень считается по накопленному опыту, рекордный день — от супер-нормы', () => {
-    const points = [40, 20, 100, 0, 150, 0];                 // 40,60,160,160,310 → уровень 3 на 3-й день (150 XP)
+    const points = [40, 20, 100, 0, 150, 0];                 // 40,60,160,160,310 → уровень 3 на 3-й день (160 XP), 4-й уровень на 5-й
     const r = computeAchievements(input(6, { points }));
     expect(get(r, 'lvl5').earnedOn).toBeNull();
     expect(get(r, 'big1').earnedOn).toBe('2026-11-05');       // 150 ≥ 1,5 × 100
