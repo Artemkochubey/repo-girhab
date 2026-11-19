@@ -17,7 +17,7 @@ const PO_LOW_BACK = 'C186 104 184 92 184 78';
 
 const PATHS: Record<RegionId, string> = {
   cerebellum: 'M148 114 C168 107 200 110 213 123 C216 138 198 152 172 155 C153 153 141 134 148 114 Z',
-  stem: 'M103 117 C111 123 126 127 135 131 C140 144 139 158 135 172 C127 176 116 174 111 169 C112 150 108 133 103 117 Z',
+  stem: 'M116 116 C126 122 140 127 151 131 C154 144 153 156 150 166 C149 182 149 198 150 214 C146 217 141 217 138 214 C138 196 136 180 132 168 C124 156 120 140 116 116 Z',
   frontal: `M22 93 C15 63 33 34 66 22 C88 14 106 9 118 11 ${CENTRAL} ${SYLV_A_BACK} C38 101 26 99 22 93 Z`,
   parietal: `M118 11 C142 7 168 12 186 24 ${PO_UP} ${SYLV_B_BACK} ${CENTRAL_UP} Z`,
   occipital: `M186 24 C208 36 224 58 226 84 C228 100 220 112 206 115 C196 116 192 116 190 114 ${PO_LOW_BACK} ${PO_UP_BACK} Z`,
@@ -27,11 +27,23 @@ const PATHS: Record<RegionId, string> = {
 const FISSURES = [`M50 99 ${SYLV_A} ${SYLV_B}`, `M118 11 ${CENTRAL}`, `M186 24 ${PO_UP} ${PO_LOW}`];
 const CORTEX: RegionId[] = ['frontal', 'parietal', 'occipital', 'temporal'];
 const FOLIA = Array.from({ length: 9 }, (_, k) => `M142 ${116 + k * 4.4} C165 ${107 + k * 4.4} 197 ${111 + k * 4.4} 218 ${123 + k * 4.4}`);
-const ORDER: RegionId[] = ['stem', 'frontal', 'parietal', 'occipital', 'temporal', 'cerebellum', 'limbic'];
+const VENTRICLE = 'M70 72 C80 52 122 44 152 57 C168 65 171 82 160 93 C151 101 140 97 146 87 C152 77 140 66 122 64 C100 62 85 72 81 86 C77 92 68 84 70 72 Z';
+const DEEP: RegionId[] = ['stem', 'limbic'];                   // видны сквозь полупрозрачную кору
+const ORDER: RegionId[] = ['stem', 'limbic', 'frontal', 'parietal', 'occipital', 'temporal', 'cerebellum'];
+const HITS: RegionId[] = ['frontal', 'parietal', 'occipital', 'temporal', 'cerebellum', 'stem', 'limbic'];
 
 // Голова в профиль (лицо слева), как голограмма; мозг вписан в черепную коробку
 const HEAD = 'M230 300 C228 268 232 248 246 228 C266 200 274 160 268 124 C258 66 210 28 150 28 C96 28 62 58 52 100 C48 116 50 128 48 138 C46 146 40 152 36 162 C30 172 24 182 30 188 C36 192 44 192 46 198 C44 204 48 208 46 214 C44 220 50 222 48 228 C46 236 52 246 60 252 C74 262 96 262 112 256 C124 252 128 270 130 300 Z';
-const BRAIN_T = 'translate(55 37) scale(0.885)';
+const BRAIN_T = 'translate(48 28) scale(0.93 1.09)';
+
+// Череп и шея — тонкие линии для анатомического контекста
+const SKULL = [
+  'M60 136 C54 96 76 52 128 38 C180 26 240 44 260 96 C270 126 266 160 254 190 C244 212 228 226 210 232',   // свод черепа
+  'M56 134 C62 127 82 127 88 138 C91 150 84 161 72 161 C62 161 55 150 56 134',                             // глазница
+  'M88 168 C112 165 150 167 176 175',                                                                       // скуловая дуга
+  'M64 236 C90 252 132 250 158 232 C170 223 174 206 171 188',                                                // нижняя челюсть
+];
+const VERTEBRAE = [234, 250, 266, 282].map((y) => `M150 ${y} h22 a3 3 0 0 1 3 3 v8 a3 3 0 0 1 -3 3 h-22 a3 3 0 0 1 -3 -3 v-8 a3 3 0 0 1 3 -3 Z`);
 
 const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (a: number[], b: number[], k: number) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
@@ -90,12 +102,17 @@ export const BrainFigure = memo(function BrainFigure({ intensity, overall, hover
         <path d="M58 146 C64 142 72 142 78 146" strokeWidth="1.4" />{/* веко */}
         <path d="M60 150 C66 154 72 154 77 150" strokeWidth="1" opacity="0.7" />
         <path d="M54 126 C62 120 76 120 84 126" strokeWidth="1.2" opacity="0.6" />{/* бровь */}
-        <path d="M196 168 C206 160 218 166 216 182 C214 196 204 204 196 198" strokeWidth="1.4" />{/* ухо */}
-        <path d="M150 246 C176 238 206 236 232 244" strokeWidth="1" opacity="0.5" />{/* челюсть/шея */}
+        <path d="M182 160 C192 152 206 158 204 176 C202 192 192 200 184 194" strokeWidth="1.4" />{/* ухо */}
+        <path d="M188 168 C194 164 200 170 196 180 C194 186 190 186 188 184" strokeWidth="1" opacity="0.6" />
+      </g>
+      <g clipPath={`url(#headclip-${uid})`} fill="none" stroke="#bfe9ff" strokeOpacity="0.22" strokeWidth="1.3" strokeLinecap="round" pointerEvents="none">
+        {SKULL.map((d, i) => <path key={i} d={d} />)}
+        {VERTEBRAE.map((d, i) => <path key={`v${i}`} d={d} fill="#bfe9ff" fillOpacity="0.05" />)}
       </g>
 
       {/* мозг */}
       <g transform={BRAIN_T}>
+        <path d={VENTRICLE} fill="#9fd6ff" fillOpacity="0.14" stroke="#bfe9ff" strokeOpacity="0.45" strokeWidth="0.9" pointerEvents="none" />
         {ORDER.map((id) => {
           const t = intensity[id] ?? 0;
           const c = reg(id).color;
@@ -104,21 +121,23 @@ export const BrainFigure = memo(function BrainFigure({ intensity, overall, hover
             <g key={id}>
               {t > 0 && (
                 <>
-                  <path d={PATHS[id]} fill={c} opacity={0.25 + 0.6 * t} filter={`url(#glow2-${uid})`} className="brain-pulse" />
+                  <path d={PATHS[id]} fill={c} opacity={(DEEP.includes(id) ? 0.4 : 0.25) + 0.6 * t} filter={`url(#glow2-${uid})`} className="brain-pulse" />
                   {t > 0.35 && <path d={PATHS[id]} fill={c} opacity={0.2 + 0.55 * t} filter={`url(#glow-${uid})`} className="brain-pulse" />}
                 </>
               )}
-              <path d={PATHS[id]} fill={regionColor(id, t)} fillOpacity={isCb ? 0.35 + 0.35 * t : id === 'limbic' ? 0.92 : 0.96} />
+              <path d={PATHS[id]} fill={regionColor(id, t)} fillOpacity={isCb ? 0.3 + 0.35 * t : DEEP.includes(id) ? 0.7 + 0.3 * t : 0.38 + 0.22 * t} />
               <path d={PATHS[id]} fill={`url(#vol-${uid})`} pointerEvents="none" />
-              <g clipPath={`url(#clip-${id}-${uid})`} pointerEvents="none"><path d={PATHS[id]} fill="none" stroke="#000" strokeOpacity="0.32" strokeWidth="5" strokeLinejoin="round" /></g>
+              <g clipPath={`url(#clip-${id}-${uid})`} pointerEvents="none"><path d={PATHS[id]} fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="5" strokeLinejoin="round" /></g>
+              {/* край доли светится её цветом, как у стекла (сильнее при развитии) */}
+              <path d={PATHS[id]} fill="none" stroke={c} strokeOpacity={0.3 + 0.6 * t} strokeWidth="0.9" strokeLinejoin="round" pointerEvents="none" />
               {isCb && <g clipPath={`url(#clip-${id}-${uid})`} fill="none" stroke="#e6f6ff" strokeOpacity={0.45 + 0.4 * t} strokeWidth="1" pointerEvents="none">{FOLIA.map((d, i) => <path key={i} d={d} />)}</g>}
               {id === 'stem' && <g clipPath={`url(#clip-${id}-${uid})`} fill="none" stroke="#fff" strokeOpacity="0.25" strokeWidth="1" pointerEvents="none"><path d="M118 130 C121 145 120 158 119 170" /><path d="M126 132 C129 146 128 158 127 170" /></g>}
               {/* извилины коры: текстура поверх каждой доли коры (после неё рисуются мозжечок и лимбическая система) */}
               {id === 'temporal' && (
                 <g clipPath={`url(#cortex-${uid})`} pointerEvents="none">
-                  <image href="/brain/gyri-dark.png" x="0" y="0" width="240" height="182" preserveAspectRatio="none" opacity="0.85" />
-                  <image href="/brain/gyri-light.png" x="0" y="0" width="240" height="182" preserveAspectRatio="none" />
-                  <g fill="none" stroke="#050a18" strokeOpacity="0.8" strokeWidth="1.9" strokeLinecap="round">{FISSURES.map((d, i) => <path key={i} d={d} />)}</g>
+                  <image href="/brain/gyri-dark.png" x="0" y="0" width="240" height="182" preserveAspectRatio="none" opacity="0.5" />
+                  <image href="/brain/gyri-light.png" x="0" y="0" width="240" height="182" preserveAspectRatio="none" opacity="0.85" />
+                  <g fill="none" stroke="#050a18" strokeOpacity="0.6" strokeWidth="1.7" strokeLinecap="round">{FISSURES.map((d, i) => <path key={i} d={d} />)}</g>
                 </g>
               )}
               {/* светящийся контур развитой доли */}
@@ -126,7 +145,19 @@ export const BrainFigure = memo(function BrainFigure({ intensity, overall, hover
             </g>
           );
         })}
-        {ORDER.map((id) => (
+        {/* внутренние структуры просвечивают сквозь кору */}
+        <path d={VENTRICLE} fill="none" stroke="#bfe9ff" strokeOpacity="0.28" strokeWidth="0.8" pointerEvents="none" />
+        {DEEP.map((id) => {
+          const t = intensity[id] ?? 0;
+          const c = reg(id).color;
+          return (
+            <g key={`deep-${id}`} pointerEvents="none">
+              {t > 0 && <path d={PATHS[id]} fill={c} opacity={0.2 + 0.5 * t} filter={`url(#glow-${uid})`} className="brain-pulse" />}
+              <path d={PATHS[id]} fill={c} fillOpacity={0.08 + 0.3 * t} stroke={c} strokeOpacity={0.35 + 0.5 * t} strokeWidth="0.9" strokeDasharray={t > 0 ? undefined : '2 2'} />
+            </g>
+          );
+        })}
+        {HITS.map((id) => (
           <g key={`h-${id}`}>
             {hover === id && <path d={PATHS[id]} fill="none" stroke="#fff" strokeWidth="1.5" pointerEvents="none" />}
             <path d={PATHS[id]} fill="transparent" role="button" tabIndex={0} aria-label={`${reg(id).name}: ${reg(id).sphere}`} className="muscle-hit"
