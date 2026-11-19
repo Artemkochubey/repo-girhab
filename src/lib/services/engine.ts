@@ -8,7 +8,7 @@ import { CLASS_SPHERES, recommendSub, type Cls } from '../game/classes';
 import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../game/level';
 import { basePoints, dayPoints, streakForward } from '../game/points';
 import { allQuestsDone, defaultQuests, questDone, questXpEarned, type QuestItem } from '../game/quests';
-import { bossBonuses, hasShield, spentPoints } from '../game/talents';
+import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
 export interface Raw {
@@ -93,6 +93,9 @@ export function buildFamily(raw: Raw, today: string): Family {
     prep.set(m.id, { hero, cls, stats, dates });
   }
 
+  // Семейная аура: «Знамя семьи» каждого героя даёт всем +% очков (не больше AURA_CAP)
+  const aura = Math.min(AURA_CAP, [...prep.values()].reduce((a, p) => a + auraOf(p.hero.talents, p.cls), 0));
+
   // Семейные квесты: очки активности семьи по дням (без бонусов и квестов, чтобы не было циклов)
   const familyPoints = new Map<string, number>();
   for (const p of prep.values()) for (const [d, st] of p.stats) familyPoints.set(d, (familyPoints.get(d) ?? 0) + basePoints(st));
@@ -132,14 +135,14 @@ export function buildFamily(raw: Raw, today: string): Family {
       let xp = 0;
       for (const d of dates) {
         const st = { ...stats.get(d)!, questXp: questXp.get(d)! };
-        const r = dayPoints(st, build, streaks.get(d) ?? 0, useSub);
+        const r = dayPoints(st, build, streaks.get(d) ?? 0, useSub, { date: d, superGoal: m.superGoal });
         const qs = questsFor(d);
         days.set(d, { stats: st, total: r.total, bySphere: r.bySphere, quests: qs, questsDone: qs.map((q) => questDone(q, st)) });
         xp += r.total;
       }
       return { days, xp };
     };
-    const build: HeroBuild = { cls, sub: hero.sub, talents: hero.talents, level: 1 };
+    const build: HeroBuild = { cls, sub: hero.sub, talents: hero.talents, level: 1, aura };
     // Два прохода: уровень для бонуса подкласса берём из очков без бонуса подкласса.
     const a = calc(build, false);
     const b = calc({ ...build, level: levelFromXp(a.xp) }, true);

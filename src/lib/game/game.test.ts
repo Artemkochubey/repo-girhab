@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dayPoints, streakLength } from './points';
-import { canBuyTalent, TALENTS, bossBonuses, luckBonuses, spentPoints, directionPoints, hasShield } from './talents';
+import { canBuyTalent, TALENTS, bossBonuses, luckBonuses, spentPoints, directionPoints, hasShield, shopDiscount, doubleChance, auraOf } from './talents';
 import { defaultQuests, questDone, validQuestList, allQuestsDone } from './quests';
 import { emptyDay, type HeroBuild } from './types';
 
@@ -22,7 +22,7 @@ describe('очки дня', () => {
     expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(132);
   });
   it('плоские бонусы по порогам', () => {
-    const h = hero({ talents: ['wa2'] });
+    const h = hero({ talents: ['wa2a'] });
     expect(dayPoints(day({ workoutMinutes: 19 }), h).flat).toBe(0);
     expect(dayPoints(day({ workoutMinutes: 20 }), h).flat).toBe(2);
   });
@@ -47,55 +47,112 @@ describe('серия', () => {
 });
 
 describe('таланты', () => {
-  it('48 талантов: 4 класса × 3 направления × 4 яруса, уникальные id', () => {
-    expect(TALENTS).toHaveLength(48);
-    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(48);
-    for (const c of ['w', 'm', 'b', 'p']) for (const d of [0, 1, 2]) expect(TALENTS.filter((t) => t.cls === c && t.dir === d).map((t) => t.tier)).toEqual([1, 2, 3, 4]);
+  const byCls = (c: string) => TALENTS.filter((t) => t.cls === c);
+  it('80 талантов: 4 класса × 19 и 4 семейных, уникальные id', () => {
+    expect(TALENTS).toHaveLength(80);
+    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(80);
+    for (const c of ['w', 'm', 'b', 'p']) expect(byCls(c)).toHaveLength(19);
+    expect(byCls('f')).toHaveLength(4);
   });
-  it('каждый уровень со 2-го по 13-й открывает новый талант класса', () => {
-    for (const c of ['w', 'm', 'b', 'p']) expect(TALENTS.filter((t) => t.cls === c).map((t) => t.unlock).sort((x, y) => x - y)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  it('направление: ярус 1, развилка a/b на ярусах 2–3, общий ярус 4; вершина одна', () => {
+    for (const c of ['w', 'm', 'b', 'p']) for (const d of [0, 1, 2]) {
+      const l = TALENTS.filter((t) => t.cls === c && t.dir === d);
+      expect(l.map((t) => `${t.tier}${t.branch ?? ''}`).sort()).toEqual(['1', '2a', '2b', '3a', '3b', '4']);
+    }
+    for (const c of ['w', 'm', 'b', 'p']) expect(TALENTS.filter((t) => t.cls === c && t.tier === 5)).toHaveLength(1);
+  });
+  it('каждый уровень со 2-го по 13-й открывает новый талант класса, вершина с 15', () => {
+    for (const c of ['w', 'm', 'b', 'p']) {
+      const lv = new Set(byCls(c).filter((t) => t.tier < 5).map((t) => t.unlock));
+      expect([...lv].sort((x, y) => x - y)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+      expect(byCls(c).find((t) => t.tier === 5)!.unlock).toBe(15);
+    }
   });
   it('бонус ранга маленький и умножается на ранг', () => {
-    const base = dayPoints(day({ workoutMinutes: 100 }), hero({ talents: [] })).total;
-    expect(base).toBe(120);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: [] })).total).toBe(120);
     expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1'] })).total).toBe(124);
     expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(132);
   });
   it('плоские бонусы и «все очки» по рангам', () => {
-    expect(dayPoints(day({ workoutMinutes: 45 }), hero({ talents: ['wa2', 'wa2', 'wa3'] })).flat).toBe(4 + 3);
-    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa4', 'wa4'] })).total).toBe(Math.round(100 * 1.24));
+    expect(dayPoints(day({ workoutMinutes: 45 }), hero({ talents: ['wa2a', 'wa2a', 'wa3a'] })).flat).toBe(4 + 3);
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['wa4c', 'wa4c'] })).total).toBe(Math.round(100 * 1.24));
   });
-  it('чужой класс не действует', () => {
+  it('чужой класс не действует, семейные действуют у любого', () => {
     expect(dayPoints(day({ workoutMinutes: 100 }), hero({ cls: 'm', talents: ['wa1', 'wa1', 'wa1'] })).total).toBe(100);
     expect(spentPoints(['wa1', 'ma1'], 'w')).toBe(1);
-    expect(hasShield(['pb3'], 'w')).toBe(false);
-    expect(hasShield(['pb3'], 'p')).toBe(true);
+    expect(hasShield(['pb3a'], 'w')).toBe(false);
+    expect(hasShield(['pb3a'], 'p')).toBe(true);
+    expect(spentPoints(['fa1', 'fa1'], 'm')).toBe(2);
+    expect(auraOf(['fa1', 'fa1'], 'm')).toBeCloseTo(0.02);
   });
   it('старые id талантов игнорируются', () => {
-    expect(spentPoints(['w1a', 'u2b'], 'w')).toBe(0);
+    expect(spentPoints(['w1a', 'u2b', 'wa2', 'wa4'], 'w')).toBe(0);
   });
-  it('бонусы босса и удачи считаются по рангам', () => {
-    expect(bossBonuses(['wc1', 'wc1', 'wc2'], 'w')).toEqual({ boss: 0.04, weak: 0.04 });
-    expect(luckBonuses(['mc1', 'mc3', 'mc3'], 'm')).toEqual({ legend: 0.02, rare: 0.02 });
+  it('бонусы босса, удачи, скидки и двойного сундука по рангам', () => {
+    expect(bossBonuses(['wc1', 'wc1', 'wc2b'], 'w')).toEqual({ boss: 0.04, weak: 0.04 });
+    expect(luckBonuses(['mc1', 'mc3b', 'mc3b'], 'm')).toEqual({ legend: 0.03, rare: 0.02 });
+    expect(shopDiscount(['fa2b', 'fa2b'], 'b')).toBeCloseTo(0.06);
+    expect(doubleChance(['fa3c'], 'w')).toBeCloseTo(0.02);
   });
-  it('серия: ранги умножают бонус', () => {
+  it('серия: ранги умножают бонус; марафонец и «Непрерывность» срабатывают на пороге', () => {
     expect(dayPoints(day(), hero({ cls: 'p', talents: ['pb1', 'pb1'] }), 20).flat).toBe(6);
+    expect(dayPoints(day(), hero({ cls: 'p', talents: ['pb2b'] }), 7).flat).toBe(5);
+    expect(dayPoints(day(), hero({ cls: 'p', talents: ['pb2b'] }), 8).flat).toBe(0);
+    expect(dayPoints(day({ habits: 6 }), hero({ cls: 'p', talents: ['pb4c'] }), 14).total).toBe(Math.round(30 * 1.2 + 30 * 0.03));
+    expect(dayPoints(day({ habits: 6 }), hero({ cls: 'p', talents: ['pb4c'] }), 13).total).toBe(36);
+  });
+  it('выходные, супер-норма, квесты и аура', () => {
+    const w = day({ workoutMinutes: 100 });
+    expect(dayPoints(w, hero({ talents: ['wb2b'] }), 0, true, { date: '2026-11-21' }).total).toBe(125); // суббота
+    expect(dayPoints(w, hero({ talents: ['wb2b'] }), 0, true, { date: '2026-11-19' }).total).toBe(120); // четверг
+    expect(dayPoints(w, hero({ talents: ['wb3b'] }), 0, true, { superGoal: 100 }).flat).toBe(3);
+    expect(dayPoints(w, hero({ talents: ['wb3b'] }), 0, true, { superGoal: 130 }).flat).toBe(0);
+    expect(dayPoints(day({ questXp: 40 }), hero({ talents: ['fa2a', 'fa2a'] })).total).toBe(44);
+    expect(dayPoints(w, hero({ aura: 0.06 })).total).toBe(126);
   });
   it('покупка: уровень, очки, ранги, очки в направлении', () => {
     expect(canBuyTalent('wa1', [], 'w', 1).ok).toBe(false); // нет очков
     expect(canBuyTalent('wa1', [], 'w', 2).ok).toBe(true);
     expect(canBuyTalent('wa1', [], null, 5).ok).toBe(false);
     expect(canBuyTalent('ma1', [], 'w', 5).ok).toBe(false); // чужой класс
-    expect(canBuyTalent('wa2', ['wa1', 'wa1'], 'w', 4).ok).toBe(false); // ещё закрыт уровнем 5
-    expect(canBuyTalent('wa2', ['wa1', 'wa1'], 'w', 5).ok).toBe(true);
-    expect(canBuyTalent('wa2', ['wa1'], 'w', 5).ok).toBe(false); // нужно 2 оч. в направлении
+    expect(canBuyTalent('wa2a', ['wa1', 'wa1'], 'w', 4).ok).toBe(false); // закрыт уровнем 5
+    expect(canBuyTalent('wa2a', ['wa1', 'wa1'], 'w', 5).ok).toBe(true);
+    expect(canBuyTalent('wa2a', ['wa1'], 'w', 5).ok).toBe(false); // нужно 2 оч. в направлении
     expect(canBuyTalent('wa1', ['wa1', 'wa1', 'wa1'], 'w', 10).ok).toBe(false); // макс. ранг
     expect(canBuyTalent('wa1', ['wa1'], 'w', 2).ok).toBe(false); // очки закончились
-    expect(canBuyTalent('pb3', [], 'p', 12).ok).toBe(false);
-    expect(directionPoints(['wa1', 'wa2', 'wb1'], 'w', 0)).toBe(2);
+    expect(directionPoints(['wa1', 'wa2a', 'wb1'], 'w', 0)).toBe(2);
+  });
+  it('развилка: выбрав одну подветку, вторую взять нельзя', () => {
+    const own = ['wa1', 'wa1', 'wa2a'];
+    expect(canBuyTalent('wa2a', own, 'w', 8).ok).toBe(true);
+    expect(canBuyTalent('wa2b', own, 'w', 8).ok).toBe(false);
+    expect(canBuyTalent('wa3b', own, 'w', 8).ok).toBe(false);
+  });
+  it('ярус 3 требует талант своей подветки, ярус 4 общий', () => {
+    const own = ['wa1', 'wa1', 'wa1', 'wa2b'];
+    expect(canBuyTalent('wa3b', own, 'w', 9).ok).toBe(true);
+    expect(canBuyTalent('wa3a', own, 'w', 9).ok).toBe(false);
+    const full = ['wa1', 'wa1', 'wa1', 'wa2a', 'wa2a', 'wa2a', 'wa3a'];
+    expect(canBuyTalent('wa4c', full, 'w', 11).ok).toBe(true);
+    expect(canBuyTalent('wa4c', ['wa1', 'wa1', 'wa1', 'wa2a', 'wa2a', 'wa2a'], 'w', 12).ok).toBe(false); // нет таланта яруса 3
+  });
+  it('вершина: уровень 15, 8 очков в одном направлении, 3 очка за ранг', () => {
+    const eight = ['wa1', 'wa1', 'wa1', 'wa2a', 'wa2a', 'wa2a', 'wa3a', 'wa3a'];
+    expect(canBuyTalent('w5', eight, 'w', 14).ok).toBe(false);
+    expect(canBuyTalent('w5', eight, 'w', 15).ok).toBe(true);
+    expect(canBuyTalent('w5', eight.slice(0, 7), 'w', 15).ok).toBe(false);
+    expect(spentPoints([...eight, 'w5'], 'w')).toBe(8 + 3);
+    expect(canBuyTalent('w5', eight, 'w', 11).ok).toBe(false);
+  });
+  it('семья: общие таланты, очки считаются отдельно от классовых', () => {
+    expect(canBuyTalent('fa1', [], 'm', 6).ok).toBe(true);
+    expect(canBuyTalent('fa1', [], 'm', 5).ok).toBe(false);
+    expect(canBuyTalent('fa2a', ['fa1', 'fa1'], 'b', 9).ok).toBe(true);
+    expect(canBuyTalent('fa2b', ['fa1', 'fa1', 'fa2a'], 'b', 9).ok).toBe(false);
+    expect(directionPoints(['fa1', 'wa1'], 'w', 0, 'f')).toBe(1);
   });
   it('щит серии качается только на 1 ранг', () => {
-    expect(canBuyTalent('pb3', ['pb1', 'pb1', 'pb1', 'pb2', 'pb2', 'pb3'], 'p', 20).ok).toBe(false);
+    expect(canBuyTalent('pb3a', ['pb1', 'pb1', 'pb1', 'pb2a', 'pb2a', 'pb2a', 'pb3a'], 'p', 20).ok).toBe(false);
   });
 });
 

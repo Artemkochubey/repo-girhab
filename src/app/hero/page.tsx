@@ -9,7 +9,7 @@ import { rankFor } from '@/lib/game/ranks';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
-import { DIRECTIONS, MAX_RANK, TALENTS, canBuyTalent, directionPoints, rankOf, tierNeed } from '@/lib/game/talents';
+import { DIRECTIONS, FAMILY_NAME, FAMILY_NOTE, MAX_RANK, PEAK_DIR, PEAK_LEVEL, PEAK_NAME, PEAK_NEED, TALENTS, canBuyTalent, directionPoints, rankOf, tierNeed, type Talent } from '@/lib/game/talents';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -120,32 +120,58 @@ export default function Hero() {
       </Section>
 
       <Section title="🌳 Таланты" right={<b>очков: {d.talentPointsFree}</b>}>
-        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p> : (
-          <>
-            <p className="muted small">Три направления вашего класса. Новый талант открывается с каждым уровнем, каждый качается до {MAX_RANK} рангов, ранг стоит 1 очко и даёт небольшой бонус. Талант яруса 2, 3 и 4 требует 2, 4 и 6 очков в направлении. Очко таланта даётся за каждый уровень. Таланты другого класса не действуют, очки за них возвращаются.</p>
-            {DIRECTIONS[h.cls].map((dir, di) => (
-              <div key={di} className="branch">
-                <h3>{dir.name} <small className="muted">· {directionPoints(h.talents, h.cls, di)} оч.</small></h3>
-                <p className="muted small">{dir.note}</p>
-                <div className="tiers">
-                  {TALENTS.filter((t) => t.cls === h.cls && t.dir === di).map((t) => {
-                    const rank = rankOf(h.talents, t.id);
-                    const ok = canBuyTalent(t.id, h.talents, h.cls, d.level);
-                    const locked = d.level < t.unlock;
-                    const lackDir = !locked && directionPoints(h.talents, h.cls, di) < tierNeed(t.tier);
-                    return (
-                      <button key={t.id} className={`talent ${rank ? 'owned' : ''} ${locked || lackDir ? 'locked' : ''}`} disabled={!ok.ok}
-                        title={ok.reason} onClick={() => act('buyTalent', { id: t.id }).catch(() => toast('Не получилось'))}>
-                        <b>{locked ? '🔒 ' : ''}{t.name}</b><small>{t.text}</small>
-                        <em>{'●'.repeat(rank)}{'○'.repeat(t.maxRank - rank)}{locked ? ` · ур. ${t.unlock}` : lackDir ? ` · ${tierNeed(t.tier)} оч. в ветке` : rank >= t.maxRank ? ' · макс.' : ' · +1 ранг'}</em>
-                      </button>
-                    );
-                  })}
-                </div>
+        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p> : (() => {
+          const cls = h.cls!;
+          const Card = ({ t }: { t: Talent }) => {
+            const rank = rankOf(h.talents, t.id);
+            const ok = canBuyTalent(t.id, h.talents, cls, d.level);
+            const locked = d.level < t.unlock;
+            const dirPts = directionPoints(h.talents, cls, t.dir, t.cls);
+            const lack = !locked && t.tier < 5 && dirPts < tierNeed(t.tier);
+            const hint = locked ? ` · ур. ${t.unlock}` : rank >= t.maxRank ? ' · макс.' : ok.ok ? ` · +1 ранг (${t.cost} оч.)` : lack ? ` · ${tierNeed(t.tier)} оч. в ветке` : ` · ${ok.reason ?? ''}`;
+            return (
+              <button className={`talent ${rank ? 'owned' : ''} ${locked || (!ok.ok && !rank) ? 'locked' : ''}`} disabled={!ok.ok}
+                title={ok.reason} onClick={() => act('buyTalent', { id: t.id }).catch(() => toast('Не получилось'))}>
+                <b>{locked ? '🔒 ' : ''}{t.name}</b><small>{t.text}</small>
+                <em>{'●'.repeat(rank)}{'○'.repeat(t.maxRank - rank)}{hint}</em>
+              </button>
+            );
+          };
+          // ярусы направления: ряд = ярус; на развилке две подветки рядом
+          const Tree = ({ group, dir }: { group: Talent['cls']; dir: number }) => {
+            const list = TALENTS.filter((t) => t.cls === group && t.dir === dir);
+            const tiers = [...new Set(list.map((t) => t.tier))].sort();
+            return (
+              <div className="tiers">
+                {tiers.map((tier) => (
+                  <div key={tier} className="tierrow">{list.filter((t) => t.tier === tier).map((t) => <Card key={t.id} t={t} />)}</div>
+                ))}
               </div>
-            ))}
-          </>
-        )}
+            );
+          };
+          return (
+            <>
+              <p className="muted small">У каждого направления есть развилка: на ярусах 2–3 выбирается одна из двух подветок, вторая закрывается. Новый талант открывается с каждым уровнем, каждый качается до {MAX_RANK} рангов, ранг даёт небольшой бонус. Ярусы 2, 3 и 4 требуют 2, 4 и 6 очков в направлении. Очко таланта даётся за каждый уровень. Таланты другого класса не действуют, очки за них возвращаются.</p>
+              {DIRECTIONS[cls].map((dir, di) => (
+                <div key={di} className="branch">
+                  <h3>{dir.name} <small className="muted">· {directionPoints(h.talents, cls, di)} оч.</small></h3>
+                  <p className="muted small">{dir.note}</p>
+                  <Tree group={cls} dir={di} />
+                </div>
+              ))}
+              <div className="branch">
+                <h3>{PEAK_NAME} <small className="muted">· с {PEAK_LEVEL} уровня</small></h3>
+                <p className="muted small">Вершина класса: ранг стоит 3 очка. Нужно {PEAK_NEED} очков в любом одном направлении.</p>
+                <Tree group={cls} dir={PEAK_DIR} />
+              </div>
+              <div className="branch">
+                <h3>{FAMILY_NAME} <small className="muted">· {directionPoints(h.talents, cls, 0, 'f')} оч.</small></h3>
+                <p className="muted small">{FAMILY_NOTE}.</p>
+                <Tree group="f" dir={0} />
+              </div>
+            </>
+          );
+        })()}
         {s.parent && <button className="btn ghost" onClick={() => act('resetTalents')}>Сбросить таланты (родитель)</button>}
       </Section>
 

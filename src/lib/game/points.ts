@@ -8,7 +8,7 @@ const STUDY_KINDS: StudyKind[] = ['Книги', 'Языки', 'Учёба', 'Н�
 
 /** Множитель сферы: 1 + класс + подкласс + таланты. */
 export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true): number {
-  let m = 1;
+  let m = 1 + (hero.aura ?? 0);
   if (hero.cls && CLASS_SPHERES[hero.cls].includes(sphere)) m += MAIN_BONUS;
   if (useSub && hero.cls && hero.sub && hero.sub !== hero.cls && CLASS_SPHERES[hero.sub].includes(sphere)) m += subBonus(hero.level);
   for (const { t, rank } of activeTalents(hero.talents, hero.cls)) {
@@ -21,8 +21,12 @@ export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true)
 
 export interface DayBreakdown { bySphere: Partial<Record<Sphere, number>>; flat: number; quests: number; total: number }
 
-/** Очки дня. streak — длина серии (для «Серийника»). */
-export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = true): DayBreakdown {
+export interface DayCtx { date?: string; superGoal?: number }
+
+const isWeekend = (date?: string) => { if (!date) return false; const w = new Date(date + 'T00:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+
+/** Очки дня. streak — длина серии; ctx — дата (выходные) и супер-норма (перевыполнение). */
+export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = true, ctx: DayCtx = {}): DayBreakdown {
   const bySphere: Partial<Record<Sphere, number>> = {};
   const add = (s: Sphere, base: number) => {
     if (base > 0) bySphere[s] = (bySphere[s] ?? 0) + base * sphereMultiplier(s, hero, useSub);
@@ -33,15 +37,21 @@ export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = tru
   add('habits', Math.min(d.habits, POINTS.habitCap) * POINTS.habit);
   add('book', d.books * POINTS.book);
 
-  let flat = 0;
+  const sphereTotal = Object.values(bySphere).reduce((a, b) => a + (b ?? 0), 0);
+  let flat = 0, questBonus = 0;
   for (const { t, rank } of activeTalents(hero.talents, hero.cls)) {
     const e = t.effect;
     if (e.type === 'flat' && e.when(d)) flat += e.bonus * rank;
     if (e.type === 'streak' && streak > 0) flat += Math.min(e.max, streak * e.perDay) * rank;
+    if (e.type === 'milestone' && e.days.includes(streak)) flat += e.bonus * rank;
+    if (e.type === 'over' && ctx.superGoal && basePoints(d) >= ctx.superGoal) flat += e.bonus * rank;
+    if (e.type === 'weekend' && isWeekend(ctx.date)) flat += sphereTotal * e.pct * rank;
+    if (e.type === 'streakAll' && streak >= e.min) flat += sphereTotal * e.pct * rank;
+    if (e.type === 'quest') questBonus += e.pct * rank;
   }
-  const sphereTotal = Object.values(bySphere).reduce((a, b) => a + (b ?? 0), 0);
-  const total = Math.round(sphereTotal + flat + d.questXp);
-  return { bySphere, flat, quests: d.questXp, total };
+  const quests = d.questXp * (1 + questBonus);
+  const total = Math.round(sphereTotal + flat + quests);
+  return { bySphere, flat, quests, total };
 }
 
 /** Серия: подряд идущие дни с очками >= minPoints (по базовым очкам). Щит прощает один пропуск за неделю. */

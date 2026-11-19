@@ -19,7 +19,8 @@ export default function Shop() {
     try { await act('buyItem', { itemId: it.id }); toast(`Куплено: ${it.emoji} ${it.name}. Родитель выдаст награду.`); } catch { /* toast уже показан */ }
     setConfirm(null);
   };
-  const lack = (it: ShopItemDto) => it.currency === 'chests' ? Math.max(0, it.price - d.chests.available) : Math.max(0, it.price - d.wallet.balance);
+  const cost = (it: ShopItemDto) => (it.currency === 'points' ? Math.max(1, Math.round(it.price * (1 - (d.shopDiscount ?? 0)))) : it.price);
+  const lack = (it: ShopItemDto) => it.currency === 'chests' ? Math.max(0, it.price - d.chests.available) : Math.max(0, cost(it) - d.wallet.balance);
 
   return (
     <>
@@ -46,7 +47,7 @@ export default function Shop() {
                   </div>
                 ) : (
                   <button className="btn" disabled={need > 0} onClick={() => setConfirm(it.id)}>
-                    {need > 0 ? `${price(it.currency, it.price)} · не хватает ${need}${it.currency === 'chests' ? ' 🎁' : ''}` : `Купить · ${price(it.currency, it.price)}`}
+                    {need > 0 ? `${price(it.currency, cost(it))} · не хватает ${need}${it.currency === 'chests' ? ' 🎁' : ''}` : `Купить · ${price(it.currency, cost(it))}`}
                   </button>
                 )}
               </div>

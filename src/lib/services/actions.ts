@@ -10,7 +10,7 @@ import { questEnd, validFamilyQuest } from '../game/familyQuests';
 import { CUSTOM_EXERCISE, MUSCLE_IDS, exerciseById, isMuscleId } from '../game/muscles';
 import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
-import { canBuyTalent, luckBonuses } from '../game/talents';
+import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/talents';
 import { validQuestList, type QuestItem } from '../game/quests';
 import { loadFamily, getConfig } from './load';
 
@@ -235,7 +235,9 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       if (st.chestsAvailable < 1) fail(400, 'Нет доступных сундуков');
       const rand = ctx.rand ?? Math.random;
       const rarity = rollRarity(rand(), luckBonuses(st.hero.talents, st.hero.cls));
-      const reward = pickReward(rarity, { common: cfg.loot, rare: cfg.lootRare, legend: cfg.lootLegend }, rand());
+      const pools = { common: cfg.loot, rare: cfg.lootRare, legend: cfg.lootLegend };
+      let reward = pickReward(rarity, pools, rand());
+      if (rand() < doubleChance(st.hero.talents, st.hero.cls)) reward = `${reward} + ${pickReward(rarity, pools, rand())} (двойная добыча!)`;
       db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today }).run();
       return { rarity, reward };
     }
@@ -277,9 +279,10 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const item = db.select().from(s.shopItem).where(eq(s.shopItem.id, int(a.itemId, 1, 1e9, 'Награда'))).get();
       if (!item || !item.active) return fail(404, 'Награда недоступна');
       const st = loadFamily(db, now).family.members.get(memberId)!;
-      if (item.currency === 'points' && st.balance < item.price) fail(400, `Не хватает ${item.price - st.balance} очков`);
+      const price = item.currency === 'points' ? Math.max(1, Math.round(item.price * (1 - shopDiscount(st.hero.talents, st.hero.cls)))) : item.price;
+      if (item.currency === 'points' && st.balance < price) fail(400, `Не хватает ${price - st.balance} очков`);
       if (item.currency === 'chests' && st.chestsAvailable < item.price) fail(400, `Не хватает сундуков: нужно ${item.price}, есть ${st.chestsAvailable}`);
-      const row = db.insert(s.shopPurchase).values({ memberId, itemId: item.id, name: item.name, emoji: item.emoji, price: item.price, currency: item.currency, date: today }).returning().get();
+      const row = db.insert(s.shopPurchase).values({ memberId, itemId: item.id, name: item.name, emoji: item.emoji, price, currency: item.currency, date: today }).returning().get();
       return { id: row.id };
     }
     case 'fulfillPurchase':

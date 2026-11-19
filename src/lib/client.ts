@@ -39,7 +39,7 @@ export interface State {
     loot: string[]; lootRare: string[]; lootLegend: string[];
   };
   detail: null | {
-    id: number; date: string; xp: number; level: number; into: number; span: number; streak: number; talentPointsFree: number; recommendedSub: string | null;
+    id: number; date: string; xp: number; level: number; into: number; span: number; streak: number; talentPointsFree: number; shopDiscount: number; recommendedSub: string | null;
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };

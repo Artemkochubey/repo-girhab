@@ -58,6 +58,15 @@ describe('движок семьи', () => {
     raw.heroes[0].talents = ['wc1', 'wc1', 'wc1'];
     expect(buildFamily(raw, '2026-11-19').boss.damage).toBeGreaterThan(plain);
   });
+  it('«Знамя семьи» одного героя усиливает очки всех (не больше +6%)', () => {
+    const raw = base();
+    raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 100 });
+    const plain = buildFamily(raw, '2026-11-19').members.get(1)!.xp;
+    raw.heroes[1].talents = ['fa1', 'fa1', 'fa1'];
+    const boosted = buildFamily(raw, '2026-11-19').members.get(1)!.xp;
+    expect(boosted).toBeGreaterThan(plain);
+    expect(boosted).toBeLessThanOrEqual(Math.round(plain * 1.06) + 1);
+  });
   it('победа над боссом прошлой недели даёт сундуки', () => {
     const raw = base();
     for (const d of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']) raw.workouts.push({ memberId: 1, date: d, minutes: 200 });

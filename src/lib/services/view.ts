@@ -1,3 +1,4 @@
+import { shopDiscount } from '../game/talents';
 import { BOSSES } from '../game/boss';
 import { questHint, questProgress } from '../game/quests';
 import { allocateWorkouts } from '../game/reps';
@@ -42,6 +43,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     id: st.id, hero: st.hero, xp: st.xp, level: st.level, into: st.into, span: st.span, streak: st.streak,
     talentPointsFree: st.talentPointsFree, recommendedSub: st.recommendedSub,
     wallet: { balance: st.balance, spent: st.spentPoints },
+    shopDiscount: shopDiscount(st.hero.talents, st.hero.cls),
     mvpWins: fam.mvp.wins[st.id] ?? 0,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,

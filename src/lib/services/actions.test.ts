@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { openDb, type Db } from '../db/client';
+import { eq } from 'drizzle-orm';
 import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
@@ -75,6 +76,21 @@ describe('действия', () => {
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
     expect(r).toEqual({ rarity: 'common', reward: 'a' });
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
+  });
+  it('«Щедрая добыча»: второй приз из сундука', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 200 });
+    db.update(s.hero).set({ talents: ['fa3c'] }).where(eq(s.hero.memberId, 2)).run();
+    const r = runAction(db, { ...kid, rand: () => 0.0 }, 'openChest', {}) as { reward: string };
+    expect(r.reward).toContain(' + ');
+    runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {});
+    expect(db.select().from(s.chestOpened).all()[1].reward).toBe('a');
+  });
+  it('«Торговец»: скидка на награды за очки', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 200 });
+    db.insert(s.shopItem).values({ name: 'Приз', emoji: '🎁', price: 100, currency: 'points', active: true }).run();
+    db.update(s.hero).set({ talents: ['fa2b', 'fa2b'] }).where(eq(s.hero.memberId, 2)).run();
+    runAction(db, kid, 'buyItem', { itemId: 1 });
+    expect(db.select().from(s.shopPurchase).all()[0].price).toBe(94);
   });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];

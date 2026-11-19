@@ -17,6 +17,7 @@ export interface HeroBuild {
   sub: Cls | null;
   talents: string[];
   level: number;            // для бонуса подкласса
+  aura?: number;            // семейная аура: +% ко всем очкам от талантов семьи
 }
 
 export const emptyDay = (): DayStats => ({
