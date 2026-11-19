@@ -92,6 +92,29 @@ describe('действия', () => {
     runAction(db, kid, 'buyItem', { itemId: 1 });
     expect(db.select().from(s.shopPurchase).all()[0].price).toBe(94);
   });
+  it('наборы квестов: применение, масштаб по норме, свои наборы', () => {
+    expect(err(() => runAction(db, kid, 'applyQuestSet', { setId: 'sport', memberIds: [2] }))?.status).toBe(403);
+    db.update(s.member).set({ goal: 30 }).where(eq(s.member.id, 2)).run();
+    expect(runAction(db, dad, 'applyQuestSet', { setId: 'sport', memberIds: [2] })).toEqual({ applied: 1 });
+    const q = db.select().from(s.questOverride).where(eq(s.questOverride.memberId, 2)).all().find((x) => x.date === '2026-11-19')!;
+    expect(q.items.find((x) => x.k === 'workout')!.m).toBe(30);   // 60 мин × 30/60
+    expect(err(() => runAction(db, dad, 'applyQuestSet', { setId: 'нет', memberIds: [2] }))?.status).toBe(404);
+    expect(err(() => runAction(db, dad, 'applyQuestSet', { setId: 'sport', memberIds: [] }))?.status).toBe(400);
+    const id = (runAction(db, dad, 'saveQuestSet', { name: 'Мой', emoji: '⭐', items: [{ t: 'x', xp: 5, k: 'workout', m: 50 }] }) as { id: string }).id;
+    runAction(db, dad, 'applyQuestSet', { setId: id, memberIds: [2], date: 'default' });
+    const d = db.select().from(s.questOverride).where(eq(s.questOverride.memberId, 2)).all().find((x) => x.date === 'default')!;
+    expect(d.items[0].m).toBe(50);                                  // свой набор без масштаба
+    runAction(db, dad, 'deleteQuestSet', { id });
+    expect(db.select().from(s.config).get()!.questSets).toEqual([]);
+  });
+  it('час вечернего напоминания: только родитель, -1 выключает', () => {
+    expect(err(() => runAction(db, kid, 'setConfig', { reminderHour: 20 }))?.status).toBe(403);
+    runAction(db, dad, 'setConfig', { reminderHour: 20 });
+    expect(db.select().from(s.config).get()!.reminderHour).toBe(20);
+    runAction(db, dad, 'setConfig', { reminderHour: -1 });
+    expect(db.select().from(s.config).get()!.reminderHour).toBe(-1);
+    expect(err(() => runAction(db, dad, 'setConfig', { reminderHour: 30 }))?.status).toBe(400);
+  });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];
     expect(err(() => runAction(db, kid, 'setQuests', { date: 'default', items }))?.status).toBe(403);

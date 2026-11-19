@@ -26,6 +26,7 @@ export interface Raw {
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;
+  reminderHour: number;
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
 }

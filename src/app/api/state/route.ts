@@ -12,6 +12,6 @@ export const GET = (req: Request) =>
     const cfg = getConfig(db());
     const q = new URL(req.url).searchParams.get('date');
     const date = q && isDate(q) && dateAllowed(q, family.today, ctx.parent) ? q : undefined;
-    return buildState(raw, family, { memberId: ctx.memberId, parent: ctx.parent, date, cfg: { minutes: cfg.minutes, superMinutes: cfg.superMinutes, timezone: cfg.timezone }, pinSet: !!cfg.pinHash,
-      admin: ctx.parent ? adminView(raw, family, { loot: cfg.loot, lootRare: cfg.lootRare, lootLegend: cfg.lootLegend }) : undefined });
+    return buildState(raw, family, { memberId: ctx.memberId, parent: ctx.parent, date, cfg: { minutes: cfg.minutes, superMinutes: cfg.superMinutes, timezone: cfg.timezone, reminderHour: cfg.reminderHour }, pinSet: !!cfg.pinHash,
+      admin: ctx.parent ? adminView(raw, family, { loot: cfg.loot, lootRare: cfg.lootRare, lootLegend: cfg.lootLegend, questSets: cfg.questSets }) : undefined });
   });

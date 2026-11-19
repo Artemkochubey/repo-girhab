@@ -1,4 +1,5 @@
 import type { QuestItem } from '../game/quests';
+import type { CustomQuestSet } from '../game/questSets';
 import { sqliteTable, text, integer, real, unique, index } from 'drizzle-orm/sqlite-core';
 
 // Все даты — строки 'YYYY-MM-DD' в часовом поясе семьи (config.timezone).
@@ -26,6 +27,10 @@ export const config = sqliteTable('config', {
   loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),
   lootRare: text('loot_rare', { mode: 'json' }).$type<string[]>().notNull(),
   lootLegend: text('loot_legend', { mode: 'json' }).$type<string[]>().notNull(),
+  // свои наборы квестов (готовые наборы лежат в коде)
+  questSets: text('quest_sets', { mode: 'json' }).$type<CustomQuestSet[]>().notNull().default([]),
+  // с какого часа вечером напоминать о норме (-1 — не напоминать)
+  reminderHour: integer('reminder_hour').notNull().default(19),
 });
 
 const entryBase = {

@@ -160,3 +160,8 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .tt-big { font-size: 2rem; } .tt-ranks { display: flex; align-items: center; gap: 6px; } .tt-ranks i { width: 14px; height: 14px; border-radius: 50%; background: #3a2f63; display: inline-block; } .tt-ranks i.on { background: #ffd24a; box-shadow: 0 0 6px #ffd24a; }
 .tt-hint { text-align: center; }
 @keyframes tt-pulse { 0%, 100% { transform: scale(.9); opacity: .12; } 50% { transform: scale(1.12); opacity: .3; } }
+
+/* Вечернее напоминание и наборы квестов */
+.reminder { border-color: #6f58c9; background: linear-gradient(135deg, #241b42, #1a1430); } .reminder.super { border-color: var(--accent); }
+.sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; } .set { display: grid; gap: 6px; align-content: start; } .set .list { margin: 0; padding-left: 0; }
+.sets-row { align-items: center; } .btn.sm { min-height: 32px; padding: 4px 10px; font-size: .85rem; }

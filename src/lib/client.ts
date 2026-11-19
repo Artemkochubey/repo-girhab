@@ -29,7 +29,7 @@ export interface State {
   mvp: MvpDto;
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
-  config: { minutes: number; superMinutes: number; timezone: string };
+  config: { minutes: number; superMinutes: number; timezone: string; reminderHour: number };
   members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number }[];
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
@@ -37,6 +37,7 @@ export interface State {
     familyQuestsAll: FamilyQuestDto[];
     quests: Record<number, { items: QuestDto[]; hasDefault: boolean }>;
     loot: string[]; lootRare: string[]; lootLegend: string[];
+    questSets: { id: string; name: string; emoji: string; items: QuestDto[] }[];
   };
   detail: null | {
     id: number; date: string; xp: number; level: number; into: number; span: number; streak: number; talentPointsFree: number; shopDiscount: number; recommendedSub: string | null;

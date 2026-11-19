@@ -12,6 +12,7 @@ import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
 import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/talents';
 import { validQuestList, type QuestItem } from '../game/quests';
+import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
 import { loadFamily, getConfig } from './load';
 
 export class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
@@ -223,6 +224,36 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       saveQuests(db, memberId, date, items.map((q) => ({ t: q.t.trim(), d: q.d?.trim() || undefined, xp: q.xp, k: q.k, m: q.m, kind: q.kind, done: false, pending: false })));
       return { ok: true };
     }
+    case 'saveQuestSet': {
+      needParent();
+      const name = String(a.name ?? '').trim();
+      const items = a.items as QuestItem[];
+      if (!name || name.length > 40) fail(400, 'Название набора: до 40 символов');
+      if (!Array.isArray(items) || !validQuestList(items)) fail(400, 'Квесты: 1–5 штук, название до 60 символов, опыт 1–100');
+      if (cfg.questSets.length >= MAX_CUSTOM_SETS) fail(400, `Можно хранить не больше ${MAX_CUSTOM_SETS} своих наборов`);
+      const clean = items.map((q) => ({ t: q.t.trim(), d: q.d?.trim() || undefined, xp: q.xp, k: q.k, m: q.m, kind: q.kind }));
+      const set = { id: `c${now.getTime().toString(36)}${cfg.questSets.length}`, name, emoji: String(a.emoji ?? '📦').slice(0, 4) || '📦', items: clean };
+      db.update(s.config).set({ questSets: [...cfg.questSets, set] }).where(eq(s.config.id, 1)).run();
+      return { id: set.id };
+    }
+    case 'deleteQuestSet': {
+      needParent();
+      db.update(s.config).set({ questSets: cfg.questSets.filter((x) => x.id !== String(a.id)) }).where(eq(s.config.id, 1)).run();
+      return { ok: true };
+    }
+    case 'applyQuestSet': {
+      // применяет набор выбранным участникам на сегодня или «на каждый день»; минуты готовых наборов масштабируются по норме
+      needParent();
+      const found = findSet(String(a.setId), cfg.questSets);
+      if (!found) return fail(404, 'Нет такого набора');
+      const date = a.date === 'default' ? 'default' : today;
+      const ids = Array.isArray(a.memberIds) ? a.memberIds.map((x) => int(x, 1, 1e9, 'Участник')) : [];
+      if (!ids.length) fail(400, 'Выберите, кому применить набор');
+      const members = db.select().from(s.member).all().filter((m) => ids.includes(m.id));
+      if (!members.length) fail(404, 'Участники не найдены');
+      for (const m of members) saveQuests(db, m.id, date, found.scaled ? scaleQuests(found.set.items, m.goal) : found.set.items.map((x) => ({ ...x, done: false, pending: false })));
+      return { applied: members.length };
+    }
     case 'resetQuests': {
       needParent();
       db.delete(s.questOverride).where(and(eq(s.questOverride.memberId, target()), eq(s.questOverride.date, String(a.date ?? 'default')))).run();
@@ -389,6 +420,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
           if (!Array.isArray(v) || v.length > 200 || v.some((x) => typeof x !== 'string' || !x.trim() || x.length > 80)) fail(400, 'Список наград некорректен');
           patch[k] = (v as string[]).map((x) => x.trim());
         }
+      if (a.reminderHour !== undefined) patch.reminderHour = int(a.reminderHour, -1, 23, 'Час напоминания');
       if (a.timezone !== undefined) {
         try { new Intl.DateTimeFormat('en', { timeZone: String(a.timezone) }); } catch { fail(400, 'Неизвестный часовой пояс'); }
         patch.timezone = String(a.timezone);

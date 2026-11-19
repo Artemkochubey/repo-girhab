@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
+import { QuestSets } from '@/components/QuestSets';
 import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
 import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '@/lib/game/loot';
@@ -110,10 +111,19 @@ function AdminSettings() {
             }}>＋ Добавить варианты из каталога ({(k === 'loot' ? LOOT_COMMON : k === 'lootRare' ? LOOT_RARE : LOOT_LEGEND).filter((x) => !new Set(lines(loot[k]).map((y) => y.toLowerCase())).has(x.toLowerCase())).length} новых)</button>
           </div>
         ))}
+        <label className="xpl">🌙 Вечернее напоминание о норме
+          <select value={s.config.reminderHour} onChange={(e) => act('setConfig', { reminderHour: Number(e.target.value) }).then(() => toast('Сохранено')).catch(() => {})}>
+            <option value={-1}>выключено</option>
+            {[16, 17, 18, 19, 20, 21, 22].map((h) => <option key={h} value={h}>с {h}:00</option>)}
+          </select>
+        </label>
+        <p className="muted small">С этого часа на «Сегодня» и на ТВ появляется подсказка, если норма дня ещё не набрана.</p>
         <button className="btn" onClick={saveCfg}>Сохранить</button>
       </Section>
 
       <FamilyQuestAdmin />
+
+      <QuestSets />
 
       <ShopAdmin />
 

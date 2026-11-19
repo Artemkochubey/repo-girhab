@@ -1,5 +1,6 @@
 'use client';
 import { FamilyQuests } from '@/components/FamilyQuests';
+import { EveningReminder } from '@/components/EveningReminder';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
@@ -35,6 +36,8 @@ export default function Today() {
         </p>
         <p className="muted small">Цели: {me.goal} баллов → {s.config.minutes} мин, {me.superGoal} → {s.config.superMinutes} мин</p>
       </Section>
+
+      <EveningReminder />
 
       <MvpCard />
 

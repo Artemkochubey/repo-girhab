@@ -4,6 +4,7 @@ import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
+import { hourIn } from '@/lib/clock';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import './tv.css';
 
@@ -11,7 +12,7 @@ interface TvFq { id: number; title: string; description: string; xp: number; kin
 interface Tv {
   familyQuests: TvFq[];
   mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
-  today: string;
+  today: string; timezone: string; reminderHour: number;
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
   record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
@@ -88,6 +89,16 @@ export default function TvPage() {
           {boss.defeated && mvp && <p className="tv-mvp">⭐ MVP недели: {mvp.emoji} {mvp.name}</p>}
         </div>
       </section>
+
+      {(() => {
+        const late = d.reminderHour >= 0 && hourIn(d.timezone) >= d.reminderHour ? d.members.filter((m) => m.pointsToday < m.goal) : [];
+        return late.length > 0 && (
+          <section className="tv-remind" role="status">
+            <b>🌙 Вечер: успейте набрать норму!</b>
+            <div>{late.map((m) => <span key={m.id} style={{ color: m.color }}>{m.emoji} {m.name}: ещё <b>{m.goal - m.pointsToday}</b></span>)}</div>
+          </section>
+        );
+      })()}
 
       <section className="tv-mvp-row">
         <div className="tv-mvpi"><span>🏆</span><div><small>MVP вчера</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.yesterday?.memberId); return m ? `${m.emoji} ${m.name} +1 🎁` : 'не было'; })()}</b></div></div>

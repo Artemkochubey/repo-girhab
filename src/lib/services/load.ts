@@ -26,6 +26,7 @@ export function loadRaw(db: Db): Raw {
     familyQuests: db.select().from(s.familyQuest).all(),
     dayMvps: db.select().from(s.dayMvp).all(),
     mvpSince: getConfig(db).mvpSince,
+    reminderHour: getConfig(db).reminderHour,
     shopItems: db.select().from(s.shopItem).all(),
     purchases: db.select().from(s.shopPurchase).all(),
   };

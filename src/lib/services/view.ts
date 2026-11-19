@@ -4,6 +4,7 @@ import { questHint, questProgress } from '../game/quests';
 import { allocateWorkouts } from '../game/reps';
 import { addDays, dateRange } from '../date';
 import type { Family, Raw, MemberState } from './engine';
+import type { CustomQuestSet } from '../game/questSets';
 
 const bossView = (b: Family['boss']) => ({ ...b, boss: BOSSES.find((x) => x.id === b.bossId)! });
 
@@ -69,7 +70,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
 }
 
 /** Только для родителя: очередь подтверждений, квесты всех участников, списки наград. */
-export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRare: string[]; lootLegend: string[] }) {
+export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRare: string[]; lootLegend: string[]; questSets: CustomQuestSet[] }) {
   const pending: { memberId: number; date: string; index: number; t: string; xp: number }[] = [];
   const quests: Record<number, { items: unknown[]; hasDefault: boolean }> = {};
   for (const m of raw.members) {
@@ -98,7 +99,7 @@ export function shopView(raw: Raw, memberId: number | null, parent: boolean) {
   };
 }
 
-export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean; admin?: ReturnType<typeof adminView> }) {
+export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string; reminderHour: number }; pinSet: boolean; admin?: ReturnType<typeof adminView> }) {
   const detailFor = (opts.memberId && fam.members.get(opts.memberId)) || null;
   return {
     today: fam.today, config: opts.cfg, pinSet: opts.pinSet, parent: opts.parent, me: opts.memberId,
@@ -124,7 +125,7 @@ export function tvState(raw: Raw, fam: Family) {
     };
   };
   return {
-    today: fam.today, members: summary(raw, fam), boss: bossView(fam.boss),
+    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),

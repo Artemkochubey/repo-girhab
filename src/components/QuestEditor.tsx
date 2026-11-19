@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import type { QuestDto } from '@/lib/client';
+import { QUEST_SETS, scaleQuests } from '@/lib/game/questSets';
+import type { QuestItem } from '@/lib/game/quests';
 import { useGame } from './Shell';
 
 const KINDS = [['manual', 'Вручную (родитель подтвердит)'], ['warmup', 'Зарядка (само)'], ['workout', 'Тренировка, мин (само)'], ['habits', 'Привычки, шт. (само)'], ['study', 'Учёба, мин (само)']] as const;
@@ -12,6 +14,10 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
   const info = s.admin!.quests[memberId];
   const [items, setItems] = useState<QuestDto[]>(() => info.items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.m, kind: q.kind })));
   const [scope, setScope] = useState<'today' | 'default'>('today');
+  const [setName, setSetName] = useState('');
+  const goal = s.members.find((m) => m.id === memberId)?.goal ?? 60;
+  const sets = [...QUEST_SETS.map((x) => ({ id: x.id, name: x.name, emoji: x.emoji, items: scaleQuests(x.items, goal) })), ...s.admin!.questSets];
+  const load = (items: QuestDto[]) => setItems(items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.m, kind: q.kind })));
   const set = (i: number, p: Partial<QuestDto>) => setItems(items.map((q, j) => (j === i ? { ...q, ...p } : q)));
 
   const save = async () => {
@@ -28,6 +34,10 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
       <div className="row wrapRow">
         <button className={`btn ${scope === 'today' ? '' : 'ghost'}`} onClick={() => setScope('today')}>На сегодня</button>
         <button className={`btn ${scope === 'default' ? '' : 'ghost'}`} onClick={() => setScope('default')}>На каждый день{info.hasDefault ? ' ✔' : ''}</button>
+      </div>
+      <div className="row wrapRow sets-row">
+        <small className="muted">Набор:</small>
+        {sets.map((x) => <button key={x.id} className="btn ghost sm" onClick={() => load(x.items as QuestItem[])} title="Подставить квесты набора в редактор (потом нажмите «Сохранить»)">{x.emoji} {x.name}</button>)}
       </div>
       {items.map((q, i) => (
         <div key={i} className="qe-row">
@@ -50,6 +60,10 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
         <button className="btn ghost" disabled={items.length >= 5} onClick={() => setItems([...items, blank()])}>＋ Квест</button>
         <button className="btn" disabled={!items.length} onClick={save}>Сохранить</button>
         <button className="btn ghost" onClick={async () => { await act('resetQuests', { memberId, date: scope === 'default' ? 'default' : s.today }); toast('Возвращены случайные квесты'); }}>Вернуть случайные</button>
+      </div>
+      <div className="row wrapRow">
+        <input value={setName} maxLength={40} placeholder="Название своего набора" onChange={(e) => setSetName(e.target.value)} />
+        <button className="btn ghost" disabled={!items.length || !setName.trim()} onClick={() => act('saveQuestSet', { name: setName, items: items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' ? q.m ?? 1 : undefined, kind: q.k === 'study' ? q.kind ?? 'any' : undefined })) }).then(() => { setSetName(''); toast('Набор сохранён'); }).catch(() => {})}>💾 Сохранить как набор</button>
       </div>
       <p className="muted small">Квесты «на сегодня» сбросят сегодняшние отметки. Шаблон «на каждый день» действует, пока не задан квест на конкретный день.</p>
     </div>
