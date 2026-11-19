@@ -51,6 +51,12 @@ export const MountainClimb = memo(function MountainClimb({ climbers, tv = false 
     const x = best.sd === 'r' ? Math.min(p.x + 20, 358 - W) : Math.max(p.x - 20 - W, 2);
     return { ...p, side: best.sd, tx: x, ty: best.y };
   });
+  // если плашки у подножия упёрлись в нижний край — сдвигаем стопку вверх (порядок сверху вниз сохраняется)
+  const maxY = 430 - H / 2 - 3;
+  for (const sd of ['l', 'r'] as const) {
+    let limit = maxY;
+    for (const t of tags.filter((t) => t.side === sd).sort((u, v) => v.ty - u.ty)) { t.ty = Math.min(t.ty, limit); limit = t.ty - (H + 3); }
+  }
 
   return (
     <svg viewBox="0 0 360 430" className={`mountain${tv ? ' m-tv' : ''}`} role="img" aria-label={`Восхождение: ${myRank.rank.name}`}>

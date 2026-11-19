@@ -112,10 +112,20 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
 
 /** Публичная сводка для ТВ: без деталей записей. */
 export function tvState(raw: Raw, fam: Family) {
+  const record = (id: number) => {
+    const st = fam.members.get(id)!, d = st.days.get(fam.today);
+    const study = d?.stats.study ?? {};
+    return {
+      points: d?.total ?? 0, workoutMinutes: Math.round(d?.stats.workoutMinutes ?? 0), warmup: !!d?.stats.warmups,
+      studyMinutes: Object.values(study).reduce((a, v) => a + (v ?? 0), 0), studyByKind: study, books: d?.stats.books ?? 0,
+      habits: raw.habits.filter((h) => h.memberId === id).map((h) => ({ id: h.id, name: h.name, checked: raw.habitChecks.some((c) => c.habitId === h.id && c.date === fam.today) })),
+    };
+  };
   return {
     today: fam.today, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
+    record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;
       return { memberId: m.id, items: d.quests.map((q, i) => { const pr = questProgress(q, d.stats); return { t: q.t, desc: q.d ?? null, xp: q.xp, manual: q.k === 'manual', done: d.questsDone[i], pending: !!q.pending, index: i, hint: questHint(q), progress: pr ? `${Math.min(pr.have, pr.need)}/${pr.need}${pr.unit ? ' ' + pr.unit : ''}` : null }; }) };

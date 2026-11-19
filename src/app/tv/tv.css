@@ -44,3 +44,12 @@
 .tv-mountain-box { display: block; min-width: 0; } .tv-mountain .mountain { align-self: start; }
 .mountain.m-tv .m-name { font-size: 12.5px; } .mountain.m-tv .m-nlvl { font-size: 10px; }
 .tv-mountain .roster li { background: #241b42; font-size: .8em; grid-template-columns: 1.6rem 2.6rem 1fr 5rem; } .tv-mountain .r-main small { color: #cbbff0; font-size: .72em; } .tv-mountain .r-av { width: 2.6rem; height: 2.6rem; }
+/* Запись сделанного с ТВ */
+.tv-rec { background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 1.6vw; display: grid; gap: 14px; } .tv-rec h2 { margin: 0; color: #ffd978; font: 700 1.5rem Georgia, serif; }
+.tv-rec-who { display: flex; flex-wrap: wrap; gap: 14px; }
+.tv-who { display: flex; align-items: center; gap: 12px; padding: 10px 22px; font: inherit; color: #fff; background: #241b42; border: 4px solid; border-radius: 18px; cursor: pointer; min-height: 72px; } .tv-who span { font-size: 2.2rem; } .tv-who.on { background: #3a2f63; box-shadow: 0 0 0 4px #ffd978; }
+.tv-who:focus-visible, .tv-b:focus-visible { outline: 6px solid #fff; outline-offset: 4px; transform: scale(1.04); }
+.tv-hint { margin: 0; color: #cbbff0; font-size: .75em; } .tv-note { font-size: 1.2rem; padding: 10px 16px; border-radius: 12px; background: #17301f; border: 3px solid #4cae6a; width: fit-content; }
+.tv-rec-grid { display: grid; gap: 10px; } .tv-rec-sum { color: #e6defc; font-size: .85em; }
+.tv-rec-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: #241b42; border-radius: 16px; padding: 10px 14px; } .tv-rec-row > span { min-width: 12rem; font-weight: 700; } .tv-rec-row.wrap { align-items: flex-start; }
+.tv-b { font: inherit; color: #fff; background: #3a2f63; border: 3px solid #5b4a99; border-radius: 14px; padding: 8px 20px; min-height: 60px; cursor: pointer; } .tv-b.done { background: #17301f; border-color: #4cae6a; } .tv-b:disabled { cursor: default; opacity: .85; }

@@ -85,6 +85,22 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       db.insert(s.warmupEntry).values({ memberId, date, createdBy: ctx.memberId }).run();
       return { on: true };
     }
+    case 'recordWarmup': {
+      // «сделал»: повтор не снимает отметку (снимать может только родитель)
+      const memberId = target(), date = dateArg();
+      const ex = db.select().from(s.warmupEntry).where(and(eq(s.warmupEntry.memberId, memberId), eq(s.warmupEntry.date, date))).get();
+      if (!ex) db.insert(s.warmupEntry).values({ memberId, date, createdBy: ctx.memberId }).run();
+      return { on: true, added: !ex };
+    }
+    case 'recordHabit': {
+      const date = dateArg();
+      const h = db.select().from(s.habit).where(eq(s.habit.id, int(a.habitId, 1, 1e9, 'Привычка'))).get();
+      if (!h || h.archived) return fail(404, 'Нет привычки');
+      if (h.memberId !== ctx.memberId && !ctx.parent) fail(403, 'Чужая привычка');
+      const ex = db.select().from(s.habitCheck).where(and(eq(s.habitCheck.habitId, h.id), eq(s.habitCheck.date, date))).get();
+      if (!ex) db.insert(s.habitCheck).values({ habitId: h.id, date }).run();
+      return { on: true, added: !ex };
+    }
     case 'addHabit': {
       const memberId = target();
       const row = db.insert(s.habit).values({ memberId, name: str(a.name, 60, 'Название') }).returning().get();

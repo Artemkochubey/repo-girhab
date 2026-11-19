@@ -4,6 +4,7 @@ import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
+import { STUDY_KINDS } from '@/lib/db/schema';
 import './tv.css';
 
 interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
@@ -13,12 +14,15 @@ interface Tv {
   today: string;
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
+  record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
   quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
 }
 
 export default function TvPage() {
   const [d, setD] = useState<Tv | null>(null);
   const [off, setOff] = useState(false);
+  const [who, setWho] = useState<number | null>(null);
+  const [note, setNote] = useState('');
   const load = useCallback(async () => {
     try { const r = await fetch('/api/tv', { cache: 'no-store' }); if (!r.ok) throw 0; setD(await r.json()); setOff(false); }
     catch { setOff(true); }
@@ -42,6 +46,17 @@ export default function TvPage() {
 
   const mark = async (memberId: number, index: number) => {
     await fetch('/api/tv/mark', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ memberId, index }) });
+    load();
+  };
+
+  // Запись сделанного: зарядка, тренировка, учёба, привычка, книга
+  const record = async (body: Record<string, unknown>, okText: string) => {
+    try {
+      const r = await fetch('/api/tv/record', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ memberId: who, ...body }) });
+      const j = await r.json();
+      setNote(r.ok ? `✔ ${okText}` : `✖ ${j.error ?? 'Не получилось'}`);
+    } catch { setNote('✖ Нет связи с сервером'); }
+    setTimeout(() => setNote(''), 4000);
     load();
   };
 
@@ -115,6 +130,46 @@ export default function TvPage() {
           <ClimbRoster climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
         </section>
       </div>
+
+      <section className="tv-rec">
+        <h2>✍️ Записать сделанное</h2>
+        <div className="tv-rec-who">
+          {d.members.map((m) => (
+            <button key={m.id} data-tv className={`tv-who ${who === m.id ? 'on' : ''}`} style={{ borderColor: m.color }} onClick={() => setWho(who === m.id ? null : m.id)}>
+              <span>{m.emoji}</span><b>{m.name}</b>
+            </button>
+          ))}
+        </div>
+        {note && <div className="tv-note" role="status">{note}</div>}
+        {who === null && <p className="tv-hint">Выберите героя, чтобы записать, что он сделал сегодня.</p>}
+        {who !== null && (() => {
+          const m = d.members.find((x) => x.id === who)!;
+          const r = d.record[who];
+          const mins = [15, 30, 45, 60];
+          return (
+            <div className="tv-rec-grid">
+              <div className="tv-rec-sum">{m.emoji} {m.name} сегодня: <b>{r.points}</b> очков · тренировка {r.workoutMinutes} мин · учёба {r.studyMinutes} мин · зарядка {r.warmup ? '✔' : '—'} · привычки {r.habits.filter((h) => h.checked).length}/{r.habits.length}</div>
+              <div className="tv-rec-row"><span>🔥 Зарядка</span>
+                <button data-tv className={`tv-b ${r.warmup ? 'done' : ''}`} disabled={r.warmup} onClick={() => record({ kind: 'warmup' }, 'Зарядка записана')}>{r.warmup ? '✔ Сделана' : 'Сделал(а) зарядку'}</button></div>
+              <div className="tv-rec-row"><span>🏃 Тренировка</span>
+                {mins.map((n) => <button key={n} data-tv className="tv-b" onClick={() => record({ kind: 'workout', minutes: n }, `Тренировка +${n} мин`)}>+{n} мин</button>)}</div>
+              {STUDY_KINDS.map((k) => (
+                <div key={k} className="tv-rec-row"><span>📚 {k}{r.studyByKind[k] ? ` · ${r.studyByKind[k]}` : ''}</span>
+                  {[15, 30, 45].map((n) => <button key={n} data-tv className="tv-b" onClick={() => record({ kind: 'study', studyKind: k, minutes: n }, `${k} +${n} мин`)}>+{n} мин</button>)}</div>
+              ))}
+              <div className="tv-rec-row"><span>📖 Книга</span>
+                <button data-tv className="tv-b" onClick={() => record({ kind: 'book' }, 'Книга прочитана (+50)')}>Прочитал(а) книгу</button></div>
+              {r.habits.length > 0 && (
+                <div className="tv-rec-row wrap"><span>✅ Привычки</span>
+                  {r.habits.map((h) => (
+                    <button key={h.id} data-tv className={`tv-b ${h.checked ? 'done' : ''}`} disabled={h.checked} onClick={() => record({ kind: 'habit', habitId: h.id }, 'Привычка отмечена')}>{h.checked ? '✔ ' : ''}{h.name}</button>
+                  ))}</div>
+              )}
+              <p className="tv-hint">Записи на ТВ нельзя отменить: если ошиблись, скажите родителям.</p>
+            </div>
+          );
+        })()}
+      </section>
 
       <section className="tv-quests">
         {d.members.map((m) => {
