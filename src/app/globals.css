@@ -50,3 +50,9 @@ input { background: #0f0b1a; color: var(--text); border: 1px solid var(--line); 
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--accent); padding: 10px 16px; border-radius: 12px; z-index: 30; }
 details summary { cursor: pointer; color: var(--muted); margin: 6px 0; }
 @media (max-width: 520px) { .hero { grid-auto-flow: row; text-align: center; } .big { font-size: 2.4rem; } }
+.mrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .mrow > input:not(.num):not(.color) { flex: 1; min-width: 120px; }
+.color { width: 44px; height: 40px; padding: 2px; flex: none; }
+.xpl { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; }
+.col { display: grid; gap: 4px; color: var(--muted); font-size: .9rem; }
+textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; }
+.qe { display: grid; gap: 10px; } .qe-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--panel2); border-radius: 12px; padding: 8px; } .qe-row > input:first-child { flex: 1 1 200px; }

@@ -49,12 +49,27 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
   };
 }
 
-export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean }) {
+/** Только для родителя: очередь подтверждений, квесты всех участников, списки наград. */
+export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRare: string[]; lootLegend: string[] }) {
+  const pending: { memberId: number; date: string; index: number; t: string; xp: number }[] = [];
+  const quests: Record<number, { items: unknown[]; hasDefault: boolean }> = {};
+  for (const m of raw.members) {
+    const st = fam.members.get(m.id)!;
+    for (const d of dateRange(addDays(fam.today, -7), fam.today)) {
+      st.days.get(d)?.quests.forEach((q, index) => { if (q.pending) pending.push({ memberId: m.id, date: d, index, t: q.t, xp: q.xp }); });
+    }
+    quests[m.id] = { items: st.days.get(fam.today)?.quests ?? [], hasDefault: raw.quests.some((q) => q.memberId === m.id && q.date === 'default') };
+  }
+  return { pending, quests, ...loot };
+}
+
+export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean; admin?: ReturnType<typeof adminView> }) {
   const detailFor = (opts.memberId && fam.members.get(opts.memberId)) || null;
   return {
     today: fam.today, config: opts.cfg, pinSet: opts.pinSet, parent: opts.parent, me: opts.memberId,
     members: summary(raw, fam),
     boss: bossView(fam.boss),
+    admin: opts.admin ?? null,
     detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
 }
