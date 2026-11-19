@@ -1,19 +1,19 @@
 import type { DayStats, StudyKind } from './types';
 
 export type QuestKind = 'manual' | 'warmup' | 'workout' | 'habits' | 'study';
-export interface QuestItem { t: string; xp: number; k: QuestKind; m?: number; kind?: StudyKind | 'any'; done?: boolean; pending?: boolean }
+export interface QuestItem { t: string; d?: string; xp: number; k: QuestKind; m?: number; kind?: StudyKind | 'any'; done?: boolean; pending?: boolean }
 
 export const QUEST_TEMPLATES: QuestItem[] = [
-  { t: 'Утренняя зарядка', k: 'warmup', xp: 15 },
-  { t: 'Размяться', k: 'workout', m: 20, xp: 25 },
-  { t: 'Большая тренировка', k: 'workout', m: 40, xp: 40 },
-  { t: 'Страницы приключений', k: 'study', kind: 'Книги', m: 20, xp: 20 },
-  { t: 'Слова иного мира', k: 'study', kind: 'Языки', m: 15, xp: 20 },
-  { t: 'Урок мудрости', k: 'study', kind: 'Учёба', m: 30, xp: 25 },
-  { t: 'Творческий порыв', k: 'study', kind: 'Творчество', m: 20, xp: 20 },
-  { t: 'Загадка сфинкса', k: 'study', kind: 'Мышление', m: 15, xp: 20 },
-  { t: 'Ритуал дня', k: 'habits', m: 3, xp: 20 },
-  { t: 'Помочь по дому', k: 'manual', xp: 20 },
+  { t: 'Утренняя зарядка', d: 'Сделай комплекс упражнений утром', k: 'warmup', xp: 15 },
+  { t: 'Размяться', d: 'Любая активность: бег, прыжки, турник', k: 'workout', m: 20, xp: 25 },
+  { t: 'Большая тренировка', d: 'Полноценная тренировка без отвлечения на телефон', k: 'workout', m: 40, xp: 40 },
+  { t: 'Страницы приключений', d: 'Читай книгу, не отвлекаясь', k: 'study', kind: 'Книги', m: 20, xp: 20 },
+  { t: 'Слова иного мира', d: 'Учи слова или занимайся иностранным языком', k: 'study', kind: 'Языки', m: 15, xp: 20 },
+  { t: 'Урок мудрости', d: 'Школьные задания или любой учебный предмет', k: 'study', kind: 'Учёба', m: 30, xp: 25 },
+  { t: 'Творческий порыв', d: 'Рисуй, пиши, лепи или играй музыку', k: 'study', kind: 'Творчество', m: 20, xp: 20 },
+  { t: 'Загадка сфинкса', d: 'Шахматы, головоломки, логические задачи', k: 'study', kind: 'Мышление', m: 15, xp: 20 },
+  { t: 'Ритуал дня', d: 'Отмечай выполненные привычки в разделе «Ум»', k: 'habits', m: 3, xp: 20 },
+  { t: 'Помочь по дому', d: 'Помоги родителям: уборка, посуда, порядок в комнате', k: 'manual', xp: 20 },
 ];
 
 /** Детерминированный генератор (mulberry32) по строке-зерну. */
@@ -45,7 +45,7 @@ export function defaultQuests(memberId: number, date: string, goal: number, coun
 }
 
 export const validQuest = (q: QuestItem): boolean =>
-  q.t.trim().length > 0 && q.t.length <= 60 && q.xp >= 1 && q.xp <= 100 && Number.isInteger(q.xp);
+  (q.d === undefined || (typeof q.d === 'string' && q.d.length <= 120)) && q.t.trim().length > 0 && q.t.length <= 60 && q.xp >= 1 && q.xp <= 100 && Number.isInteger(q.xp);
 export const validQuestList = (qs: QuestItem[]): boolean => qs.length >= 1 && qs.length <= 5 && qs.every(validQuest);
 
 /** Автозачёт по записям. Ручной считается выполненным только после подтверждения. */

@@ -116,3 +116,12 @@ describe('подсказки квестов', () => {
     expect(questProgress({ t: 'x', xp: 5, k: 'study', kind: 'any', m: 15 }, day({ study: { Языки: 5, Книги: 7 } }))?.have).toBe(12);
   });
 });
+
+describe('пояснения квестов', () => {
+  it('у шаблонов есть пояснения, длина ограничена 120', () => {
+    expect(defaultQuests(1, '2026-11-19', 60).every((q) => !!q.d)).toBe(true);
+    const q = { t: 'ok', xp: 10, k: 'manual' as const };
+    expect(validQuestList([{ ...q, d: 'я'.repeat(121) }])).toBe(false);
+    expect(validQuestList([{ ...q, d: 'Убрать комнату' }])).toBe(true);
+  });
+});

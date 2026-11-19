@@ -22,6 +22,7 @@ export function Quests() {
             </button>
             <span className="qt">
               {q.t}
+              {q.d && <small className="desc">{q.d}</small>}
               <small className="hint">
                 {q.completed ? 'Выполнено' : q.pending ? 'Ждёт подтверждения родителя' : questHint(q as QuestItem)}
                 {pr && !q.completed ? ` · сейчас ${Math.min(pr.have, pr.need)}/${pr.need}${pr.unit ? ' ' + pr.unit : ''}` : ''}

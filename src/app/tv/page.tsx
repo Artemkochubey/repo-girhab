@@ -6,7 +6,7 @@ interface Tv {
   today: string;
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
-  quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; hint: string; progress: string | null }[] }[];
+  quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
 }
 
 export default function TvPage() {
@@ -87,7 +87,7 @@ export default function TvPage() {
                 <button key={it.index} data-tv className={`tv-q ${it.done ? 'done' : it.pending ? 'wait' : ''}`}
                   disabled={!it.manual || it.done} onClick={() => mark(m.id, it.index)}>
                   <span className="tv-mark">{it.done ? '✔' : it.pending ? '⏳' : it.manual ? '○' : '⚙'}</span>
-                  <span className="tv-qt">{it.t}<small>{it.progress && !it.done ? `${it.progress} · ` : ''}{it.hint}</small></span><b>+{it.xp}</b>
+                  <span className="tv-qt">{it.t}{it.desc && <small className="tv-desc">{it.desc}</small>}<small>{it.progress && !it.done ? `${it.progress} · ` : ''}{it.hint}</small></span><b>+{it.xp}</b>
                 </button>
               ))}
             </div>

@@ -10,13 +10,13 @@ const blank = (): QuestDto => ({ t: '', xp: 20, k: 'manual' });
 export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?: () => void }) {
   const { s, act, toast } = useGame();
   const info = s.admin!.quests[memberId];
-  const [items, setItems] = useState<QuestDto[]>(() => info.items.map((q) => ({ t: q.t, xp: q.xp, k: q.k, m: q.m, kind: q.kind })));
+  const [items, setItems] = useState<QuestDto[]>(() => info.items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.m, kind: q.kind })));
   const [scope, setScope] = useState<'today' | 'default'>('today');
   const set = (i: number, p: Partial<QuestDto>) => setItems(items.map((q, j) => (j === i ? { ...q, ...p } : q)));
 
   const save = async () => {
     const clean = items.map((q) => ({
-      t: q.t, xp: q.xp, k: q.k,
+      t: q.t, d: q.d, xp: q.xp, k: q.k,
       m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' ? q.m ?? 1 : undefined,
       kind: q.k === 'study' ? q.kind ?? 'any' : undefined,
     }));
@@ -32,6 +32,7 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
       {items.map((q, i) => (
         <div key={i} className="qe-row">
           <input value={q.t} maxLength={60} placeholder="Название (до 60 символов)" onChange={(e) => set(i, { t: e.target.value })} />
+          <input className="qe-desc" value={q.d ?? ''} maxLength={120} placeholder="Пояснение: что именно сделать (необязательно)" onChange={(e) => set(i, { d: e.target.value })} />
           <select value={q.k} onChange={(e) => set(i, { k: e.target.value, m: q.m ?? 1 })}>{KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           {q.k === 'study' && (
             <select value={q.kind ?? 'any'} onChange={(e) => set(i, { kind: e.target.value })}>

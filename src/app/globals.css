@@ -58,3 +58,5 @@ textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid va
 .qe { display: grid; gap: 10px; } .qe-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--panel2); border-radius: 12px; padding: 8px; } .qe-row > input:first-child { flex: 1 1 200px; }
 .hint { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
 .version { text-align: center; }
+.desc { display: block; color: var(--text); opacity: .85; font-size: .88rem; margin-top: 2px; }
+.qe-desc { flex: 1 1 100% !important; }

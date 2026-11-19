@@ -22,3 +22,4 @@
 @media (max-width: 800px) { .tv { font-size: 20px; } .tv-boss { flex-direction: column; text-align: center; } .tv-boss-emoji { font-size: 6rem; } }
 
 .tv-qt small { display: block; color: #cbbff0; font-size: .62em; margin-top: 2px; }
+.tv-qt .tv-desc { color: #fff; font-size: .7em; }

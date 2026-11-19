@@ -177,7 +177,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const date = a.date === 'default' ? 'default' : isDate(a.date) ? a.date : fail(400, 'Неверная дата');
       const items = a.items as QuestItem[];
       if (!Array.isArray(items) || !validQuestList(items)) fail(400, 'Квесты: 1–5 штук, название до 60 символов, опыт 1–100');
-      saveQuests(db, memberId, date, items.map((q) => ({ t: q.t.trim(), xp: q.xp, k: q.k, m: q.m, kind: q.kind, done: false, pending: false })));
+      saveQuests(db, memberId, date, items.map((q) => ({ t: q.t.trim(), d: q.d?.trim() || undefined, xp: q.xp, k: q.k, m: q.m, kind: q.kind, done: false, pending: false })));
       return { ok: true };
     }
     case 'resetQuests': {

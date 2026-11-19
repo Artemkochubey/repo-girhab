@@ -11,7 +11,7 @@ export async function post(url: string, body: unknown = {}, method = 'POST') {
   return j;
 }
 
-export interface QuestDto { t: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean }
+export interface QuestDto { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean }
 
 export interface State {
   today: string; pinSet: boolean; parent: boolean; me: number | null;
@@ -30,7 +30,7 @@ export interface State {
     radar: { key: string; value: number }[];
     day: { points: number; stats: { workoutMinutes: number; warmups: number; study: Record<string, number>; habits: number; books: number; questXp: number };
       bySphere: Record<string, number>;
-      quests: { t: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };
+      quests: { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };
     entries: { workouts: { id: number; minutes: number }[]; study: { id: number; kind: string; minutes: number }[]; warmups: { id: number }[]; books: { id: number; title: string }[] };
     habits: { id: number; name: string; checked: boolean }[];
     history: [string, number][];
