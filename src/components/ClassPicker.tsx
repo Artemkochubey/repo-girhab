@@ -20,9 +20,13 @@ export function ClassPicker({ memberName, onClose }: { memberName: string; onClo
   };
 
   return (
-    <div className="modal classmodal" role="dialog" aria-label="Выбор класса">
-      <div className="card picker">
-        <h2>⚔️ {memberName}, выбери свой класс!</h2>
+    <div className="modal classmodal" role="dialog" aria-label="Выбор класса" onClick={onClose}>
+      <div className="card picker cp" onClick={(e) => e.stopPropagation()}>
+        <div className="cp-head">
+          <h2>⚔️ {memberName}, выбери класс!</h2>
+          {onClose && <button className="x close" onClick={onClose} aria-label="Закрыть">✕</button>}
+        </div>
+        <div className="cp-body">
         <p className="muted">Класс усиливает одну из сфер: за неё ты получаешь на 20% больше очков. Выбери то, что тебе ближе всего.</p>
         <div className="grid">
           {ORDER.map((c) => (
@@ -44,7 +48,8 @@ export function ClassPicker({ memberName, onClose }: { memberName: string; onClo
           </div>
         )}
         <p className="muted small">Это можно будет изменить: бесплатно в течение 24 часов, потом раз в 7 дней. Очки при смене пересчитываются за всю историю.</p>
-        <div className="row wrapRow">
+        </div>
+        <div className="cp-foot row wrapRow">
           <button className="btn" disabled={!sel || busy} onClick={choose}>{sel ? `Стать: ${CLASS_NAMES[sel]}` : 'Выбери класс'}</button>
           {onClose && <button className="btn ghost" onClick={onClose}>Выберу позже</button>}
         </div>

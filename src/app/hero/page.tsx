@@ -11,7 +11,7 @@ const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
 
 export default function Hero() {
-  const { s, act, toast } = useGame();
+  const { s, act, toast, askClass } = useGame();
   const d = s.detail!;
   const me = s.members.find((m) => m.id === s.me)!;
   const h = d.hero;
@@ -31,7 +31,7 @@ export default function Hero() {
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level}</h1>
-          <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}</p>
+          <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}{!h.cls && <> <button className="btn" onClick={askClass}>Выбрать класс</button></>}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
         </div>
       </section>

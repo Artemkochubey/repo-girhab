@@ -80,3 +80,9 @@ textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid va
 .top-muscles { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .top-muscles li { display: grid; grid-template-columns: 11rem 1fr; align-items: center; gap: 8px; font-size: .88rem; } .top-muscles i { display: block; height: 8px; min-width: 6px; border-radius: 999px; background: linear-gradient(90deg, #c9354c, #ff1424); }
 .exgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; } .ex { display: flex; align-items: center; gap: 8px; text-align: left; background: var(--panel2); border: 2px solid transparent; border-radius: 12px; padding: 8px 10px; } .ex span { font-size: 1.4rem; } .ex b { font-weight: 600; font-size: .9rem; } .ex.on { border-color: var(--accent); background: #3a2f63; }
 @media (max-width: 420px) { .top-muscles li { grid-template-columns: 8rem 1fr; } }
+/* Окно выбора класса: шапка и кнопки всегда на экране, прокручивается только середина */
+.classmodal .picker.cp { display: flex; flex-direction: column; gap: 0; padding: 0; max-height: 92vh; overflow: hidden; }
+.cp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); } .cp-head h2 { font-size: 1.05rem; }
+.cp-head .close { margin: 0; font-size: 1.3rem; min-width: 40px; min-height: 40px; }
+.cp-body { overflow-y: auto; padding: 12px 14px; display: grid; gap: 10px; flex: 1; -webkit-overflow-scrolling: touch; }
+.cp-foot { padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel); }

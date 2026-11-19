@@ -7,7 +7,7 @@ import { ClassPicker } from './ClassPicker';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
-  act: (action: string, args?: Record<string, unknown>) => Promise<unknown>; toast: (m: string) => void; askPin: () => void;
+  act: (action: string, args?: Record<string, unknown>) => Promise<unknown>; toast: (m: string) => void; askPin: () => void; askClass: () => void;
 }
 const C = createContext<Ctx | null>(null);
 export const useGame = () => useContext(C)!;
@@ -19,7 +19,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [date, setDate] = useState('');
   const [msg, setMsg] = useState('');
   const [pinOpen, setPinOpen] = useState(false);
-  const [classLater, setClassLater] = useState(false);
+  const [classLater, setClassLaterState] = useState(false);
+  const setClassLater = (v: boolean) => { setClassLaterState(v); try { if (v) sessionStorage.setItem('mr_class_later', '1'); else sessionStorage.removeItem('mr_class_later'); } catch { /* без хранилища просто покажем снова */ } };
+  useEffect(() => { try { if (sessionStorage.getItem('mr_class_later')) setClassLaterState(true); } catch { /* ignore */ } }, []);
   const path = usePathname();
 
   const toast = useCallback((m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3500); }, []);
@@ -62,7 +64,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const me = s.members.find((m) => m.id === s.me)!;
   return (
-    <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true) }}>
+    <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
       <header className="top">
         <nav>{NAV.map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
         <div className="who">
