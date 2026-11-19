@@ -1,6 +1,7 @@
 'use client';
 import { memo, useId, useMemo } from 'react';
 import { ANATOMY, type Shape } from '@/lib/anatomy-data';
+import { muscleFibres } from '@/lib/fibres';
 import { muscleName, type MuscleId } from '@/lib/game/muscles';
 
 type Pt = [number, number];
@@ -107,7 +108,7 @@ function Limbs({ limbs, view }: { limbs: Limb[]; view: 'front' | 'back' }) {
 
 const isHead = (s: Shape) => s.m === null && s.p.trim().split(/\s+/).map(Number).filter((_, k) => k % 2).every((y) => y < 35);
 
-const REST = [0x4a, 0x3f, 0x73];                               // мышца без нагрузки
+const REST = [0x5a, 0x41, 0x63];                               // мышца без нагрузки
 const STOPS: { t: number; c: number[] }[] = [                   // чем больше нагрузка, тем краснее
   { t: 0, c: [0x9a, 0x55, 0x78] }, { t: 0.5, c: [0xc9, 0x35, 0x4c] }, { t: 1, c: [0xff, 0x14, 0x24] },
 ];
@@ -129,43 +130,107 @@ interface Props {
   onHover: (m: MuscleId | null) => void;
 }
 
+/** Светлее (k > 0) или темнее (k < 0) цвета rgb(r,g,b). */
+function shade(rgb: string, k: number): string {
+  const [r, g, b] = (rgb.match(/\d+/g) ?? ['0', '0', '0']).map(Number);
+  const t = k >= 0 ? 255 : 0, a = Math.abs(k);
+  return `rgb(${Math.round(r + (t - r) * a)},${Math.round(g + (t - g) * a)},${Math.round(b + (t - b) * a)})`;
+}
+
+/** Голова «яйцом»: черепная часть шире, подбородок уже. */
+function headPath(e: Extra): string {
+  const { cx, cy, rx, ry } = e;
+  return `M${cx} ${cy - ry}C${cx + rx * 1.05} ${cy - ry} ${cx + rx * 1.1} ${cy + ry * 0.25} ${cx + rx * 0.4} ${cy + ry * 0.88}Q${cx} ${cy + ry * 1.12} ${cx - rx * 0.4} ${cy + ry * 0.88}C${cx - rx * 1.1} ${cy + ry * 0.25} ${cx - rx * 1.05} ${cy - ry} ${cx} ${cy - ry}Z`;
+}
+
 export const BodyFigure = memo(function BodyFigure({ view, intensity, selected, hover, onPick, onHover }: Props) {
   const uid = useId().replace(/:/g, '');
-  const shapes = useMemo(() => (view === 'front' ? ANATOMY.front : ANATOMY.back).map((s: Shape) => ({ ...s, d: smooth(s.p) })), [view]);
+  const shapes = useMemo(() => (view === 'front' ? ANATOMY.front : ANATOMY.back).map((s: Shape) => ({ ...s, d: smooth(s.p), fib: s.m ? muscleFibres(s.p, s.m) : null })), [view]);
   const base = useMemo(() => shapes.filter((s) => !isHead(s)), [shapes]);
   const extras = useMemo(() => bodyExtras(view === 'front' ? ANATOMY.front : ANATOMY.back), [view]);
   const skin = '#2b2347';
-  const part = (e: Extra, i: number, fill: string, extra: object = {}) => <ellipse key={i} cx={e.cx} cy={e.cy} rx={e.rx} ry={e.ry} transform={`rotate(${e.rot} ${e.cx} ${e.cy})`} fill={fill} {...extra} />;
+  const [neck, head] = [extras.ovals[0], extras.ovals[1]];
 
   return (
     <svg viewBox={`-3 -2 106 ${extras.bottom + 4}`} className="figure" role="group" aria-label={view === 'front' ? 'Вид спереди' : 'Вид сзади'}>
       <defs>
         <linearGradient id={`vol-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.28" />
-          <stop offset="0.45" stopColor="#fff" stopOpacity="0" />
-          <stop offset="1" stopColor="#000" stopOpacity="0.38" />
+          <stop offset="0" stopColor="#fff" stopOpacity="0.2" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.32" />
         </linearGradient>
+        <radialGradient id={`skin-${uid}`} cx="0.4" cy="0.3" r="0.9"><stop offset="0" stopColor="#4a3e78" /><stop offset="1" stopColor="#241c3d" /></radialGradient>
+        <radialGradient id={`head-${uid}`} cx="0.38" cy="0.3" r="0.85"><stop offset="0" stopColor="#5a4d8f" /><stop offset="0.6" stopColor="#3a3160" /><stop offset="1" stopColor="#231b3f" /></radialGradient>
         <filter id={`glow-${uid}`} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9" /></filter>
+        <filter id={`soft-${uid}`} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.7" /></filter>
+        <filter id={`aura-${uid}`} x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="3.2" /></filter>
+        {shapes.map((s, i) => {
+          if (!s.m) return null;
+          const col = loadColor(intensity[s.m] ?? 0);
+          return (
+            <g key={i}>
+              <radialGradient id={`rg-${uid}-${i}`} cx="0.45" cy="0.4" r="0.78">
+                <stop offset="0" stopColor={shade(col, 0.3)} /><stop offset="0.5" stopColor={col} /><stop offset="1" stopColor={shade(col, -0.4)} />
+              </radialGradient>
+              <clipPath id={`cp-${uid}-${i}`}><path d={s.d} /></clipPath>
+            </g>
+          );
+        })}
       </defs>
 
-      {/* голова, шея, кисти и стопы */}
-      <g stroke="#6f62a8" strokeOpacity="0.45" strokeWidth="0.5">{extras.ovals.map((e, i) => part(e, i, '#3a3160'))}</g>
+      {/* мягкое свечение позади фигуры */}
+      <g fill="#7f6cff" opacity="0.22" filter={`url(#aura-${uid})`}>{base.map((s, i) => <path key={i} d={s.d} stroke="#7f6cff" strokeWidth="3" />)}</g>
+
+      {/* шея и голова */}
+      {neck && (
+        <g>
+          <ellipse cx={neck.cx} cy={neck.cy} rx={neck.rx} ry={neck.ry} fill={`url(#head-${uid})`} stroke="#6f62a8" strokeOpacity="0.4" strokeWidth="0.4" />
+          {view === 'front' && <path d={`M${neck.cx - neck.rx * 0.75} ${neck.cy - neck.ry * 0.9}L${neck.cx - 0.5} ${neck.cy + neck.ry * 0.95}M${neck.cx + neck.rx * 0.75} ${neck.cy - neck.ry * 0.9}L${neck.cx + 0.5} ${neck.cy + neck.ry * 0.95}`} stroke="#8d80c9" strokeOpacity="0.35" strokeWidth="0.45" fill="none" strokeLinecap="round" />}
+        </g>
+      )}
+      {head && (
+        <g>
+          <ellipse cx={head.cx - head.rx * 1.02} cy={head.cy + head.ry * 0.05} rx={head.rx * 0.13} ry={head.ry * 0.2} fill="#3a3160" stroke="#6f62a8" strokeOpacity="0.4" strokeWidth="0.3" />
+          <ellipse cx={head.cx + head.rx * 1.02} cy={head.cy + head.ry * 0.05} rx={head.rx * 0.13} ry={head.ry * 0.2} fill="#3a3160" stroke="#6f62a8" strokeOpacity="0.4" strokeWidth="0.3" />
+          <path d={headPath(head)} fill={`url(#head-${uid})`} stroke="#8d80c9" strokeOpacity="0.5" strokeWidth="0.5" />
+          {view === 'front' ? (
+            <g fill="none" stroke="#120d22" strokeLinecap="round">
+              <path d={`M${head.cx - head.rx * 0.62} ${head.cy - head.ry * 0.12}Q${head.cx - head.rx * 0.38} ${head.cy - head.ry * 0.22} ${head.cx - head.rx * 0.14} ${head.cy - head.ry * 0.12}M${head.cx + head.rx * 0.62} ${head.cy - head.ry * 0.12}Q${head.cx + head.rx * 0.38} ${head.cy - head.ry * 0.22} ${head.cx + head.rx * 0.14} ${head.cy - head.ry * 0.12}`} strokeWidth="0.55" opacity="0.55" />
+              <path d={`M${head.cx} ${head.cy - head.ry * 0.08}L${head.cx - head.rx * 0.06} ${head.cy + head.ry * 0.3}Q${head.cx} ${head.cy + head.ry * 0.36} ${head.cx + head.rx * 0.12} ${head.cy + head.ry * 0.3}`} strokeWidth="0.4" opacity="0.4" />
+              <path d={`M${head.cx - head.rx * 0.28} ${head.cy + head.ry * 0.55}Q${head.cx} ${head.cy + head.ry * 0.62} ${head.cx + head.rx * 0.28} ${head.cy + head.ry * 0.55}`} strokeWidth="0.45" opacity="0.5" />
+            </g>
+          ) : (
+            <path d={`M${head.cx} ${head.cy - head.ry * 0.9}L${head.cx} ${head.cy + head.ry * 0.7}`} stroke="#120d22" strokeOpacity="0.25" strokeWidth="0.4" fill="none" />
+          )}
+          <path d={headPath(head)} fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="1.2" filter={`url(#soft-${uid})`} clipPath={undefined} />
+        </g>
+      )}
       <Limbs limbs={extras.limbs} view={view} />
 
       {/* силуэт тела: подложка, склеивающая все контуры */}
       <g fill={skin} stroke={skin} strokeWidth="3.2" strokeLinejoin="round">{base.map((s, i) => <path key={i} d={s.d} />)}</g>
-      <g fill="none" stroke="#6f62a8" strokeWidth="3.9" strokeLinejoin="round" opacity="0.35">{base.map((s, i) => <path key={i} d={s.d} />)}</g>
-      <g fill={skin} stroke={skin} strokeWidth="3" strokeLinejoin="round">{base.map((s, i) => <path key={i} d={s.d} />)}</g>
+      <g fill="none" stroke="#8d80c9" strokeWidth="3.9" strokeLinejoin="round" opacity="0.32">{base.map((s, i) => <path key={i} d={s.d} />)}</g>
+      <g fill={`url(#skin-${uid})`} stroke={`url(#skin-${uid})`} strokeWidth="3" strokeLinejoin="round">{base.map((s, i) => <path key={i} d={s.d} />)}</g>
 
-      {/* мышцы */}
+      {/* мышцы: объёмная заливка, волокна, сухожильные перемычки, тень по краю */}
       {shapes.map((s, i) => {
         if (!s.m) return isHead(s) ? null : <path key={i} d={s.d} fill="#3a3160" stroke="#1b1530" strokeWidth="0.4" />;
         const t = intensity[s.m] ?? 0;
         const isSel = selected.has(s.m);
         return (
           <g key={i}>
-            <path d={s.d} fill={loadColor(t)} stroke="#1b1530" strokeWidth="0.45" strokeLinejoin="round" />
-            <path d={s.d} fill={`url(#vol-${uid})`} pointerEvents="none" />
+            <path d={s.d} fill={`url(#rg-${uid}-${i})`} stroke="#1b1530" strokeWidth="0.45" strokeLinejoin="round" />
+            <g clipPath={`url(#cp-${uid}-${i})`} pointerEvents="none">
+              {s.fib && (
+                <>
+                  <path d={s.fib.fibres} transform="translate(0.16 0.16)" fill="none" stroke="#fff" strokeOpacity={0.12 + 0.22 * Math.min(1, t * 1.5)} strokeWidth="0.2" strokeLinecap="round" />
+                  <path d={s.fib.fibres} fill="none" stroke="#10081a" strokeOpacity={0.34 + 0.12 * Math.min(1, t)} strokeWidth="0.26" strokeLinecap="round" />
+                  {s.fib.tendons && <path d={s.fib.tendons} fill="none" stroke="#0d0716" strokeOpacity="0.7" strokeWidth="0.55" strokeLinecap="round" />}
+                </>
+              )}
+              <path d={s.d} fill="none" stroke="#000" strokeOpacity="0.45" strokeWidth="1.6" filter={`url(#soft-${uid})`} />
+              <path d={s.d} fill={`url(#vol-${uid})`} />
+            </g>
             {(isSel || hover === s.m) && (
               <path d={s.d} fill="none" stroke={isSel ? '#ffd24a' : '#fff'} strokeWidth={isSel ? 1.1 : 0.7} strokeLinejoin="round" pointerEvents="none" filter={isSel ? `url(#glow-${uid})` : undefined} />
             )}
