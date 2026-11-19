@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
+import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
 
@@ -101,6 +102,8 @@ function AdminSettings() {
         ))}
         <button className="btn" onClick={saveCfg}>Сохранить</button>
       </Section>
+
+      <FamilyQuestAdmin />
 
       <ShopAdmin />
 

@@ -1,5 +1,7 @@
 import { addDays, dateRange, todayIn } from '../date';
 import { allocateWorkouts } from '../game/reps';
+import { computeAchievements, type AchievementState } from '../game/achievements';
+import { resolveFamilyQuest, type FamilyQuestInput, type FamilyQuestResult } from '../game/familyQuests';
 import { BOSSES, WEAK_BONUS, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
 import { CLASS_SPHERES, recommendSub, type Cls } from '../game/classes';
 import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../game/level';
@@ -19,7 +21,8 @@ export interface Raw {
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number }[];
+  chestsOpened: { memberId: number; n: number; date?: string }[];
+  familyQuests: FamilyQuestInput[];
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
 }
@@ -40,6 +43,7 @@ export interface MemberState {
   questDays: number;
   chestsEarned: number; chestsOpened: number; chestsAvailable: number;
   spentPoints: number; spentChests: number; balance: number;
+  achievements: AchievementState[];
 }
 
 export interface BossWeek {
@@ -47,7 +51,8 @@ export interface BossWeek {
   byMember: Record<number, number>; mvp: number | null; participants: number[];
 }
 
-export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[] }
+export interface ResolvedFamilyQuest extends FamilyQuestInput, FamilyQuestResult { participants: number[] }
+export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[] }
 
 const CLASS_OF: Partial<Record<Sphere, Cls>> = {};
 for (const c of Object.keys(CLASS_SPHERES) as Cls[]) for (const s of CLASS_SPHERES[c]) CLASS_OF[s] ??= c;
@@ -57,6 +62,7 @@ export function buildFamily(raw: Raw, today: string): Family {
   const members = new Map<number, MemberState>();
   const habitOwner = new Map(raw.habits.map((h) => [h.id, h.memberId]));
 
+  const prep = new Map<number, { hero: (typeof raw.heroes)[number]; cls: Cls | null; stats: Map<string, DayStats>; dates: string[] }>();
   for (const m of raw.members) {
     const hero = raw.heroes.find((h) => h.memberId === m.id) ?? { memberId: m.id, cls: 'w' as Cls, clsChosen: false, sub: null, clsChangedAt: m.createdAt, talents: [] };
     const cls: Cls | null = hero.clsChosen ? hero.cls : null;
@@ -74,6 +80,24 @@ export function buildFamily(raw: Raw, today: string): Family {
     const dates = dateRange(first < created ? first : created, today);
     for (const d of dates) get(d);
 
+    prep.set(m.id, { hero, cls, stats, dates });
+  }
+
+  // Семейные квесты: очки активности семьи по дням (без бонусов и квестов, чтобы не было циклов)
+  const familyPoints = new Map<string, number>();
+  for (const p of prep.values()) for (const [d, st] of p.stats) familyPoints.set(d, (familyPoints.get(d) ?? 0) + basePoints(st));
+  const createdOf = new Map(raw.members.map((m) => [m.id, todayIn(tz, new Date(m.createdAt))]));
+  const famXp = new Map<number, Map<string, number>>();
+  const familyQuests: ResolvedFamilyQuest[] = raw.familyQuests.map((q) => {
+    const r = resolveFamilyQuest(q, familyPoints, today);
+    const participants = raw.members.filter((m) => (r.doneDate ?? q.date) >= createdOf.get(m.id)!).map((m) => m.id);
+    if (r.done && r.doneDate) for (const id of participants) { const mm = famXp.get(id) ?? new Map<string, number>(); mm.set(r.doneDate, (mm.get(r.doneDate) ?? 0) + q.xp); famXp.set(id, mm); }
+    return { ...q, ...r, participants };
+  });
+  const achIn = new Map<number, { dates: string[]; stats: DayStats[]; points: number[]; streak: number[]; questsAllDone: boolean[]; superGoal: number }>();
+
+  for (const m of raw.members) {
+    const { hero, cls, stats, dates } = prep.get(m.id)!;
     const overrides = raw.quests.filter((q) => q.memberId === m.id);
     const tpl = overrides.find((q) => q.date === 'default')?.items;
     const questsFor = (date: string) => overrides.find((q) => q.date === date)?.items ?? tpl ?? defaultQuests(m.id, date, m.goal);
@@ -83,11 +107,14 @@ export function buildFamily(raw: Raw, today: string): Family {
 
     const questXp = new Map<string, number>();
     let questDays = 0;
+    const questsAllDone: boolean[] = [];
     for (const d of dates) {
       const qs = questsFor(d);
       const st = stats.get(d)!;
-      questXp.set(d, questXpEarned(qs, st));
-      if (allQuestsDone(qs, st)) questDays++;
+      questXp.set(d, questXpEarned(qs, st) + (famXp.get(m.id)?.get(d) ?? 0));
+      const all = allQuestsDone(qs, st);
+      questsAllDone.push(all);
+      if (all) questDays++;
     }
 
     const calc = (build: HeroBuild, useSub: boolean) => {
@@ -120,8 +147,9 @@ export function buildFamily(raw: Raw, today: string): Family {
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
-      spentPoints: 0, spentChests: 0, balance: 0,
+      spentPoints: 0, spentChests: 0, balance: 0, achievements: [],
     });
+    achIn.set(m.id, { dates, stats: dates.map((d) => stats.get(d)!), points: dates.map((d) => b.days.get(d)!.total), streak: dates.map((d) => streaks.get(d) ?? 0), questsAllDone, superGoal: m.superGoal });
   }
 
   // Боссы: каждая неделя от первой до текущей считается чисто из записей.
@@ -166,7 +194,20 @@ export function buildFamily(raw: Raw, today: string): Family {
     st.balance = st.xp - st.spentPoints;
     st.chestsAvailable = Math.max(0, st.chestsEarned - st.chestsOpened - st.spentChests);
   }
-  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory };
+  // Достижения: выводятся из истории, поэтому считаются после боссов
+  for (const st of members.values()) {
+    const a = achIn.get(st.id)!;
+    const wins = bossHistory.filter((w) => w.finished && w.defeated && (w.byMember[st.id] ?? 0) > 0 && (w.byMember[st.id] ?? 0) / Math.max(1, Object.values(w.byMember).reduce((x, y) => x + y, 0)) >= 0.1);
+    st.achievements = computeAchievements({
+      dates: a.dates, streak: a.streak, points: a.points, questsAllDone: a.questsAllDone, superGoal: a.superGoal,
+      books: a.stats.map((x) => x.books), warmups: a.stats.map((x) => x.warmups), habits: a.stats.map((x) => x.habits),
+      study: a.stats.map((x) => Object.values(x.study).reduce((p, q) => p + (q ?? 0), 0)), workoutEq: a.stats.map((x) => x.workoutMinutes),
+      chestDates: raw.chestsOpened.filter((c) => c.memberId === st.id && c.date).map((c) => c.date!),
+      bossWinDates: wins.map((w) => addDays(w.weekStart, 6)),
+      mvpDates: bossHistory.filter((w) => w.finished && w.defeated && w.mvp === st.id).map((w) => addDays(w.weekStart, 6)),
+    });
+  }
+  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests };
 }
 
 export { BOSSES };

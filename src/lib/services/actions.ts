@@ -4,6 +4,8 @@ import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
 import { AVATARS } from '../game/avatars';
+import { weekStart } from '../game/boss';
+import { questEnd, validFamilyQuest } from '../game/familyQuests';
 import { CUSTOM_EXERCISE, MUSCLE_IDS, exerciseById, isMuscleId } from '../game/muscles';
 import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
@@ -271,6 +273,53 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       if (!p) return fail(404, 'Нет такой покупки');
       if (p.status !== 'pending') fail(409, 'Покупка уже обработана');
       db.update(s.shopPurchase).set({ status: action === 'fulfillPurchase' ? 'done' : 'cancelled' }).where(eq(s.shopPurchase.id, id)).run();
+      return { ok: true };
+    }
+    case 'saveFamilyQuest': {
+      needParent();
+      const bad = validFamilyQuest({ title: a.title, description: a.description ?? '', xp: a.xp, kind: a.kind, target: a.kind === 'points' ? a.target : 0 });
+      if (bad) fail(400, bad);
+      const v = {
+        title: String(a.title).trim(), description: String(a.description ?? '').trim(),
+        xp: a.xp as number, kind: a.kind as 'manual' | 'points', target: a.kind === 'points' ? (a.target as number) : 0,
+      };
+      if (a.id !== undefined) {
+        const id = int(a.id, 1, 1e9, 'id');
+        if (!db.select().from(s.familyQuest).where(eq(s.familyQuest.id, id)).get()) fail(404, 'Нет такого квеста');
+        db.update(s.familyQuest).set(v).where(eq(s.familyQuest.id, id)).run();
+        return { id };
+      }
+      const period = a.period === 'week' ? 'week' : 'day';
+      const row = db.insert(s.familyQuest).values({ ...v, period, date: period === 'week' ? weekStart(today) : today }).returning().get();
+      return { id: row.id };
+    }
+    case 'deleteFamilyQuest': {
+      needParent();
+      db.delete(s.familyQuest).where(eq(s.familyQuest.id, int(a.id, 1, 1e9, 'id'))).run();
+      return { ok: true };
+    }
+    case 'markFamilyQuest': {
+      // участник говорит «мы сделали» (ожидает подтверждения родителя) или отзывает отметку
+      if (ctx.memberId === null && !ctx.parent) fail(403, 'Выберите профиль');
+      const q = db.select().from(s.familyQuest).where(eq(s.familyQuest.id, int(a.id, 1, 1e9, 'id'))).get();
+      if (!q) return fail(404, 'Нет такого квеста');
+      if (q.kind !== 'manual') fail(400, 'Этот квест засчитывается сам');
+      if (q.status === 'done') fail(409, 'Квест уже выполнен');
+      if (questEnd(q) < today) fail(409, 'Срок квеста закончился');
+      db.update(s.familyQuest).set({ status: q.status === 'pending' ? 'open' : 'pending' }).where(eq(s.familyQuest.id, q.id)).run();
+      return { pending: q.status !== 'pending' };
+    }
+    case 'completeFamilyQuest': {
+      needParent();
+      const q = db.select().from(s.familyQuest).where(eq(s.familyQuest.id, int(a.id, 1, 1e9, 'id'))).get();
+      if (!q) return fail(404, 'Нет такого квеста');
+      if (q.kind !== 'manual') fail(400, 'Этот квест засчитывается сам');
+      if (a.done === false) db.update(s.familyQuest).set({ status: 'open', doneDate: null }).where(eq(s.familyQuest.id, q.id)).run();
+      else {
+        const d = a.date === undefined ? (today < q.date ? q.date : today) : a.date;
+        if (!isDate(d) || d < q.date || d > today) fail(400, 'Дата вне срока квеста');
+        db.update(s.familyQuest).set({ status: 'done', doneDate: d as string }).where(eq(s.familyQuest.id, q.id)).run();
+      }
       return { ok: true };
     }
     case 'createMember': {

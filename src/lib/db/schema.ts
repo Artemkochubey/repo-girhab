@@ -145,3 +145,19 @@ export const shopPurchase = sqliteTable('shop_purchase', {
   date: text('date').notNull(),
   createdAt: createdAt(),
 }, (t) => [index('purchase_member').on(t.memberId)]);
+
+// Семейный квест: общая цель на день или неделю, опыт получают все участники.
+export const familyQuest = sqliteTable('family_quest', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  description: text('description').notNull().default(''),
+  xp: integer('xp').notNull(),
+  // manual — родитель подтверждает; points — автоматически, когда семья набрала target очков активности
+  kind: text('kind', { enum: ['manual', 'points'] }).notNull().default('manual'),
+  target: integer('target').notNull().default(0),
+  period: text('period', { enum: ['day', 'week'] }).notNull().default('day'),
+  date: text('date').notNull(),            // день квеста или понедельник его недели
+  status: text('status', { enum: ['open', 'pending', 'done'] }).notNull().default('open'),
+  doneDate: text('done_date'),
+  createdAt: createdAt(),
+});

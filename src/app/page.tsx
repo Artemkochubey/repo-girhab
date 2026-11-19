@@ -1,4 +1,5 @@
 'use client';
+import { FamilyQuests } from '@/components/FamilyQuests';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Bar, Chips, Section } from '@/components/ui';
@@ -35,6 +36,8 @@ export default function Today() {
       </Section>
 
       <QuestsBlock />
+
+      <FamilyQuests />
 
       <Section title="💪 Тренировка и зарядка" right={
         <button className={`btn ${d.day.stats.warmups ? '' : 'ghost'}`} onClick={() => act('toggleWarmup')}>

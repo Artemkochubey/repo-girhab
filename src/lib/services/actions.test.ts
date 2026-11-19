@@ -157,4 +157,30 @@ describe('действия', () => {
     for (let i = 0; i < 10; i++) runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 100 });              // пытаемся накрутить
     expect(st().days.get('2026-11-19')!.stats.workoutMinutes).toBeCloseTo(22.5, 1);                                 // потолок упражнения за день
   });
+  it('семейные квесты: создаёт родитель, ребёнок отмечает «сделали», родитель подтверждает — опыт всем', () => {
+    expect(err(() => runAction(db, kid, 'saveFamilyQuest', { title: 'Прогулка', xp: 30, kind: 'manual' }))?.status).toBe(403);
+    expect(err(() => runAction(db, dad, 'saveFamilyQuest', { title: 'Прогулка', xp: 500, kind: 'manual' }))?.status).toBe(400);
+    expect(err(() => runAction(db, dad, 'saveFamilyQuest', { title: 'x', xp: 10, kind: 'points', target: 3 }))?.status).toBe(400);
+    const id = (runAction(db, dad, 'saveFamilyQuest', { title: 'Прогулка', description: 'час на воздухе', xp: 30, kind: 'manual', period: 'day' }) as { id: number }).id;
+    db.update(s.questOverride).set({ items: [{ t: 'x', xp: 1, k: 'manual' }] }).run();
+    const xp = (m: number) => loadFamily(db, NOW).family.members.get(m)!.xp;
+    expect(xp(2)).toBe(0);
+    expect(runAction(db, kid, 'markFamilyQuest', { id })).toEqual({ pending: true });
+    expect(xp(2)).toBe(0);                                                   // ждёт подтверждения
+    expect(runAction(db, kid, 'markFamilyQuest', { id })).toEqual({ pending: false });   // можно отозвать
+    runAction(db, kid, 'markFamilyQuest', { id });
+    expect(err(() => runAction(db, kid, 'completeFamilyQuest', { id }))?.status).toBe(403);
+    runAction(db, dad, 'completeFamilyQuest', { id });
+    expect(xp(1)).toBe(30); expect(xp(2)).toBe(30);                          // всем участникам
+    expect(err(() => runAction(db, kid, 'markFamilyQuest', { id }))?.status).toBe(409);
+    runAction(db, dad, 'completeFamilyQuest', { id, done: false });
+    expect(xp(2)).toBe(0);
+    runAction(db, dad, 'deleteFamilyQuest', { id });
+    expect(db.select().from(s.familyQuest).all()).toHaveLength(0);
+  });
+  it('семейный квест по очкам нельзя отметить вручную', () => {
+    const id = (runAction(db, dad, 'saveFamilyQuest', { title: 'Все вместе', xp: 40, kind: 'points', target: 100, period: 'week' }) as { id: number }).id;
+    expect(err(() => runAction(db, kid, 'markFamilyQuest', { id }))?.status).toBe(400);
+    expect(err(() => runAction(db, dad, 'completeFamilyQuest', { id }))?.status).toBe(400);
+  });
 });

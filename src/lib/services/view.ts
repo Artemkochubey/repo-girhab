@@ -10,7 +10,7 @@ const summary = (raw: Raw, fam: Family) =>
   raw.members.map((m) => {
     const st = fam.members.get(m.id)!;
     return { id: m.id, name: m.name, emoji: m.emoji, color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
-      level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
+      badges: st.achievements.filter((a) => a.earnedOn).length, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
       damageThisWeek: fam.boss.byMember[m.id] ?? 0 };
   });
 
@@ -42,6 +42,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     wallet: { balance: st.balance, spent: st.spentPoints },
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
+    achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),
     workoutLog: myWorkouts.filter((w) => w.date >= addDays(fam.today, -29))
       .map((w) => ({ id: w.id, date: w.date, minutes: w.minutes, reps: w.reps ?? null, eq: w.eq, exercise: w.exercise ?? null, muscles: w.muscles ?? null })),
     entries: { workouts: myWorkouts.filter((w) => w.date === date), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
@@ -68,8 +69,15 @@ export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRar
     }
     quests[m.id] = { items: st.days.get(fam.today)?.quests ?? [], hasDefault: raw.quests.some((q) => q.memberId === m.id && q.date === 'default') };
   }
-  return { pending, quests, ...loot };
+  const familyQuestsAll = [...fam.familyQuests].sort((a, b) => b.id - a.id).slice(0, 30).map(fqView);
+  return { pending, quests, familyQuestsAll, ...loot };
 }
+
+const fqView = (q: Family['familyQuests'][number]) => ({
+  id: q.id, title: q.title, description: q.description, xp: q.xp, kind: q.kind, target: q.target, period: q.period, date: q.date,
+  status: q.status, done: q.done, doneDate: q.doneDate, pending: q.pending, progress: q.progress, participants: q.participants.length,
+});
+const currentFq = (fam: Family) => fam.familyQuests.filter((q) => q.date <= fam.today && (q.period === 'day' ? q.date : addDays(q.date, 6)) >= fam.today).map(fqView);
 
 export function shopView(raw: Raw, memberId: number | null, parent: boolean) {
   const mine = (p: { memberId: number }) => parent || p.memberId === memberId;
@@ -87,6 +95,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
     members: summary(raw, fam),
     boss: bossView(fam.boss),
     admin: opts.admin ?? null,
+    familyQuests: currentFq(fam),
     shop: shopView(raw, opts.memberId, opts.parent),
     detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
@@ -96,6 +105,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
 export function tvState(raw: Raw, fam: Family) {
   return {
     today: fam.today, members: summary(raw, fam), boss: bossView(fam.boss),
+    familyQuests: currentFq(fam),
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;
       return { memberId: m.id, items: d.quests.map((q, i) => { const pr = questProgress(q, d.stats); return { t: q.t, desc: q.d ?? null, xp: q.xp, manual: q.k === 'manual', done: d.questsDone[i], pending: !!q.pending, index: i, hint: questHint(q), progress: pr ? `${Math.min(pr.have, pr.need)}/${pr.need}${pr.unit ? ' ' + pr.unit : ''}` : null }; }) };

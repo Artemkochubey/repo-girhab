@@ -19,6 +19,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [date, setDate] = useState('');
   const [msg, setMsg] = useState('');
   const [pinOpen, setPinOpen] = useState(false);
+  const [newAch, setNewAch] = useState<{ id: string; name: string; emoji: string; text: string }[]>([]);
   const [classLater, setClassLaterState] = useState(false);
   const setClassLater = (v: boolean) => { setClassLaterState(v); try { if (v) sessionStorage.setItem('mr_class_later', '1'); else sessionStorage.removeItem('mr_class_later'); } catch { /* без хранилища просто покажем снова */ } };
   useEffect(() => { try { if (sessionStorage.getItem('mr_class_later')) setClassLaterState(true); } catch { /* ignore */ } }, []);
@@ -42,6 +43,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
       throw e;
     }
   }, [date, reload, toast]);
+
+  // Новые достижения: сравниваем с тем, что игрок уже видел (хранится в браузере). Первый вход — молча запоминаем.
+  const achKey = s?.me ? `mr_ach_${s.me}` : null;
+  const earnedIds = s?.detail?.achievements.filter((a) => a.earnedOn).map((a) => a.id).join(',') ?? '';
+  useEffect(() => {
+    if (!achKey || !s?.detail || (!s.detail.hero.cls && !classLater)) return;
+    try {
+      const raw = localStorage.getItem(achKey);
+      const earned = s.detail.achievements.filter((a) => a.earnedOn);
+      if (raw === null) { localStorage.setItem(achKey, JSON.stringify(earned.map((a) => a.id))); return; }
+      const seen: string[] = JSON.parse(raw);
+      const fresh = earned.filter((a) => !seen.includes(a.id));
+      if (fresh.length) setNewAch(fresh);
+    } catch { /* без хранилища просто не показываем */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [achKey, earnedIds, classLater]);
+  const closeAch = () => {
+    try { if (achKey && s?.detail) localStorage.setItem(achKey, JSON.stringify(s.detail.achievements.filter((a) => a.earnedOn).map((a) => a.id))); } catch { /* ignore */ }
+    setNewAch([]);
+  };
 
   if (path.startsWith('/tv')) return <>{children}</>;
   if (!s) return <main className="wrap"><p className="muted">Загрузка…</p></main>;
@@ -76,6 +97,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="wrap">{children}</main>
       {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
+      {newAch.length > 0 && (
+        <div className="modal" onClick={closeAch} role="dialog" aria-label="Новое достижение">
+          <div className="card celebrate" onClick={(e) => e.stopPropagation()}>
+            <h2>🎉 {newAch.length > 1 ? 'Новые достижения!' : 'Новое достижение!'}</h2>
+            {newAch.slice(0, 4).map((a) => (<div key={a.id}><div className="big">{a.emoji}</div><b>{a.name}</b><div className="muted small">{a.text}</div></div>))}
+            {newAch.length > 4 && <div className="muted">и ещё {newAch.length - 4}</div>}
+            <button className="btn" onClick={closeAch}>Круто!</button>
+          </div>
+        </div>
+      )}
       {pinOpen && <PinModal setup={!s.pinSet} onClose={() => setPinOpen(false)} onDone={() => { setPinOpen(false); reload(); }} toast={toast} />}
       {msg && <div className="toast" role="status">{msg}</div>}
     </C.Provider>

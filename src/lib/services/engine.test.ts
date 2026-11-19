@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -82,5 +82,46 @@ describe('движок семьи', () => {
     expect(after.level).toBe(before.level);
     expect(after.balance).toBe(70);
     expect(after.chestsAvailable).toBe(before.chestsAvailable - 1);
+  });
+
+  const fq = (o: Partial<Raw['familyQuests'][number]> = {}) => ({ id: 1, title: 'Прогулка', description: '', xp: 30, kind: 'manual' as const, target: 0, period: 'day' as const, date: '2026-11-19', status: 'done' as const, doneDate: '2026-11-19', ...o });
+  const quiet = (raw: Raw) => { for (const id of [1, 2]) raw.quests.push({ memberId: id, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] }); };
+
+  it('семейный квест: опыт получают все участники в день выполнения', () => {
+    const raw = base(); quiet(raw);
+    raw.familyQuests.push(fq());
+    const f = buildFamily(raw, '2026-11-19');
+    expect(f.members.get(1)!.xp).toBe(30);
+    expect(f.members.get(2)!.xp).toBe(30);
+    expect(f.familyQuests[0]).toMatchObject({ done: true, participants: [1, 2] });
+    expect(f.members.get(1)!.days.get('2026-11-19')!.total).toBe(30);
+  });
+  it('семейный квест: не выполнен — опыта нет; созданные позже не получают', () => {
+    const raw = base(); quiet(raw);
+    raw.familyQuests.push(fq({ status: 'pending', doneDate: null }));
+    expect(buildFamily(raw, '2026-11-19').members.get(1)!.xp).toBe(0);
+    const raw2 = base(); quiet(raw2);
+    raw2.members[1].createdAt = '2026-11-10T00:00:00Z';
+    raw2.familyQuests.push(fq({ date: '2026-11-05', doneDate: '2026-11-05' }));
+    const f = buildFamily(raw2, '2026-11-19');
+    expect(f.members.get(1)!.xp).toBe(30);
+    expect(f.members.get(2)!.xp).toBe(0);
+  });
+  it('семейный квест по очкам: выполняется сам, когда семья набрала цель', () => {
+    const raw = base(); quiet(raw);
+    raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 20 }, { memberId: 2, date: '2026-11-19', minutes: 20 });
+    raw.familyQuests.push(fq({ kind: 'points', target: 60, status: 'open', doneDate: null }));
+    expect(buildFamily(raw, '2026-11-19').familyQuests[0].done).toBe(false);   // 40 < 60
+    raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 30 });
+    const f = buildFamily(raw, '2026-11-19');
+    expect(f.familyQuests[0]).toMatchObject({ done: true, doneDate: '2026-11-19', progress: 70 });
+    expect(f.members.get(2)!.days.get('2026-11-19')!.total).toBeGreaterThanOrEqual(30 + 20);
+  });
+  it('достижения считаются в движке: первая книга', () => {
+    const raw = base(); quiet(raw);
+    raw.books.push({ memberId: 1, finishedAt: '2026-11-12' });
+    const a = buildFamily(raw, '2026-11-19').members.get(1)!.achievements;
+    expect(a.find((x) => x.id === 'book1')).toMatchObject({ earnedOn: '2026-11-12', value: 1 });
+    expect(a.find((x) => x.id === 'book5')!.earnedOn).toBeNull();
   });
 });

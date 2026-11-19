@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
+import { Achievements } from '@/components/Achievements';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
@@ -30,11 +31,13 @@ export default function Hero() {
           {me.emoji}<span className="edit">✏️</span>
         </button>
         <div className="grow">
-          <h1 className="title">{me.name} · ур. {d.level}</h1>
+          <h1 className="title">{me.name} · ур. {d.level} <small className="gold">🏅 {d.achievements.filter((a) => a.earnedOn).length}</small></h1>
           <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}{!h.cls && <> <button className="btn" onClick={askClass}>Выбрать класс</button></>}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
         </div>
       </section>
+
+      <Achievements items={d.achievements} />
 
       <Section title="Характеристики (30 дней)"><Radar data={d.radar} /></Section>
 

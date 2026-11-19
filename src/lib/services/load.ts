@@ -22,6 +22,7 @@ export function loadRaw(db: Db): Raw {
     books: db.select().from(s.book).all(),
     quests: db.select().from(s.questOverride).all(),
     chestsOpened: db.select().from(s.chestOpened).all(),
+    familyQuests: db.select().from(s.familyQuest).all(),
     shopItems: db.select().from(s.shopItem).all(),
     purchases: db.select().from(s.shopPurchase).all(),
   };
