@@ -4,6 +4,8 @@
 
 Нужно: Linux-сервер (Ubuntu или Debian), доступ по SSH, домен.
 
+> Эта схема только для сервера. На домашнем компьютере запускайте сайт обычной командой `docker compose up -d --build` (файл `docker-compose.yml`), а `docker-compose.prod.yml` и `deploy/setup.sh` туда не нужны.
+
 ## 1. Домен
 
 Нужно имя, которое указывает на IP сервера.

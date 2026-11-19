@@ -1,5 +1,6 @@
 # Для сервера в интернете: сайт доступен только через Caddy (HTTPS + пароль).
-# Порт 3000 наружу не публикуется. Запуск: см. DEPLOY.md
+# Порт 3000 наружу не публикуется. Запускать ТОЛЬКО на сервере через ./deploy/setup.sh (см. DEPLOY.md).
+# На домашнем компьютере используйте обычный docker-compose.yml.
 services:
   app:
     build: .
@@ -18,7 +19,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy:/etc/caddy:ro   # папкой, чтобы Docker не создавал каталог вместо отсутствующего Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
