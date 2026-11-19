@@ -6,7 +6,7 @@ import { post, rpc, type State } from '@/lib/client';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
-  act: (action: string, args?: Record<string, unknown>) => Promise<unknown>; toast: (m: string) => void;
+  act: (action: string, args?: Record<string, unknown>) => Promise<unknown>; toast: (m: string) => void; askPin: () => void;
 }
 const C = createContext<Ctx | null>(null);
 export const useGame = () => useContext(C)!;
@@ -55,7 +55,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const me = s.members.find((m) => m.id === s.me)!;
   return (
-    <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast }}>
+    <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true) }}>
       <header className="top">
         <nav>{NAV.map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
         <div className="who">

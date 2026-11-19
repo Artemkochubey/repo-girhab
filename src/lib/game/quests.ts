@@ -68,3 +68,31 @@ export const questXpEarned = (qs: QuestItem[], d: DayStats): number =>
   qs.reduce((s, q) => s + (questDone(q, d) ? q.xp : 0), 0);
 export const allQuestsDone = (qs: QuestItem[], d: DayStats): boolean =>
   qs.length > 0 && qs.every((q) => questDone(q, d));
+
+/** Понятное описание: что сделать, чтобы квест засчитался. */
+export function questHint(q: QuestItem): string {
+  switch (q.k) {
+    case 'manual': return 'Сделайте дело и нажмите ○ — родитель подтвердит';
+    case 'warmup': return 'Отметьте зарядку (кнопка «Зарядка» на экранах «Сегодня» и «Тело»)';
+    case 'workout': return `Запишите тренировку: ${q.m ?? 1} мин за день (экран «Тело»)`;
+    case 'habits': return `Отметьте привычек за день: ${q.m ?? 1} (экран «Ум»)`;
+    case 'study': {
+      const what = !q.kind || q.kind === 'any' ? 'любой учёбы' : `«${q.kind}»`;
+      return `Запишите ${q.m ?? 1} мин ${what} (экран «Ум»)`;
+    }
+  }
+}
+
+/** Прогресс автоквеста: сколько уже сделано и сколько нужно. Для ручных — null. */
+export function questProgress(q: QuestItem, d: DayStats): { have: number; need: number; unit: string } | null {
+  switch (q.k) {
+    case 'manual': return null;
+    case 'warmup': return { have: Math.min(d.warmups, 1), need: 1, unit: '' };
+    case 'workout': return { have: d.workoutMinutes, need: q.m ?? 1, unit: 'мин' };
+    case 'habits': return { have: d.habits, need: q.m ?? 1, unit: 'шт.' };
+    case 'study': {
+      const have = !q.kind || q.kind === 'any' ? Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0) : d.study[q.kind] ?? 0;
+      return { have, need: q.m ?? 1, unit: 'мин' };
+    }
+  }
+}

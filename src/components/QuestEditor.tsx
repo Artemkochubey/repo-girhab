@@ -4,10 +4,10 @@ import { STUDY_KINDS } from '@/lib/db/schema';
 import type { QuestDto } from '@/lib/client';
 import { useGame } from './Shell';
 
-const KINDS = [['manual', 'Вручную'], ['warmup', 'Зарядка'], ['workout', 'Тренировка (мин)'], ['habits', 'Привычки (шт.)'], ['study', 'Учёба (мин)']] as const;
+const KINDS = [['manual', 'Вручную (родитель подтвердит)'], ['warmup', 'Зарядка (само)'], ['workout', 'Тренировка, мин (само)'], ['habits', 'Привычки, шт. (само)'], ['study', 'Учёба, мин (само)']] as const;
 const blank = (): QuestDto => ({ t: '', xp: 20, k: 'manual' });
 
-export function QuestEditor({ memberId }: { memberId: number }) {
+export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?: () => void }) {
   const { s, act, toast } = useGame();
   const info = s.admin!.quests[memberId];
   const [items, setItems] = useState<QuestDto[]>(() => info.items.map((q) => ({ t: q.t, xp: q.xp, k: q.k, m: q.m, kind: q.kind })));
@@ -20,7 +20,7 @@ export function QuestEditor({ memberId }: { memberId: number }) {
       m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' ? q.m ?? 1 : undefined,
       kind: q.k === 'study' ? q.kind ?? 'any' : undefined,
     }));
-    try { await act('setQuests', { memberId, date: scope === 'default' ? 'default' : s.today, items: clean }); toast('Квесты сохранены'); } catch { /* toast уже показан */ }
+    try { await act('setQuests', { memberId, date: scope === 'default' ? 'default' : s.today, items: clean }); toast('Квесты сохранены'); onSaved?.(); } catch { /* toast уже показан */ }
   };
 
   return (

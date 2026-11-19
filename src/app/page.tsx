@@ -1,5 +1,5 @@
 'use client';
-import { Quests } from '@/components/Quests';
+import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Bar, Chips, Section } from '@/components/ui';
 import { addDays } from '@/lib/date';
@@ -34,7 +34,7 @@ export default function Today() {
         <p className="muted small">Цели: {me.goal} баллов → {s.config.minutes} мин, {me.superGoal} → {s.config.superMinutes} мин</p>
       </Section>
 
-      <Section title="⚔️ Квесты дня"><Quests /></Section>
+      <QuestsBlock />
 
       <Section title="💪 Тренировка и зарядка" right={
         <button className={`btn ${d.day.stats.warmups ? '' : 'ghost'}`} onClick={() => act('toggleWarmup')}>

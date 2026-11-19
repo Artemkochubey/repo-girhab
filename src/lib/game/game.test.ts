@@ -104,3 +104,15 @@ describe('квесты', () => {
     expect(allQuestsDone(qs, day({ warmups: 1 }))).toBe(true);
   });
 });
+
+import { questHint, questProgress } from './quests';
+describe('подсказки квестов', () => {
+  it('текст и прогресс', () => {
+    const q = { t: 'x', xp: 5, k: 'workout' as const, m: 40 };
+    expect(questHint(q)).toContain('40 мин');
+    expect(questProgress(q, day({ workoutMinutes: 25 }))).toEqual({ have: 25, need: 40, unit: 'мин' });
+    expect(questProgress({ t: 'x', xp: 5, k: 'manual' }, day())).toBeNull();
+    expect(questHint({ t: 'x', xp: 5, k: 'study', kind: 'Языки', m: 15 })).toContain('«Языки»');
+    expect(questProgress({ t: 'x', xp: 5, k: 'study', kind: 'any', m: 15 }, day({ study: { Языки: 5, Книги: 7 } }))?.have).toBe(12);
+  });
+});

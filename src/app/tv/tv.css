@@ -20,3 +20,5 @@
 .tv-mark { font-size: 2rem; width: 2.4rem; text-align: center; }
 .tv-foot { color: #cbbff0; font-size: 1rem; text-align: center; }
 @media (max-width: 800px) { .tv { font-size: 20px; } .tv-boss { flex-direction: column; text-align: center; } .tv-boss-emoji { font-size: 6rem; } }
+
+.tv-qt small { display: block; color: #cbbff0; font-size: .62em; margin-top: 2px; }

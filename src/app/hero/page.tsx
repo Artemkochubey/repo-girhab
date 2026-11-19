@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Quests } from '@/components/Quests';
+import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
@@ -63,7 +63,7 @@ export default function Hero() {
         )}
       </Section>
 
-      <Section title="⚔️ Квесты дня"><Quests /></Section>
+      <QuestsBlock />
 
       <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
         <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
