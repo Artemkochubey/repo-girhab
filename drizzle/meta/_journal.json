@@ -71,6 +71,13 @@
       "when": 1795106364305,
       "tag": "0009_elite_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795107260050,
+      "tag": "0010_free_wallop",
+      "breakpoints": true
     }
   ]
 }

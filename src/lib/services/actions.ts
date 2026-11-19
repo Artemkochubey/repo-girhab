@@ -314,6 +314,39 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       ]).run();
       return { ok: true };
     }
+    case 'useChestPrize': {
+      // ребёнок (или родитель) просит выдать приз из сумки; undo возвращает запрос обратно в сумку
+      const memberId = target();
+      const n = int(a.n, 1, 1e9, 'Номер сундука');
+      const row = db.select().from(s.chestOpened).where(and(eq(s.chestOpened.memberId, memberId), eq(s.chestOpened.n, n))).get();
+      if (!row) return fail(404, 'Нет такого приза');
+      if (a.undo === true) {
+        if (row.status !== 'requested') fail(409, 'Запрос уже обработан');
+        db.update(s.chestOpened).set({ status: 'bag' }).where(eq(s.chestOpened.id, row.id)).run();
+      } else {
+        if (row.status !== 'bag') fail(409, row.status === 'requested' ? 'Приз уже ждёт выдачи' : 'Приз уже выдан');
+        db.update(s.chestOpened).set({ status: 'requested' }).where(eq(s.chestOpened.id, row.id)).run();
+      }
+      return { ok: true };
+    }
+    case 'deliverChestPrize': {
+      // родитель выдал приз (из сумки или по запросу); undo возвращает приз в сумку
+      needParent();
+      const memberId = target();
+      const n = int(a.n, 1, 1e9, 'Номер сундука');
+      const row = db.select().from(s.chestOpened).where(and(eq(s.chestOpened.memberId, memberId), eq(s.chestOpened.n, n))).get();
+      if (!row) return fail(404, 'Нет такого приза');
+      if (a.undo === true) db.update(s.chestOpened).set({ status: 'bag', deliveredOn: null }).where(eq(s.chestOpened.id, row.id)).run();
+      else db.update(s.chestOpened).set({ status: 'delivered', deliveredOn: today }).where(eq(s.chestOpened.id, row.id)).run();
+      return { ok: true };
+    }
+    case 'deliverAllChestPrizes': {
+      needParent();
+      const memberId = target();
+      const open = db.select().from(s.chestOpened).where(eq(s.chestOpened.memberId, memberId)).all().filter((r) => r.status !== 'delivered');
+      for (const r of open) db.update(s.chestOpened).set({ status: 'delivered', deliveredOn: today }).where(eq(s.chestOpened.id, r.id)).run();
+      return { delivered: open.length };
+    }
     case 'buyItem': {
       const memberId = target();
       const item = db.select().from(s.shopItem).where(eq(s.shopItem.id, int(a.itemId, 1, 1e9, 'Награда'))).get();

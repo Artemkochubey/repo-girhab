@@ -41,6 +41,7 @@ export interface State {
     familyQuestsAll: FamilyQuestDto[];
     quests: Record<number, { items: QuestDto[]; hasDefault: boolean }>;
     loot: string[]; lootRare: string[]; lootLegend: string[];
+    prizesRequested: { memberId: number; n: number; date: string; rarity: string; reward: string }[];
     review: { memberId: number; date: string; points: number; reasons: string[]; entries: { id: number; minutes: number; reps: number | null; exercise: string | null; eq: number }[] }[];
     questSets: { id: string; name: string; emoji: string; items: QuestDto[] }[];
   };
@@ -49,7 +50,7 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
-    chestLog: { n: number; date: string; rarity: string; reward: string }[];
+    chestLog: { n: number; date: string; rarity: string; reward: string; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];

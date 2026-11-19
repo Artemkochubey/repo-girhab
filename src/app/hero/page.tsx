@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState } from 'react';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
@@ -117,10 +118,11 @@ export default function Hero() {
         <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
         <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
         {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}</small><b>{chest.reward}</b></div>}
+        <p className="muted small">Призы из сундуков лежат в <Link href="/bag">🎒 сумке</Link>: там их можно копить, использовать и отмечать выданными.</p>
         <details className="chestlog">
           <summary>📜 Что выпало ({d.chestLog.length})</summary>
           {d.chestLog.length === 0 ? <p className="muted small">Пока ни одного открытого сундука.</p> : (
-            <ul className="list">{d.chestLog.map((c) => <li key={c.n} className={`cl ${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b></li>)}</ul>
+            <ul className="list">{d.chestLog.slice(0, 30).map((c) => <li key={c.n} className={`cl r-${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b> <small className="muted">{c.status === 'delivered' ? '✅ выдано' : c.status === 'requested' ? '⏳ ждёт выдачи' : '🎒 в сумке'}</small></li>)}</ul>
           )}
         </details>
       </Section>

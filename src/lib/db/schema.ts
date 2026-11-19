@@ -115,6 +115,9 @@ export const chestOpened = sqliteTable('chest_opened', {
   rarity: text('rarity', { enum: ['common', 'rare', 'legend'] }).notNull(),
   reward: text('reward').notNull(),
   date: text('date').notNull(),
+  // «Моя сумка»: bag — лежит в сумке, requested — ребёнок попросил выдать, delivered — родитель выдал
+  status: text('status', { enum: ['bag', 'requested', 'delivered'] }).notNull().default('bag'),
+  deliveredOn: text('delivered_on'),
 }, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
 
 export const bossWeek = sqliteTable('boss_week', {

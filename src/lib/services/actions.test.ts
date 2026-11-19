@@ -77,7 +77,7 @@ describe('действия', () => {
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
     expect(r).toEqual({ rarity: 'common', reward: 'a' });
     const { raw, family } = loadFamily(db, NOW);
-    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a' }]);   // история «что выпало»
+    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', status: 'bag', deliveredOn: null }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
   });
   it('«Щедрая добыча»: второй приз из сундука', () => {
@@ -131,6 +131,30 @@ describe('действия', () => {
     runAction(db, dad, 'reviewOk', { memberId: 2, date: '2026-11-19' });
     expect(state().review.filter((f) => f.memberId === 2)).toHaveLength(0);
     expect(loadFamily(db, NOW).family.members.get(2)!.days.get('2026-11-19')!.total).toBe(before);
+  });
+  it('сумка: приз копится, ребёнок просит выдать, родитель выдаёт', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 300 });
+    for (let i = 0; i < 3; i++) runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {});
+    const log = () => { const { raw, family } = loadFamily(db, NOW); return memberDetail(raw, family, family.members.get(2)!).chestLog; };
+    expect(log().map((c) => c.status)).toEqual(['bag', 'bag', 'bag']);
+    expect(err(() => runAction(db, kid, 'deliverChestPrize', { n: 1 }))?.status).toBe(403);          // выдаёт только родитель
+    runAction(db, kid, 'useChestPrize', { n: 1 });
+    expect(log().find((c) => c.n === 1)!.status).toBe('requested');
+    expect(err(() => runAction(db, kid, 'useChestPrize', { n: 1 }))?.status).toBe(409);               // уже просили
+    expect(err(() => runAction(db, kid, 'useChestPrize', { n: 99 }))?.status).toBe(404);
+    const adm = () => { const { raw, family } = loadFamily(db, NOW); return adminView(raw, family, { loot: [], lootRare: [], lootLegend: [], questSets: [] }).prizesRequested; };
+    expect(adm()).toMatchObject([{ memberId: 2, n: 1 }]);
+    runAction(db, kid, 'useChestPrize', { n: 1, undo: true });                                         // передумал
+    expect(log().find((c) => c.n === 1)!.status).toBe('bag');
+    runAction(db, dad, 'deliverChestPrize', { memberId: 2, n: 1 });
+    expect(log().find((c) => c.n === 1)).toMatchObject({ status: 'delivered', deliveredOn: '2026-11-19' });
+    expect(err(() => runAction(db, kid, 'useChestPrize', { n: 1 }))?.status).toBe(409);               // уже выдан
+    runAction(db, dad, 'deliverChestPrize', { memberId: 2, n: 1, undo: true });
+    expect(log().find((c) => c.n === 1)!.status).toBe('bag');
+    expect(runAction(db, dad, 'deliverAllChestPrizes', { memberId: 2 })).toEqual({ delivered: 3 });
+    expect(log().every((c) => c.status === 'delivered')).toBe(true);
+    runAction(db, dad, 'deliverChestPrize', { memberId: 2, n: 2, undo: true });
+    expect(err(() => runAction(db, dad, 'useChestPrize', { memberId: 2, n: 2 }))).toBeNull();                // родитель тоже может запросить за ребёнка
   });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];

@@ -80,6 +80,22 @@ function AdminSettings() {
         </ul>
       </Section>
 
+      {a.prizesRequested.length > 0 && (
+        <Section title={`🎁 Просят выдать приз (${a.prizesRequested.length})`}>
+          <ul className="list">
+            {a.prizesRequested.map((p) => {
+              const m = nameOf(p.memberId);
+              return (
+                <li key={`${p.memberId}-${p.n}`} className="wrapRow">
+                  <span className="grow">{m?.emoji} {m?.name}: <b>{p.reward}</b> <small className="muted">(сундук №{p.n}, {p.date})</small></span>
+                  <button className="btn" onClick={() => act('deliverChestPrize', { memberId: p.memberId, n: p.n }).then(() => toast('Отмечено: выдано')).catch(() => {})}>✔ Выдано</button>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      )}
+
       <ReviewBlock />
 
       <Section title="👪 Участники и нормы баллов">
