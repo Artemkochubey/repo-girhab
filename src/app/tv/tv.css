@@ -1,0 +1,22 @@
+.tv { min-height: 100vh; padding: 2.2vw; background: #0a0714; color: #fff; font-size: 28px; line-height: 1.3; display: grid; gap: 2vw; align-content: start; font-family: system-ui, sans-serif; }
+.tv h1 { font: 700 2.2rem Georgia, serif; margin: 0 0 12px; color: #ffd978; } .tv h2 { margin: 0 0 10px; font-size: 1.5rem; }
+.tv-load, .tv-off { text-align: center; font-size: 1.4rem; } .tv-off { background: #a33; padding: 6px; border-radius: 8px; }
+.tv-boss { display: flex; gap: 2.5vw; align-items: center; background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 2vw; }
+.tv-boss-emoji { font-size: 10rem; line-height: 1; } .tv-boss-main { flex: 1; min-width: 0; }
+.tv-hp { position: relative; height: 3.4rem; background: #000; border: 3px solid #fff; border-radius: 999px; overflow: hidden; }
+.tv-hp > div { height: 100%; background: linear-gradient(#e74c3c, #a52a1f); transition: width 1s; }
+.tv-hp > span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; font-size: 1.6rem; text-shadow: 0 2px 4px #000; }
+.tv-dmg { display: flex; flex-wrap: wrap; gap: 0 2rem; margin-top: 14px; } .tv-mvp { color: #ffd978; font-size: 1.6rem; margin: 8px 0 0; }
+.tv-heroes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.4vw; }
+.tv-hero { background: #1a1230; border: 4px solid; border-radius: 20px; padding: 18px; display: grid; gap: 10px; }
+.tv-hero-top { display: flex; align-items: center; gap: 16px; } .tv-hero-top small { display: block; color: #e6defc; font-size: 1.05rem; } .tv-av { font-size: 3.4rem; }
+.tv-pts { height: 22px; background: #000; border-radius: 999px; overflow: hidden; } .tv-pts > div { height: 100%; transition: width 1s; } .tv-pts-label { font-size: 1.1rem; color: #e6defc; }
+.tv-quests { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.4vw; }
+.tv-qcol { display: grid; gap: 12px; align-content: start; }
+.tv-q { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 84px; padding: 12px 20px; font: inherit; color: #fff; text-align: left; background: #241b42; border: 4px solid #3a2f63; border-radius: 18px; cursor: pointer; }
+.tv-q b { color: #ffd978; margin-left: auto; } .tv-qt { flex: 1; min-width: 0; }
+.tv-q.done { border-color: #4cae6a; background: #17301f; } .tv-q.wait { border-color: #ffd978; } .tv-q:disabled { cursor: default; }
+.tv-q:focus-visible { outline: 6px solid #fff; outline-offset: 4px; transform: scale(1.03); }
+.tv-mark { font-size: 2rem; width: 2.4rem; text-align: center; }
+.tv-foot { color: #cbbff0; font-size: 1rem; text-align: center; }
+@media (max-width: 800px) { .tv { font-size: 20px; } .tv-boss { flex-direction: column; text-align: center; } .tv-boss-emoji { font-size: 6rem; } }
