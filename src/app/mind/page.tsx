@@ -1,14 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { BrainFigure, BrainLegend } from '@/components/BrainFigure';
 import { useGame } from '@/components/Shell';
 import { Chips, Section } from '@/components/ui';
 import { STUDY_KINDS } from '@/lib/db/schema';
+import { addDays } from '@/lib/date';
+import { BRAIN_REGIONS, brainIntensity, brainLoads, brainOverall, type RegionId } from '@/lib/game/brain';
 import { HABIT_CATALOG, HABIT_GROUPS } from '@/lib/game/habits';
+
+const RANGES = [{ id: 'day', label: 'Сегодня', days: 1 }, { id: 'week', label: '7 дней', days: 7 }, { id: 'month', label: '30 дней', days: 30 }] as const;
 
 export default function Mind() {
   const { s, act, date } = useGame();
   const d = s.detail!;
   const [kind, setKind] = useState<string>(STUDY_KINDS[0]);
+  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('week');
+  const [hover, setHover] = useState<RegionId | null>(null);
+  const [picked, setPicked] = useState<RegionId | null>(null);
+  const days = RANGES.find((r) => r.id === range)!.days;
+  const loads = useMemo(() => brainLoads(d.mindLog, addDays(s.today, -(days - 1)), s.today), [d.mindLog, s.today, days]);
+  const intensity = useMemo(() => brainIntensity(loads, days), [loads, days]);
+  const overall = brainOverall(loads, days);
+  const topRegions = BRAIN_REGIONS.map((r) => ({ ...r, load: loads[r.id], t: intensity[r.id] })).filter((r) => r.load > 0).sort((a, b) => b.load - a.load);
+  const info = BRAIN_REGIONS.find((r) => r.id === (hover ?? picked));
+  const pick = (id: RegionId) => { setPicked(id); const k = BRAIN_REGIONS.find((r) => r.id === id)!.kind; if (k) setKind(k); };
   const [habit, setHabit] = useState('');
   const [book, setBook] = useState('');
   const have = new Set(d.habits.map((h) => h.name));
@@ -20,6 +35,21 @@ export default function Mind() {
   return (
     <>
       <h1 className="title">🧠 Ум</h1>
+      <Section title="🧠 Развитие ума" right={<div className="row">{RANGES.map((r) => <button key={r.id} className={`btn ${range === r.id ? '' : 'ghost'} sm`} onClick={() => setRange(r.id)}>{r.label}</button>)}</div>}>
+        <div className="brain-wrap">
+          <BrainFigure intensity={intensity} overall={overall} hover={hover} onHover={setHover} onPick={pick} />
+          <BrainLegend />
+          <div className="brain-stat">Яркость мозга: <b>{Math.round(overall * 100)}%</b></div>
+          <p className="muscle-info" aria-live="polite">
+            {info ? <><b>{info.name}</b> · {info.sphere}: {info.text}{loads[info.id] > 0 ? ` · развитие за период: ${Math.round(loads[info.id])}` : ''}{info.kind ? ' · выбрано для записи ниже' : ''}</> : 'Нажмите на область мозга, чтобы выбрать, что развиваете'}
+          </p>
+        </div>
+        {topRegions.length > 0
+          ? <ul className="regions">{topRegions.map((r) => <li key={r.id}><span>{r.name} <small className="muted">· {r.sphere}</small></span><i style={{ width: `${Math.max(6, Math.round(r.t * 100))}%` }} /></li>)}</ul>
+          : <p className="muted small">За этот период развития нет. Запишите учёбу, книгу или привычки, и области мозга начнут светиться голубым.</p>}
+        <p className="muted small">Упрощённая схема: каждая область связана со своей сферой (мышление, учёба, языки, книги, навыки, творчество, привычки). Чем больше вы занимаетесь, тем ярче она светится.</p>
+      </Section>
+
       <Section title="Учёба">
         <div className="row wrapRow">
           {STUDY_KINDS.map((k) => (

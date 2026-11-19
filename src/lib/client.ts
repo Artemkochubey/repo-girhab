@@ -45,6 +45,7 @@ export interface State {
     chests: { earned: number; opened: number; available: number };
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
+    mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];
     mvpWins: number;
     day: { points: number; stats: { workoutMinutes: number; warmups: number; study: Record<string, number>; habits: number; books: number; questXp: number };
       bySphere: Record<string, number>;

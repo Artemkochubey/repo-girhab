@@ -44,6 +44,11 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
     achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),
+    // развитие ума по дням за 30 дней: для схемы мозга
+    mindLog: dateRange(addDays(fam.today, -29), fam.today).flatMap((d) => {
+      const x = st.days.get(d)?.stats;
+      return x && (x.habits || x.books || Object.values(x.study).some((m) => (m ?? 0) > 0)) ? [{ date: d, study: x.study, habits: x.habits, books: x.books }] : [];
+    }),
     workoutLog: myWorkouts.filter((w) => w.date >= addDays(fam.today, -29))
       .map((w) => ({ id: w.id, date: w.date, minutes: w.minutes, reps: w.reps ?? null, eq: w.eq, exercise: w.exercise ?? null, muscles: w.muscles ?? null })),
     entries: { workouts: myWorkouts.filter((w) => w.date === date), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
