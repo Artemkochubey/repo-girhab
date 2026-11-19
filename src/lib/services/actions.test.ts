@@ -183,4 +183,18 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'markFamilyQuest', { id }))?.status).toBe(400);
     expect(err(() => runAction(db, dad, 'completeFamilyQuest', { id }))?.status).toBe(400);
   });
+  it('MVP дня сохраняется после конца дня и не меняется от поздних правок', () => {
+    const rows = () => db.select().from(s.dayMvp).all().sort((a, b) => a.date.localeCompare(b.date));
+    loadFamily(db, NOW);
+    expect(db.select().from(s.config).get()!.mvpSince).toBe('2026-11-19');          // дата старта — первый запуск
+    expect(rows()).toHaveLength(0);
+    db.update(s.config).set({ mvpSince: '2026-11-15' }).run();
+    runAction(db, dad, 'addWorkout', { memberId: 2, date: '2026-11-16', minutes: 120 });
+    loadFamily(db, NOW);
+    expect(rows().map((r) => [r.date, r.memberId])).toEqual([['2026-11-15', 0], ['2026-11-16', 2], ['2026-11-17', 0], ['2026-11-18', 0]]);
+    runAction(db, dad, 'addWorkout', { memberId: 1, date: '2026-11-16', minutes: 600 });     // позднее «перебили» — итог дня не меняется
+    loadFamily(db, NOW);
+    expect(rows().find((r) => r.date === '2026-11-16')!.memberId).toBe(2);
+    expect(loadFamily(db, NOW).family.mvp.wins).toEqual({ 2: 1 });
+  });
 });

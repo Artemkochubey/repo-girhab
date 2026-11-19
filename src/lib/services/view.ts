@@ -40,6 +40,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     id: st.id, hero: st.hero, xp: st.xp, level: st.level, into: st.into, span: st.span, streak: st.streak,
     talentPointsFree: st.talentPointsFree, recommendedSub: st.recommendedSub,
     wallet: { balance: st.balance, spent: st.spentPoints },
+    mvpWins: fam.mvp.wins[st.id] ?? 0,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
     achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),
@@ -96,6 +97,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
     boss: bossView(fam.boss),
     admin: opts.admin ?? null,
     familyQuests: currentFq(fam),
+    mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     shop: shopView(raw, opts.memberId, opts.parent),
     detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
@@ -106,6 +108,7 @@ export function tvState(raw: Raw, fam: Family) {
   return {
     today: fam.today, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
+    mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;
       return { memberId: m.id, items: d.quests.map((q, i) => { const pr = questProgress(q, d.stats); return { t: q.t, desc: q.d ?? null, xp: q.xp, manual: q.k === 'manual', done: d.questsDone[i], pending: !!q.pending, index: i, hint: questHint(q), progress: pr ? `${Math.min(pr.have, pr.need)}/${pr.need}${pr.unit ? ' ' + pr.unit : ''}` : null }; }) };

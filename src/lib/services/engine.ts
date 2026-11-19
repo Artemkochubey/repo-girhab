@@ -1,5 +1,6 @@
 import { addDays, dateRange, todayIn } from '../date';
 import { allocateWorkouts } from '../game/reps';
+import { MVP_CHEST_PER_DAY, pickDayMvp } from '../game/mvp';
 import { computeAchievements, type AchievementState } from '../game/achievements';
 import { resolveFamilyQuest, type FamilyQuestInput, type FamilyQuestResult } from '../game/familyQuests';
 import { BOSSES, WEAK_BONUS, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
@@ -23,6 +24,8 @@ export interface Raw {
   quests: { memberId: number; date: string; items: QuestItem[] }[];
   chestsOpened: { memberId: number; n: number; date?: string }[];
   familyQuests: FamilyQuestInput[];
+  dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
+  mvpSince: string | null;
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
 }
@@ -52,7 +55,13 @@ export interface BossWeek {
 }
 
 export interface ResolvedFamilyQuest extends FamilyQuestInput, FamilyQuestResult { participants: number[] }
-export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[] }
+export interface MvpInfo {
+  pending: { date: string; memberId: number; points: number; ratio: number }[];   // итоги дней, которые ещё надо сохранить
+  yesterday: { date: string; memberId: number; points: number } | null;
+  leader: { memberId: number; points: number; ratio: number; qualified: boolean } | null;
+  wins: Record<number, number>;
+}
+export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo }
 
 const CLASS_OF: Partial<Record<Sphere, Cls>> = {};
 for (const c of Object.keys(CLASS_SPHERES) as Cls[]) for (const s of CLASS_SPHERES[c]) CLASS_OF[s] ??= c;
@@ -185,8 +194,33 @@ export function buildFamily(raw: Raw, today: string): Family {
     bossHistory.push({ weekStart: w, bossId: boss.id, hp, damage, defeated, finished, byMember, mvp: res.mvp, participants: parts.map((m) => m.id) });
   }
 
+  // MVP дня: итоги прошедших дней фиксируются (pending → сохраняются сервисом), сегодняшний лидер — живой
+  const mvpByDate = new Map<string, number>();
+  const pendingMvps: MvpInfo['pending'] = [];
+  for (const r of raw.dayMvps) mvpByDate.set(r.date, r.memberId);
+  if (raw.mvpSince) {
+    for (let d = raw.mvpSince; d < today; d = addDays(d, 1)) {
+      if (mvpByDate.has(d)) continue;
+      const cands = raw.members.filter((m) => createdOf.get(m.id)! <= d).map((m) => ({ id: m.id, points: members.get(m.id)!.days.get(d)?.total ?? 0, goal: m.goal }));
+      const w = pickDayMvp(cands);
+      mvpByDate.set(d, w?.id ?? 0);
+      pendingMvps.push({ date: d, memberId: w?.id ?? 0, points: w?.points ?? 0, ratio: w?.ratio ?? 0 });
+    }
+  }
+  const mvpWins: Record<number, number> = {};
+  const mvpDatesOf = new Map<number, string[]>();
+  for (const [d, id] of mvpByDate) if (id > 0 && d < today) { mvpWins[id] = (mvpWins[id] ?? 0) + 1; mvpDatesOf.set(id, [...(mvpDatesOf.get(id) ?? []), d]); }
+  const yId = mvpByDate.get(addDays(today, -1));
+  const yesterday = yId ? { date: addDays(today, -1), memberId: yId, points: members.get(yId)?.days.get(addDays(today, -1))?.total ?? 0 } : null;
+  let leader: MvpInfo['leader'] = null;
+  for (const m of raw.members.filter((x) => createdOf.get(x.id)! <= today)) {
+    const pts = members.get(m.id)!.days.get(today)?.total ?? 0;
+    const ratio = m.goal > 0 ? pts / m.goal : 0;
+    if (pts > 0 && (!leader || ratio > leader.ratio)) leader = { memberId: m.id, points: pts, ratio, qualified: ratio >= 1 };
+  }
+
   for (const st of members.values()) {
-    st.chestsEarned = chestsEarned(st.level, st.questDays, bossChests.get(st.id) ?? 0);
+    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY);
     // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.
     const mine = raw.purchases.filter((p) => p.memberId === st.id && p.status !== 'cancelled');
     st.spentPoints = mine.filter((p) => p.currency === 'points').reduce((a, p) => a + p.price, 0);
@@ -205,9 +239,10 @@ export function buildFamily(raw: Raw, today: string): Family {
       chestDates: raw.chestsOpened.filter((c) => c.memberId === st.id && c.date).map((c) => c.date!),
       bossWinDates: wins.map((w) => addDays(w.weekStart, 6)),
       mvpDates: bossHistory.filter((w) => w.finished && w.defeated && w.mvp === st.id).map((w) => addDays(w.weekStart, 6)),
+      dayMvpDates: mvpDatesOf.get(st.id) ?? [],
     });
   }
-  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests };
+  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins } };
 }
 
 export { BOSSES };

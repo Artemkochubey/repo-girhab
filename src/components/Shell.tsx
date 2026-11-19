@@ -59,6 +59,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
     } catch { /* без хранилища просто не показываем */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [achKey, earnedIds, classLater]);
+  // Поздравление, если вчера ты стал MVP дня (показываем один раз на дату)
+  const [mvpWin, setMvpWin] = useState<string | null>(null);
+  const yMvp = s?.mvp?.yesterday;
+  useEffect(() => {
+    if (!s?.me || !yMvp || yMvp.memberId !== s.me || (!s.detail?.hero.cls && !classLater)) return;
+    try { const k = `mr_mvp_${s.me}`; if (localStorage.getItem(k) !== yMvp.date) setMvpWin(yMvp.date); } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.me, yMvp?.date, yMvp?.memberId, classLater, s?.detail?.hero.cls]);
+  const closeMvp = () => { try { if (s?.me && mvpWin) localStorage.setItem(`mr_mvp_${s.me}`, mvpWin); } catch { /* ignore */ } setMvpWin(null); };
   const closeAch = () => {
     try { if (achKey && s?.detail) localStorage.setItem(achKey, JSON.stringify(s.detail.achievements.filter((a) => a.earnedOn).map((a) => a.id))); } catch { /* ignore */ }
     setNewAch([]);
@@ -97,6 +106,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="wrap">{children}</main>
       {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
+      {mvpWin && newAch.length === 0 && (
+        <div className="modal" onClick={closeMvp} role="dialog" aria-label="MVP дня">
+          <div className="card celebrate" onClick={(e) => e.stopPropagation()}>
+            <h2>🏆 Ты MVP дня!</h2>
+            <div className="big">🎁</div>
+            <b>Вчера ты был лучшим в семье</b>
+            <div className="muted small">Тебе начислен сундук. Открой его на экране «Герой».</div>
+            <button className="btn" onClick={closeMvp}>Ура!</button>
+          </div>
+        </div>
+      )}
       {newAch.length > 0 && (
         <div className="modal" onClick={closeAch} role="dialog" aria-label="Новое достижение">
           <div className="card celebrate" onClick={(e) => e.stopPropagation()}>

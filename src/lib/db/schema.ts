@@ -19,6 +19,8 @@ export const config = sqliteTable('config', {
   id: integer('id').primaryKey(), // всегда 1
   timezone: text('timezone').notNull().default('Asia/Novosibirsk'),
   pinHash: text('pin_hash'),
+  // с какого дня считается MVP дня (ставится при первом запуске версии с этой функцией, чтобы не начислять сундуки задним числом)
+  mvpSince: text('mvp_since'),
   minutes: integer('minutes').notNull().default(30),
   superMinutes: integer('super_minutes').notNull().default(60),
   loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),
@@ -159,5 +161,14 @@ export const familyQuest = sqliteTable('family_quest', {
   date: text('date').notNull(),            // день квеста или понедельник его недели
   status: text('status', { enum: ['open', 'pending', 'done'] }).notNull().default('open'),
   doneDate: text('done_date'),
+  createdAt: createdAt(),
+});
+
+// MVP дня фиксируется, когда день закончился, чтобы поздние правки записей не отнимали сундук.
+export const dayMvp = sqliteTable('day_mvp', {
+  date: text('date').primaryKey(),
+  memberId: integer('member_id').notNull(),
+  points: real('points').notNull(),
+  ratio: real('ratio').notNull(),
   createdAt: createdAt(),
 });

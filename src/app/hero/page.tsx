@@ -94,7 +94,7 @@ export default function Hero() {
 
       <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
         <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
-        <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами и победы над боссами.</p>
+        <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
         {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}</small><b>{chest.reward}</b></div>}
       </Section>
 

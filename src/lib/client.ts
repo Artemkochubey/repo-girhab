@@ -22,8 +22,11 @@ export interface FamilyQuestDto {
 }
 export interface AchievementDto { id: string; group: string; name: string; emoji: string; text: string; target: number; value: number; earnedOn: string | null }
 
+export interface MvpDto { yesterday: { date: string; memberId: number; points: number } | null; leader: { memberId: number; points: number; ratio: number; qualified: boolean } | null }
+
 export interface State {
   familyQuests: FamilyQuestDto[];
+  mvp: MvpDto;
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
   config: { minutes: number; superMinutes: number; timezone: string };
@@ -42,6 +45,7 @@ export interface State {
     chests: { earned: number; opened: number; available: number };
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
+    mvpWins: number;
     day: { points: number; stats: { workoutMinutes: number; warmups: number; study: Record<string, number>; habits: number; books: number; questXp: number };
       bySphere: Record<string, number>;
       quests: { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };

@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -123,5 +123,36 @@ describe('движок семьи', () => {
     const a = buildFamily(raw, '2026-11-19').members.get(1)!.achievements;
     expect(a.find((x) => x.id === 'book1')).toMatchObject({ earnedOn: '2026-11-12', value: 1 });
     expect(a.find((x) => x.id === 'book5')!.earnedOn).toBeNull();
+  });
+
+  it('MVP дня: лучший относительно нормы получает сундук; без нормы или без даты старта — нет', () => {
+    const mk = (since: string | null, stored: { date: string; memberId: number }[] = []) => {
+      const raw = base(); quiet(raw);
+      raw.mvpSince = since; raw.dayMvps = stored;
+      raw.workouts.push({ memberId: 1, date: '2026-11-12', minutes: 70 }, { memberId: 2, date: '2026-11-12', minutes: 40 },   // m1: 84/60=1,4  m2: 40/40=1,0
+        { memberId: 2, date: '2026-11-13', minutes: 100 },                                                                    // m2 побеждает
+        { memberId: 1, date: '2026-11-14', minutes: 20 });                                                                    // норма не выполнена — MVP нет
+      return buildFamily(raw, '2026-11-19');
+    };
+    const none = mk(null);
+    expect(none.mvp.pending).toHaveLength(0);
+    const f = mk('2026-11-10');
+    expect(f.mvp.wins).toEqual({ 1: 1, 2: 1 });
+    expect(f.mvp.pending.find((p) => p.date === '2026-11-14')).toMatchObject({ memberId: 0 });
+    expect(f.members.get(1)!.chestsEarned - none.members.get(1)!.chestsEarned).toBe(1);
+    expect(f.members.get(2)!.chestsEarned - none.members.get(2)!.chestsEarned).toBe(1);
+    expect(f.members.get(1)!.achievements.find((a) => a.id === 'mvpd1')!.earnedOn).toBe('2026-11-12');
+    // сохранённый итог не пересчитывается: 12-е записано за вторым участником
+    const frozen = mk('2026-11-10', [{ date: '2026-11-12', memberId: 2 }]);
+    expect(frozen.mvp.wins[1] ?? 0).toBe(0);
+    expect(frozen.mvp.wins[2]).toBe(2);
+  });
+  it('MVP дня: вчерашний победитель и сегодняшний лидер', () => {
+    const raw = base(); quiet(raw); raw.mvpSince = '2026-11-15';
+    raw.workouts.push({ memberId: 2, date: '2026-11-18', minutes: 60 }, { memberId: 1, date: '2026-11-19', minutes: 30 }, { memberId: 2, date: '2026-11-19', minutes: 10 });
+    const f = buildFamily(raw, '2026-11-19');
+    expect(f.mvp.yesterday).toMatchObject({ date: '2026-11-18', memberId: 2 });
+    expect(f.mvp.leader).toMatchObject({ memberId: 1, qualified: false });                 // 36/60 против 10/40
+    expect(f.mvp.wins[2]).toBe(1);                                                          // сегодняшний день ещё не засчитан
   });
 });

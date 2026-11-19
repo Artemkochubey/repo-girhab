@@ -1,5 +1,6 @@
 'use client';
 import { FamilyQuests } from '@/components/FamilyQuests';
+import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Bar, Chips, Section } from '@/components/ui';
@@ -35,6 +36,8 @@ export default function Today() {
         <p className="muted small">Цели: {me.goal} баллов → {s.config.minutes} мин, {me.superGoal} → {s.config.superMinutes} мин</p>
       </Section>
 
+      <MvpCard />
+
       <QuestsBlock />
 
       <FamilyQuests />
@@ -60,7 +63,7 @@ export default function Today() {
         <Bar value={Math.max(0, b.hp - b.damage)} max={b.hp} color="var(--danger)" label={`${Math.max(0, b.hp - b.damage)} / ${b.hp} HP`} />
         <p className="muted">{b.defeated ? '🏆 Босс повержен!' : 'Вся семья бьёт босса своими очками.'}</p>
       </Section>
-      <p className="muted small version">Мой рост · демо {process.env.NEXT_PUBLIC_APP_VERSION?.replace(/\.0$/, '')}</p>
+      <p className="muted small version">Мой рост · демо {process.env.NEXT_PUBLIC_APP_VERSION}</p>
     </>
   );
 }

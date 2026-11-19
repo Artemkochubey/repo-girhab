@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { todayIn } from '../date';
@@ -23,6 +24,8 @@ export function loadRaw(db: Db): Raw {
     quests: db.select().from(s.questOverride).all(),
     chestsOpened: db.select().from(s.chestOpened).all(),
     familyQuests: db.select().from(s.familyQuest).all(),
+    dayMvps: db.select().from(s.dayMvp).all(),
+    mvpSince: getConfig(db).mvpSince,
     shopItems: db.select().from(s.shopItem).all(),
     purchases: db.select().from(s.shopPurchase).all(),
   };
@@ -30,5 +33,11 @@ export function loadRaw(db: Db): Raw {
 
 export function loadFamily(db: Db, now = new Date()) {
   const raw = loadRaw(db);
-  return { raw, family: buildFamily(raw, todayIn(raw.timezone, now)) };
+  const today = todayIn(raw.timezone, now);
+  const family = buildFamily(raw, today);
+  // MVP дня: первый запуск запоминает дату старта (сундуки задним числом не начисляются);
+  // итоги закончившихся дней сохраняются, чтобы поздние правки записей их не меняли.
+  if (!raw.mvpSince) db.update(s.config).set({ mvpSince: today }).where(eq(s.config.id, 1)).run();
+  for (const p of family.mvp.pending) db.insert(s.dayMvp).values({ date: p.date, memberId: p.memberId, points: p.points, ratio: p.ratio }).onConflictDoNothing().run();
+  return { raw, family };
 }

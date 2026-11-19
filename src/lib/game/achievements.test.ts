@@ -6,7 +6,7 @@ const days = (n: number, start = '2026-11-01') => Array.from({ length: n }, (_, 
 const input = (n: number, o: Partial<AchievementInput> = {}): AchievementInput => ({
   dates: days(n), streak: Array(n).fill(0), books: Array(n).fill(0), warmups: Array(n).fill(0), habits: Array(n).fill(0),
   study: Array(n).fill(0), workoutEq: Array(n).fill(0), points: Array(n).fill(0), questsAllDone: Array(n).fill(false),
-  superGoal: 100, chestDates: [], bossWinDates: [], mvpDates: [], ...o,
+  superGoal: 100, chestDates: [], bossWinDates: [], mvpDates: [], dayMvpDates: [], ...o,
 });
 const get = (r: ReturnType<typeof computeAchievements>, id: string) => r.find((a) => a.id === id)!;
 

@@ -5,6 +5,7 @@ import './tv.css';
 interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
 interface Tv {
   familyQuests: TvFq[];
+  mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
   today: string;
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
@@ -64,6 +65,11 @@ export default function TvPage() {
           </div>
           {boss.defeated && mvp && <p className="tv-mvp">⭐ MVP недели: {mvp.emoji} {mvp.name}</p>}
         </div>
+      </section>
+
+      <section className="tv-mvp-row">
+        <div className="tv-mvpi"><span>🏆</span><div><small>MVP вчера</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.yesterday?.memberId); return m ? `${m.emoji} ${m.name} +1 🎁` : 'не было'; })()}</b></div></div>
+        <div className="tv-mvpi"><span>⚡</span><div><small>Сегодня лидирует</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.leader?.memberId); return m ? `${m.emoji} ${m.name} · ${Math.round(d.mvp.leader!.ratio * 100)}%` : 'пока никого'; })()}</b></div></div>
       </section>
 
       {d.familyQuests.length > 0 && (
