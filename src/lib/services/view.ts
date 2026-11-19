@@ -64,6 +64,8 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     shopDiscount: shopDiscount(st.hero.talents, st.hero.cls),
     mvpWins: fam.mvp.wins[st.id] ?? 0,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
+    chestLog: raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => b.n - a.n).slice(0, 100)
+      .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '' })),
     date, radar,
     reviewDates: reviewFlags(raw, fam, st.id).map((f) => f.date),
     achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),

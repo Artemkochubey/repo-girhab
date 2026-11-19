@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
-import { adminView } from './view';
+import { adminView, memberDetail } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -76,6 +76,8 @@ describe('действия', () => {
     runAction(db, kid, 'addWorkout', { minutes: 200 });
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
     expect(r).toEqual({ rarity: 'common', reward: 'a' });
+    const { raw, family } = loadFamily(db, NOW);
+    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a' }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
   });
   it('«Щедрая добыча»: второй приз из сундука', () => {

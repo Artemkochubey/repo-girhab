@@ -173,3 +173,4 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .board .pos { font-size: 1.4rem; text-align: center; } .board .pct { font-size: 1.2rem; } .board .bar { grid-column: 1 / -1; height: 8px; border-radius: 6px; background: #120d22; overflow: hidden; } .board .bar div { height: 100%; border-radius: 6px; } .board small { grid-column: 1 / -1; }
 .season-old { margin-bottom: 8px; } .season-old summary { cursor: pointer; padding: 6px 0; } .season-old .board { margin-top: 8px; }
 .review { display: grid; gap: 8px; margin-bottom: 8px; } .flag { cursor: help; }
+.chestlog summary { cursor: pointer; padding: 6px 0; } .cl.rare b { color: #7fb4ff; } .cl.legend b { color: #ffd24a; }

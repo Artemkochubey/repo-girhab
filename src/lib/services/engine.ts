@@ -23,7 +23,7 @@ export interface Raw {
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number; date?: string }[];
+  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string }[];
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;

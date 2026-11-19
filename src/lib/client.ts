@@ -49,6 +49,7 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
+    chestLog: { n: number; date: string; rarity: string; reward: string }[];
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];
