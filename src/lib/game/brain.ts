@@ -2,19 +2,21 @@ export type RegionId = 'frontal' | 'parietal' | 'temporal' | 'occipital' | 'cere
 
 export interface BrainRegion {
   id: RegionId; name: string; sphere: string; text: string;
+  /** Цвет доли, когда сфера развита (как на учебных 3D-схемах). */
+  color: string;
   /** Вид учёбы, который «качает» эту область (для привычек — null). */
   kind: 'Мышление' | 'Учёба' | 'Языки' | 'Книги' | 'Навыки' | 'Творчество' | null;
 }
 
 /** Упрощённая учебная схема: какая область мозга связана с какой сферой развития. */
 export const BRAIN_REGIONS: BrainRegion[] = [
-  { id: 'frontal', name: 'Лобная доля', sphere: 'Мышление', text: 'планирование, логика, решения', kind: 'Мышление' },
-  { id: 'parietal', name: 'Теменная доля', sphere: 'Учёба', text: 'счёт, пространство, усвоение знаний', kind: 'Учёба' },
-  { id: 'temporal', name: 'Височная доля', sphere: 'Языки', text: 'речь, слух, память на слова', kind: 'Языки' },
-  { id: 'occipital', name: 'Затылочная доля', sphere: 'Книги', text: 'зрение и чтение', kind: 'Книги' },
-  { id: 'cerebellum', name: 'Мозжечок', sphere: 'Навыки', text: 'координация, ловкость, умения', kind: 'Навыки' },
-  { id: 'limbic', name: 'Лимбическая система', sphere: 'Творчество', text: 'воображение и эмоции', kind: 'Творчество' },
-  { id: 'stem', name: 'Ствол и базальные ганглии', sphere: 'Привычки', text: 'автоматические действия, режим дня', kind: null },
+  { id: 'frontal', color: '#ff3d3d', name: 'Лобная доля', sphere: 'Мышление', text: 'планирование, логика, решения', kind: 'Мышление' },
+  { id: 'parietal', color: '#ffd84a', name: 'Теменная доля', sphere: 'Учёба', text: 'счёт, пространство, усвоение знаний', kind: 'Учёба' },
+  { id: 'temporal', color: '#4cdc6a', name: 'Височная доля', sphere: 'Языки', text: 'речь, слух, память на слова', kind: 'Языки' },
+  { id: 'occipital', color: '#3fe3d4', name: 'Затылочная доля', sphere: 'Книги', text: 'зрение и чтение', kind: 'Книги' },
+  { id: 'cerebellum', color: '#cfe8ff', name: 'Мозжечок', sphere: 'Навыки', text: 'координация, ловкость, умения', kind: 'Навыки' },
+  { id: 'limbic', color: '#ff5a6e', name: 'Лимбическая система', sphere: 'Творчество', text: 'воображение и эмоции', kind: 'Творчество' },
+  { id: 'stem', color: '#e05ad8', name: 'Ствол и базальные ганглии', sphere: 'Привычки', text: 'автоматические действия, режим дня', kind: null },
 ];
 
 export interface MindDay { date: string; study: Record<string, number>; habits: number; books: number }

@@ -131,3 +131,7 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .dbar.ok { background: var(--ok); } .dbar.mid { background: var(--accent); } .dbar.zero { background: #ff6b6b55; height: 4px !important; } .dbar.off { background: transparent; }
 /* Шапка: название игры и версия */
 .top { align-items: center; } .brand { display: flex; align-items: baseline; gap: 8px; flex: 1 0 100%; } .brand-name { font: 700 1.15rem Georgia, serif; color: var(--accent); letter-spacing: .02em; text-shadow: 0 0 14px #c9a24b55; } .brand-ver { color: var(--muted); font-size: .72rem; }
+.brain { max-width: 460px; }
+.brain-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: .78rem; color: var(--muted); } .brain-legend span { display: inline-flex; align-items: center; gap: 6px; } .brain-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+/* Заголовок карточки с кнопками: на узком экране кнопки уходят на новую строку, а не ломают слова */
+.card > .row.between { flex-wrap: wrap; gap: 8px; } .btn.sm { white-space: nowrap; }

@@ -45,9 +45,9 @@ export default function Mind() {
           </p>
         </div>
         {topRegions.length > 0
-          ? <ul className="regions">{topRegions.map((r) => <li key={r.id}><span>{r.name} <small className="muted">· {r.sphere}</small></span><i style={{ width: `${Math.max(6, Math.round(r.t * 100))}%` }} /></li>)}</ul>
+          ? <ul className="regions">{topRegions.map((r) => <li key={r.id}><span>{r.name} <small className="muted">· {r.sphere}</small></span><i style={{ width: `${Math.max(6, Math.round(r.t * 100))}%`, background: r.color, boxShadow: `0 0 8px ${r.color}` }} /></li>)}</ul>
           : <p className="muted small">За этот период развития нет. Запишите учёбу, книгу или привычки, и области мозга начнут светиться голубым.</p>}
-        <p className="muted small">Упрощённая схема: каждая область связана со своей сферой (мышление, учёба, языки, книги, навыки, творчество, привычки). Чем больше вы занимаетесь, тем ярче она светится.</p>
+        <p className="muted small">Упрощённая схема: каждая область связана со своей сферой (мышление, учёба, языки, книги, навыки, творчество, привычки). Пока сфера не развита, доля тусклая; чем больше вы занимаетесь, тем ярче она светится своим цветом.</p>
       </Section>
 
       <Section title="Учёба">
