@@ -27,7 +27,7 @@ export function Radar({ data }: { data: { key: string; value: number }[] }) {
   const pt = (i: number, r: number) => [c + r * Math.sin((2 * Math.PI * i) / n), c - r * Math.cos((2 * Math.PI * i) / n)];
   const poly = data.map((d, i) => pt(i, (d.value / max) * R).join(',')).join(' ');
   return (
-    <svg viewBox="0 0 240 240" className="radar" role="img" aria-label="Характеристики героя">
+    <svg viewBox="-28 -4 296 252" className="radar" role="img" aria-label="Характеристики героя">
       {[0.33, 0.66, 1].map((k) => <polygon key={k} points={data.map((_, i) => pt(i, R * k).join(',')).join(' ')} className="grid-line" />)}
       {data.map((_, i) => <line key={i} x1={c} y1={c} x2={pt(i, R)[0]} y2={pt(i, R)[1]} className="grid-line" />)}
       <polygon points={poly} className="radar-area" />
