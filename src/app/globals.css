@@ -129,3 +129,5 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .dbar-wrap { display: flex; align-items: flex-end; height: 100%; } .dbar { width: 100%; border-radius: 4px 4px 0 0; }
 .dlabels { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; } .dlabels div { display: grid; line-height: 1.15; } .dlabels small { font-size: .68rem; }
 .dbar.ok { background: var(--ok); } .dbar.mid { background: var(--accent); } .dbar.zero { background: #ff6b6b55; height: 4px !important; } .dbar.off { background: transparent; }
+/* Шапка: название игры и версия */
+.top { align-items: center; } .brand { display: flex; align-items: baseline; gap: 8px; flex: 1 0 100%; } .brand-name { font: 700 1.15rem Georgia, serif; color: var(--accent); letter-spacing: .02em; text-shadow: 0 0 14px #c9a24b55; } .brand-ver { color: var(--muted); font-size: .72rem; }

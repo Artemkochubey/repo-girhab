@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import './tv.css';
 
 interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
@@ -50,6 +51,7 @@ export default function TvPage() {
   return (
     <div className="tv">
       {off && <div className="tv-off">Нет связи с сервером…</div>}
+      <div className="tv-brand"><b>{APP_EMOJI} {APP_NAME}</b><small>демо v{APP_VERSION}</small></div>
       <section className="tv-boss">
         <div className="tv-boss-emoji">{boss.defeated ? '🏆' : boss.boss.emoji}</div>
         <div className="tv-boss-main">

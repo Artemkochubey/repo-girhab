@@ -37,8 +37,6 @@ export default function Hero() {
         </div>
       </section>
 
-      <Achievements items={d.achievements} />
-
       <Section title="Характеристики (30 дней)"><Radar data={d.radar} /></Section>
 
       <Section title="Класс">
@@ -129,6 +127,8 @@ export default function Hero() {
           {s.members.map((m) => <li key={m.id}>{m.emoji} {m.name}: <b>{s.boss.byMember[m.id] ?? 0}</b></li>)}
         </ul>
       </Section>
+
+      <Achievements items={d.achievements} />
     </>
   );
 }

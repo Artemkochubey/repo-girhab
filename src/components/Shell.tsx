@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { post, rpc, type State } from '@/lib/client';
+import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { ClassPicker } from './ClassPicker';
 
 interface Ctx {
@@ -96,6 +97,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
       <header className="top">
+        <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
         <nav>{[...NAV, ...(s.parent ? [['/report', '📊 Отчёт'] as const] : [])].map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
         <div className="who">
           <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
