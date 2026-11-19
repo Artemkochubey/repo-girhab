@@ -1,9 +1,11 @@
 export type Rarity = 'common' | 'rare' | 'legend';
 
-/** r — число [0,1): 5% легендарный, 25% редкий, иначе обычный. */
-export function rollRarity(r: number): Rarity {
-  if (r < 0.05) return 'legend';
-  if (r < 0.3) return 'rare';
+/** r — число [0,1): 5% легендарный, 25% редкий, иначе обычный. Удача талантов увеличивает шансы. */
+export function rollRarity(r: number, luck: { legend?: number; rare?: number } = {}): Rarity {
+  const legend = 0.05 + (luck.legend ?? 0);
+  const rare = 0.25 + (luck.rare ?? 0);
+  if (r < legend) return 'legend';
+  if (r < legend + rare) return 'rare';
   return 'common';
 }
 

@@ -14,6 +14,7 @@ export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true)
   for (const id of hero.talents) {
     const e = talentById(id)?.effect;
     if (e?.type === 'mult' && e.spheres.includes(sphere)) m += e.pct;
+    if (e?.type === 'all') m += e.pct;
   }
   return m;
 }

@@ -1,16 +1,29 @@
 import type { Cls, DayStats, Sphere, StudyKind } from './types';
 
+export type Branch = Cls | 'u' | 'h' | 'l';
+export const BRANCH_NAMES: Record<Branch, string> = { w: '⚔️ Воин', m: '🔮 Маг', b: '🎵 Бард', p: '🛡 Паладин', u: '🌐 Универсал', h: '🎯 Охотник на боссов', l: '🍀 Удача' };
+export const BRANCH_NOTES: Record<Branch, string> = {
+  w: 'Тело: тренировки и зарядка', m: 'Ум: учёба, книги, мышление', b: 'Творчество, навыки, языки', p: 'Привычки и серии дней',
+  u: 'Бонусы за разностороннюю активность и ко всем очкам', h: 'Больше урона по боссу недели', l: 'Шанс редких и легендарных наград в сундуках',
+};
+export const BRANCHES = Object.keys(BRANCH_NAMES) as Branch[];
+
 type Effect =
   | { type: 'mult'; spheres: Sphere[]; pct: number }
+  | { type: 'all'; pct: number }
+  | { type: 'boss'; pct: number }
+  | { type: 'weak'; pct: number }
+  | { type: 'luck'; legend?: number; rare?: number }
   | { type: 'flat'; when: (d: DayStats) => boolean; bonus: number }
   | { type: 'streak'; perDay: number; max: number }
   | { type: 'shield' };
 
-export interface Talent { id: string; branch: Cls; tier: 1 | 2 | 3; name: string; text: string; effect: Effect }
+export interface Talent { id: string; branch: Branch; tier: 1 | 2 | 3; name: string; text: string; effect: Effect }
 
 const studyTotal = (d: DayStats) => Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0);
 const kinds = (d: DayStats) => Object.values(d.study).filter((m) => (m ?? 0) > 0).length;
 const sum = (d: DayStats, ks: StudyKind[]) => ks.reduce((a, k) => a + (d.study[k] ?? 0), 0);
+const active = (d: DayStats) => d.workoutMinutes + studyTotal(d);
 
 export const TALENTS: Talent[] = [
   { id: 'w1a', branch: 'w', tier: 1, name: 'Разминка', text: 'Зарядка +50%', effect: { type: 'mult', spheres: ['warmup'], pct: 0.5 } },
@@ -40,7 +53,49 @@ export const TALENTS: Talent[] = [
   { id: 'p2b', branch: 'p', tier: 2, name: 'Серийник', text: '+1 за каждый день серии, максимум +10', effect: { type: 'streak', perDay: 1, max: 10 } },
   { id: 'p3a', branch: 'p', tier: 3, name: 'Щит серии', text: 'Один пропуск в неделю не обрывает серию', effect: { type: 'shield' } },
   { id: 'p3b', branch: 'p', tier: 3, name: 'Столп', text: '+25/день при 6 привычках', effect: { type: 'flat', when: (d) => d.habits >= 6, bonus: 25 } },
+
+  { id: 'u1a', branch: 'u', tier: 1, name: 'Разносторонний день', text: '+10/день за тело и учёбу (от 10 мин) в один день', effect: { type: 'flat', when: (d) => (d.workoutMinutes > 0 || d.warmups > 0) && studyTotal(d) >= 10, bonus: 10 } },
+  { id: 'u1b', branch: 'u', tier: 1, name: 'Копилка', text: 'Все очки +3%', effect: { type: 'all', pct: 0.03 } },
+  { id: 'u2a', branch: 'u', tier: 2, name: 'Марафонец дня', text: '+15/день за 60+ мин тренировки и учёбы', effect: { type: 'flat', when: (d) => active(d) >= 60, bonus: 15 } },
+  { id: 'u2b', branch: 'u', tier: 2, name: 'Набор высоты', text: 'Все очки +5%', effect: { type: 'all', pct: 0.05 } },
+  { id: 'u3a', branch: 'u', tier: 3, name: 'Мастер дня', text: '+25/день за 90+ мин тренировки и учёбы', effect: { type: 'flat', when: (d) => active(d) >= 90, bonus: 25 } },
+  { id: 'u3b', branch: 'u', tier: 3, name: 'Легенда', text: 'Все очки +7%', effect: { type: 'all', pct: 0.07 } },
+
+  { id: 'h1a', branch: 'h', tier: 1, name: 'Меткий удар', text: '+5% урона по боссу', effect: { type: 'boss', pct: 0.05 } },
+  { id: 'h1b', branch: 'h', tier: 1, name: 'Охотник за слабостью', text: '+10% к урону по слабому месту', effect: { type: 'weak', pct: 0.1 } },
+  { id: 'h2a', branch: 'h', tier: 2, name: 'Тяжёлая рука', text: '+10% урона по боссу', effect: { type: 'boss', pct: 0.1 } },
+  { id: 'h2b', branch: 'h', tier: 2, name: 'Прицельный огонь', text: '+20% к урону по слабому месту', effect: { type: 'weak', pct: 0.2 } },
+  { id: 'h3a', branch: 'h', tier: 3, name: 'Убийца титанов', text: '+15% урона по боссу', effect: { type: 'boss', pct: 0.15 } },
+  { id: 'h3b', branch: 'h', tier: 3, name: 'Добивающий удар', text: '+30% к урону по слабому месту', effect: { type: 'weak', pct: 0.3 } },
+
+  { id: 'l1a', branch: 'l', tier: 1, name: 'Везунчик', text: 'Легендарный сундук: шанс +3%', effect: { type: 'luck', legend: 0.03 } },
+  { id: 'l1b', branch: 'l', tier: 1, name: 'Кладоискатель', text: 'Редкий сундук: шанс +10%', effect: { type: 'luck', rare: 0.1 } },
+  { id: 'l2a', branch: 'l', tier: 2, name: 'Золотая жила', text: 'Легендарный сундук: шанс +4%', effect: { type: 'luck', legend: 0.04 } },
+  { id: 'l2b', branch: 'l', tier: 2, name: 'Жила удачи', text: 'Редкий сундук: шанс +15%', effect: { type: 'luck', rare: 0.15 } },
+  { id: 'l3a', branch: 'l', tier: 3, name: 'Король сокровищ', text: 'Легендарный сундук: шанс +5%', effect: { type: 'luck', legend: 0.05 } },
+  { id: 'l3b', branch: 'l', tier: 3, name: 'Любимец фортуны', text: 'Редкий сундук: шанс +20%', effect: { type: 'luck', rare: 0.2 } },
 ];
+
+/** Бонусы к урону по боссу: общий и по слабому месту. */
+export function bossBonuses(owned: string[]): { boss: number; weak: number } {
+  let boss = 0, weak = 0;
+  for (const id of owned) {
+    const e = talentById(id)?.effect;
+    if (e?.type === 'boss') boss += e.pct;
+    if (e?.type === 'weak') weak += e.pct;
+  }
+  return { boss, weak };
+}
+
+/** Прибавка к шансам сундука. */
+export function luckBonuses(owned: string[]): { legend: number; rare: number } {
+  let legend = 0, rare = 0;
+  for (const id of owned) {
+    const e = talentById(id)?.effect;
+    if (e?.type === 'luck') { legend += e.legend ?? 0; rare += e.rare ?? 0; }
+  }
+  return { legend, rare };
+}
 
 export const talentById = (id: string) => TALENTS.find((t) => t.id === id);
 

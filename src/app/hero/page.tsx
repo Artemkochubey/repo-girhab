@@ -5,7 +5,7 @@ import { useGame } from '@/components/Shell';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
-import { TALENTS, canBuyTalent, talentCost } from '@/lib/game/talents';
+import { BRANCHES, BRANCH_NAMES, BRANCH_NOTES, TALENTS, canBuyTalent, talentCost } from '@/lib/game/talents';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -57,15 +57,34 @@ export default function Hero() {
           </div>
         )}
         <h3>Подкласс</h3>
-        {!h.cls ? <p className="muted">Сначала выберите класс.</p> : d.level < 5 ? <p className="muted">Откроется на 5 уровне (+10% второй сферы).</p> : (
-          <div className="row wrapRow">
-            {CLS.filter((c) => c !== h.cls).map((c) => (
-              <button key={c} className={`btn ${h.sub === c ? '' : 'ghost'}`} onClick={() => act('setSub', { sub: h.sub === c ? null : c })}>
-                {SUBCLASS_NAMES[h.cls!][c]} ({SPHERE[c]} +{Math.round(subBonus(d.level) * 100)}%){d.recommendedSub === c ? ' ★' : ''}
-              </button>
-            ))}
+        <p className="muted small">Вторая сфера усиливается дополнительно: с 5 уровня +10%, с 10 — +15%, с 20 — +20%. Сейчас у вас уровень {d.level}{d.level >= 5 ? `, бонус +${Math.round(subBonus(d.level) * 100)}%` : ''}.</p>
+        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его подклассы.</p> : (
+          <div className="grid">
+            {CLS.filter((c) => c !== h.cls).map((c) => {
+              const locked = d.level < 5;
+              const chosen = h.sub === c;
+              return (
+                <button key={c} className={`card pick sub ${chosen ? 'sel' : ''} ${locked ? 'locked' : ''}`} disabled={locked}
+                  onClick={() => act('setSub', { sub: chosen ? null : c })}>
+                  <b>{locked ? '🔒 ' : ''}{SUBCLASS_NAMES[h.cls!][c]}{!locked && d.recommendedSub === c ? ' ★' : ''}</b>
+                  <span className="muted">{CLASS_NAMES[h.cls!]} + {SPHERE[c]}</span>
+                  <small className="muted">{CLASS_INFO[c].bonus.replace('+20%', locked ? '+10%…' : `+${Math.round(subBonus(d.level) * 100)}%`)}</small>
+                  {locked && <small className="gold">Откроется на 5 уровне</small>}
+                </button>
+              );
+            })}
           </div>
         )}
+        <details>
+          <summary>Все подклассы всех классов</summary>
+          <table className="subtable">
+            <tbody>
+              {CLS.map((main) => (
+                <tr key={main}><th>{CLASS_NAMES[main]}</th><td>{CLS.filter((c) => c !== main).map((c) => `${SUBCLASS_NAMES[main][c]} (+${SPHERE[c]})`).join(' · ')}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
       </Section>
 
       <QuestsBlock />
@@ -77,9 +96,11 @@ export default function Hero() {
       </Section>
 
       <Section title="🌳 Таланты" right={<b>очков: {d.talentPointsFree}</b>}>
-        {CLS.map((br) => (
+        <p className="muted small">Семь веток: четыре классовые (в ветке своего класса таланты на 1 очко дешевле) и три общие. В каждом ярусе можно выбрать один из двух талантов, для яруса нужен талант предыдущего. Очко таланта даётся за каждый уровень.</p>
+        {BRANCHES.map((br) => (
           <div key={br} className="branch">
-            <h3>{CLASS_NAMES[br]}{h.cls === br ? ' · ваш класс' : ''}</h3>
+            <h3>{BRANCH_NAMES[br]}{h.cls === br ? ' · ваш класс' : ''}</h3>
+            <p className="muted small">{BRANCH_NOTES[br]}</p>
             {[1, 2, 3].map((tier) => (
               <div key={tier} className="row tier">
                 {TALENTS.filter((t) => t.branch === br && t.tier === tier).map((t) => {

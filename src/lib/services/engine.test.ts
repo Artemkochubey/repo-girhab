@@ -50,6 +50,14 @@ describe('движок семьи', () => {
     expect(b.damage).toBeGreaterThanOrEqual(120);
     expect(b.defeated).toBe(false);
   });
+  it('таланты охотника увеличивают урон по боссу', () => {
+    const raw = base();
+    raw.quests.push({ memberId: 1, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] });
+    raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 100 });
+    const plain = buildFamily(raw, '2026-11-19').boss.damage;
+    raw.heroes[0].talents = ['h1a'];
+    expect(buildFamily(raw, '2026-11-19').boss.damage).toBeGreaterThan(plain);
+  });
   it('победа над боссом прошлой недели даёт сундуки', () => {
     const raw = base();
     for (const d of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']) raw.workouts.push({ memberId: 1, date: d, minutes: 200 });

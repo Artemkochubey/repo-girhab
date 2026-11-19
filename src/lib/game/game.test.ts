@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { dayPoints, streakLength } from './points';
-import { canBuyTalent, talentCost, TALENTS, talentById } from './talents';
+import { canBuyTalent, talentCost, TALENTS, talentById, bossBonuses, luckBonuses } from './talents';
 import { defaultQuests, questDone, validQuestList, allQuestsDone } from './quests';
 import { emptyDay, type HeroBuild } from './types';
 
@@ -47,9 +47,22 @@ describe('серия', () => {
 });
 
 describe('таланты', () => {
-  it('24 таланта, уникальные id', () => {
-    expect(TALENTS).toHaveLength(24);
-    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(24);
+  it('42 таланта в 7 ветках, уникальные id', () => {
+    expect(TALENTS).toHaveLength(42);
+    expect(new Set(TALENTS.map((t) => t.id)).size).toBe(42);
+    for (const b of ['w', 'm', 'b', 'p', 'u', 'h', 'l']) expect(TALENTS.filter((t) => t.branch === b)).toHaveLength(6);
+  });
+  it('общие ветки: скидки на свой класс нет', () => {
+    expect(talentCost(talentById('u2a')!, 'w')).toBe(2);
+    expect(talentCost(talentById('h3a')!, 'm')).toBe(3);
+    expect(canBuyTalent('u2a', ['u1a'], 'w', 4).ok).toBe(true);
+    expect(canBuyTalent('h2a', [], 'w', 10).ok).toBe(false);
+  });
+  it('«все очки» суммируются с классом, бонусы босса и удачи считаются', () => {
+    expect(dayPoints(day({ workoutMinutes: 100 }), hero({ talents: ['u1b', 'u2b'] })).total).toBe(128);
+    expect(dayPoints(day({ workoutMinutes: 40, study: { Языки: 25 } }), hero({ talents: ['u1a', 'u2a'] })).flat).toBe(25);
+    expect(bossBonuses(['h1a', 'h2b'])).toEqual({ boss: 0.05, weak: 0.2 });
+    expect(luckBonuses(['l1a', 'l1b', 'l3a'])).toEqual({ legend: 0.08, rare: 0.1 });
   });
   it('стоимость', () => {
     expect(talentCost(talentById('w1a')!, 'w')).toBe(1);

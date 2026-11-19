@@ -69,3 +69,6 @@ textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid va
 .shop { display: grid; gap: 10px; } .item { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: var(--panel2); border-radius: 12px; padding: 10px; } .item-ico { font-size: 2.2rem; line-height: 1; } .item .grow { min-width: 140px; }
 .st { white-space: nowrap; } .st.done { color: var(--ok); } .st.pending { color: var(--accent); } .st.cancelled { color: var(--muted); }
 .mrow.off { opacity: .5; } .mrow .wide { flex: 1 1 200px; }
+.pick.locked { opacity: .65; border-style: dashed; } .gold { color: var(--accent); }
+.subtable { width: 100%; border-collapse: collapse; font-size: .85rem; } .subtable th { text-align: left; padding: 6px 8px 6px 0; white-space: nowrap; vertical-align: top; } .subtable td { color: var(--muted); padding: 6px 0; }
+.branch { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 4px; }

@@ -24,5 +24,7 @@ describe('сундуки', () => {
     expect(rollRarity(0.05)).toBe('rare');
     expect(rollRarity(0.29)).toBe('rare');
     expect(rollRarity(0.3)).toBe('common');
+    expect(rollRarity(0.07, { legend: 0.03 })).toBe('legend');
+    expect(rollRarity(0.5, { rare: 0.3 })).toBe('rare');
   });
 });

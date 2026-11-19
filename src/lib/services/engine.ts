@@ -1,10 +1,10 @@
 import { addDays, dateRange, todayIn } from '../date';
-import { BOSSES, bossDamage, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
+import { BOSSES, WEAK_BONUS, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
 import { CLASS_SPHERES, recommendSub, type Cls } from '../game/classes';
 import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../game/level';
 import { basePoints, dayPoints, streakForward } from '../game/points';
 import { allQuestsDone, defaultQuests, questDone, questXpEarned, type QuestItem } from '../game/quests';
-import { hasShield, spentPoints } from '../game/talents';
+import { bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
 export interface Raw {
@@ -133,19 +133,21 @@ export function buildFamily(raw: Raw, today: string): Family {
     const boss = bossForDate(w);
     const weak = new Set<string>(boss.weak);
     const byMember: Record<number, number> = {};
-    let total = 0, weakPts = 0;
+    let total = 0, weakExtra = 0;
     for (const m of parts) {
-      let sum = 0;
+      let sum = 0, weakPts = 0;
       for (const d of dateRange(w, addDays(w, 6))) {
         const dc = members.get(m.id)?.days.get(d);
         if (!dc) continue;
         sum += dc.total;
         for (const [s, v] of Object.entries(dc.bySphere)) if (weak.has(s)) weakPts += v ?? 0;
       }
-      byMember[m.id] = sum; total += sum;
+      const bb = bossBonuses(members.get(m.id)?.hero.talents ?? []);
+      byMember[m.id] = Math.round(sum * (1 + bb.boss)); total += byMember[m.id];
+      weakExtra += weakPts * (WEAK_BONUS + bb.weak);
     }
     const hp = bossHp(parts.map((m) => m.goal));
-    const damage = bossDamage(total, weakPts);
+    const damage = Math.round(total + weakExtra);
     const finished = w < curWeek;
     const defeated = damage >= hp;
     const res = defeated ? bossRewards(byMember) : { chests: {}, mvp: null };

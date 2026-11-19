@@ -40,7 +40,7 @@ export function ClassPicker({ memberName, onClose }: { memberName: string; onClo
             <span>{info.pitch}</span>
             <span><b>Подходит для:</b> {info.examples}</span>
             <span>{info.talents}</span>
-            <span className="muted small">С 5 уровня откроется подкласс: второй сфере +10%, потом больше. Например, {Object.values(SUBCLASS_NAMES[sel]).filter(Boolean).join(', ')}.</span>
+            <span className="muted small">С 5 уровня откроется подкласс: вторая сфера тоже усилится (+10%, с 10 уровня +15%, с 20 — +20%). Подклассы: {(['w', 'm', 'b', 'p'] as Cls[]).filter((c) => c !== sel).map((c) => `${SUBCLASS_NAMES[sel][c]} (+${CLASS_INFO[c].sphere})`).join(', ')}.</span>
           </div>
         )}
         <p className="muted small">Это можно будет изменить: бесплатно в течение 24 часов, потом раз в 7 дней. Очки при смене пересчитываются за всю историю.</p>

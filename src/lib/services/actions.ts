@@ -6,7 +6,7 @@ import { dateAllowed, isDate, todayIn } from '../date';
 import { AVATARS } from '../game/avatars';
 import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
-import { canBuyTalent } from '../game/talents';
+import { canBuyTalent, luckBonuses } from '../game/talents';
 import { validQuestList, type QuestItem } from '../game/quests';
 import { loadFamily, getConfig } from './load';
 
@@ -196,7 +196,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const st = loadFamily(db, now).family.members.get(memberId)!;
       if (st.chestsAvailable < 1) fail(400, 'Нет доступных сундуков');
       const rand = ctx.rand ?? Math.random;
-      const rarity = rollRarity(rand());
+      const rarity = rollRarity(rand(), luckBonuses(st.hero.talents));
       const reward = pickReward(rarity, { common: cfg.loot, rare: cfg.lootRare, legend: cfg.lootLegend }, rand());
       db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today }).run();
       return { rarity, reward };
