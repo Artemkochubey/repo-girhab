@@ -1,17 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { EXERCISES, exerciseById } from './muscles';
-import { DAY_REP_CAP, allocateWorkouts, maxRepPoints, repPoints } from './reps';
+import { allocateWorkouts, dayCurve, nextRepPrice, repPoints } from './reps';
 
 const push = exerciseById('pushups')!.rep!;
 const e = (id: number, exercise: string, reps: number, date = 'd1') => ({ id, date, minutes: 0, exercise, reps });
 
 describe('повторы', () => {
-  it('цена за повтор: полная до soft, половина до hard, дальше ноль', () => {
+  it('цена за повтор: полная до soft, половина до hard, дальше четверть (нулей нет)', () => {
     expect(repPoints(push, 30)).toBeCloseTo(6);          // 30 × 0.2
     expect(repPoints(push, 75)).toBeCloseTo(15);
     expect(repPoints(push, 150)).toBeCloseTo(22.5);       // 15 + 75 × 0.1
-    expect(repPoints(push, 1000)).toBeCloseTo(22.5);      // потолок упражнения
-    expect(maxRepPoints(push)).toBeCloseTo(22.5);
+    expect(repPoints(push, 250)).toBeCloseTo(22.5 + 100 * 0.05);
+    expect(repPoints(push, 1000)).toBeGreaterThan(repPoints(push, 999));   // всегда растёт
+  });
+  it('дневная кривая: до 40 полная цена, до 80 половина, дальше четверть, без разрывов', () => {
+    expect(dayCurve(30)).toBe(30);
+    expect(dayCurve(40)).toBe(40);
+    expect(dayCurve(80)).toBe(60);
+    expect(dayCurve(120)).toBe(70);
+    for (let x = 1; x < 300; x++) expect(dayCurve(x + 1)).toBeGreaterThan(dayCurve(x));
   });
   it('каталог: у каждого упражнения с повторами разумные лимиты', () => {
     const withReps = EXERCISES.filter((x) => x.rep);
@@ -19,24 +26,37 @@ describe('повторы', () => {
     for (const x of withReps) {
       expect(x.rep!.hard).toBeGreaterThan(x.rep!.soft);
       expect(x.rep!.max).toBeLessThanOrEqual(x.rep!.hard);
-      expect(maxRepPoints(x.rep!)).toBeLessThanOrEqual(DAY_REP_CAP);   // одно упражнение не съедает весь день
       expect(x.rep!.pts * x.rep!.soft).toBeLessThanOrEqual(15.01);     // «полная ставка» ≈ до 15 очков
     }
   });
-  it('повторы нельзя накрутить дроблением на подходы', () => {
+  it('дробление на подходы не даёт больше, чем один подход', () => {
     const whole = allocateWorkouts([e(1, 'pushups', 150)]).reduce((a, x) => a + x.eq, 0);
     const split = allocateWorkouts(Array.from({ length: 15 }, (_, i) => e(i + 1, 'pushups', 10))).reduce((a, x) => a + x.eq, 0);
     expect(split).toBeCloseTo(whole, 1);
-    const more = allocateWorkouts(Array.from({ length: 40 }, (_, i) => e(i + 1, 'pushups', 10))).reduce((a, x) => a + x.eq, 0);
-    expect(more).toBeCloseTo(whole, 1);                                // 400 отжиманий = столько же, сколько 150
   });
-  it('общий потолок дня по повторам', () => {
+  it('накрутка невыгодна, но потолка нет: больше повторов всегда чуть больше очков, но всё дешевле', () => {
+    const total = (n: number) => allocateWorkouts(Array.from({ length: n / 10 }, (_, i) => e(i + 1, 'pushups', 10))).reduce((a, x) => a + x.eq, 0);
+    expect(total(150)).toBeCloseTo(22.5, 1);
+    expect(total(400)).toBeGreaterThan(total(150));
+    expect(total(1000) - total(900)).toBeLessThan(total(150) - total(50));
+  });
+  it('день: много упражнений не даёт нулей, но дорожает', () => {
     const list = ['pushups', 'squats', 'lunges', 'pullups', 'dips', 'burpees'].map((x, i) => e(i + 1, x, exerciseById(x)!.rep!.hard));
-    const total = allocateWorkouts(list).reduce((a, x) => a + x.eq, 0);
-    expect(total).toBeCloseTo(DAY_REP_CAP, 1);
+    const r = allocateWorkouts(list);
+    for (const x of r) expect(x.eq).toBeGreaterThan(0);
+    const raw = list.reduce((a, x) => a + repPoints(exerciseById(x.exercise)!.rep!, x.reps), 0);
+    expect(r.reduce((a, x) => a + x.eq, 0)).toBeCloseTo(dayCurve(raw), 1);
+    expect(r.reduce((a, x) => a + x.eq, 0)).toBeLessThan(raw);
   });
-  it('новый день — потолки обнуляются; минутные записи не затрагиваются', () => {
+  it('новый день — всё обнуляется; минутные записи не затрагиваются', () => {
     const r = allocateWorkouts([e(1, 'pushups', 150, 'd1'), e(2, 'pushups', 150, 'd2'), { id: 3, date: 'd2', minutes: 30, exercise: 'running' }]);
     expect(r[0].eq).toBeCloseTo(22.5); expect(r[1].eq).toBeCloseTo(22.5); expect(r[2].eq).toBe(30);
+  });
+  it('подсказка: цена следующего повтора падает по мере накрутки', () => {
+    const fresh = nextRepPrice([], 'pushups')!;
+    expect(fresh).toMatchObject({ perRep: 0.2, percent: 100, dayPoints: 0 });
+    const tired = nextRepPrice([{ id: 1, exercise: 'pushups', reps: 100 }], 'pushups')!;   // за soft (75) — уже половина
+    expect(tired.percent).toBe(50);
+    expect(nextRepPrice([], 'running')).toBeNull();
   });
 });

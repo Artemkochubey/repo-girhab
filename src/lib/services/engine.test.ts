@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {

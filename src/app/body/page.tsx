@@ -5,7 +5,7 @@ import { useGame } from '@/components/Shell';
 import { Chips, Section } from '@/components/ui';
 import { HeatLegend, YearHeat } from '@/components/YearHeat';
 import { rpc } from '@/lib/client';
-import { DAY_REP_CAP, allocateWorkouts, maxRepPoints } from '@/lib/game/reps';
+import { DAY_FULL, DAY_HALF, allocateWorkouts, nextRepPrice } from '@/lib/game/reps';
 import { addDays } from '@/lib/date';
 import {
   CATEGORIES, CUSTOM_EXERCISE, EXERCISES, MUSCLES, exerciseById, intensityFloor, muscleIntensity, muscleLoads, muscleName,
@@ -81,8 +81,7 @@ export default function Body() {
   };
   // сколько очков за повторы уже засчитано сегодня и сколько ещё можно получить
   const repsToday = d.entries.workouts.filter((w) => w.reps);
-  const repPtsDay = repsToday.reduce((a, w) => a + w.eq, 0);
-  const repPtsEx = repsToday.filter((w) => w.exercise === exercise).reduce((a, w) => a + w.eq, 0);
+  const price = exercise ? nextRepPrice(repsToday, exercise) : null;
   const info = hover ?? (exercise === CUSTOM_EXERCISE ? custom[custom.length - 1] : null) ?? null;
   const label = (e: { exercise: string | null; muscles: string[] | null }) => {
     const x = exerciseById(e.exercise);
@@ -97,7 +96,7 @@ export default function Body() {
     if (!x && !always) return null;
     return (
       <div className="hday">
-        <div className="hhead"><b>{dayTitle(date, s.today)}</b><span className="muted">{x ? `${fmt(x.minutes)} оч.${x.warmup ? ' · 🔥 зарядка' : ''}` : 'тренировок нет'}</span></div>
+        <div className="hhead"><b>{dayTitle(date, s.today)}{d.reviewDates.includes(date) && <span className="flag" title="Необычно много: родитель посмотрит"> 🔎</span>}</b><span className="muted">{x ? `${fmt(x.minutes)} оч.${x.warmup ? ' · 🔥 зарядка' : ''}` : 'тренировок нет'}</span></div>
         <ul className="list">
           {x?.items.map((w) => (
             <li key={w.id}>{label(w)} · {amount(w)} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })} aria-label="Удалить запись">✕</button>}</li>
@@ -155,8 +154,8 @@ export default function Body() {
         )}
         {repMode && ex?.rep && (
           <p className="repinfo">
-            <b>1 раз = {fmt(ex.rep.pts)} очка.</b> До {ex.rep.soft} раз за день по полной цене, до {ex.rep.hard} — за половину, дальше очки не начисляются.
-            За подход — не больше {ex.rep.max}. Сегодня по упражнению: {fmt(repPtsEx)} из {fmt(maxRepPoints(ex.rep))} очков; за все повторы за день — {fmt(repPtsDay)} из {DAY_REP_CAP}.
+            <b>1 раз = {fmt(ex.rep.pts)} очка.</b> До {ex.rep.soft} раз за день по полной цене, до {ex.rep.hard} — за половину, дальше за четверть. Первые {DAY_FULL} очков за повторы за день идут по полной цене, до {DAY_HALF} — за половину, дальше за четверть. Лимита нет, но чем больше накручиваешь, тем меньше выгода.
+            За подход — не больше {ex.rep.max}. Сейчас следующий повтор стоит {price ? `${price.perRep.toFixed(2).replace('.', ',')} очка (${price.percent}% цены)` : fmt(ex.rep.pts)}, за все повторы сегодня: {fmt(price?.dayPoints ?? 0)} оч.
           </p>
         )}
         {repMode

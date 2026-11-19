@@ -16,7 +16,7 @@ export function MvpCard() {
         <div className="mvp-row"><span className="muted">Сегодня лидирует</span>
           {lM ? <b>{lM.emoji} {lM.name} <small className={l!.qualified ? 'gold' : 'muted'}>{Math.round(l!.ratio * 100)}% нормы{l!.qualified ? '' : ' (нужно ≥ 100%)'}</small></b> : <span className="muted">пока никого</span>}</div>
       </div>
-      <p className="muted small">Лучший за день, считая от своей нормы, получает сундук 🎁 в конце дня. Норму нужно выполнить.</p>
+      <p className="muted small">Лучший за день, считая от своей нормы (не больше двух норм), получает сундук 🎁 в конце дня. Норму нужно выполнить.</p>
     </Section>
   );
 }

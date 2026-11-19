@@ -64,6 +64,13 @@
       "when": 1795102913104,
       "tag": "0008_sticky_black_crow",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795106364305,
+      "tag": "0009_elite_lady_ursula",
+      "breakpoints": true
     }
   ]
 }

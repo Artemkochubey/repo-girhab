@@ -1,6 +1,6 @@
 import { addDays, dateRange, todayIn } from '../date';
 import { allocateWorkouts } from '../game/reps';
-import { MVP_CHEST_PER_DAY, pickDayMvp } from '../game/mvp';
+import { DAY_RATIO_CAP, MVP_CHEST_PER_DAY, dayRatio, pickDayMvp } from '../game/mvp';
 import { computeAchievements, type AchievementState } from '../game/achievements';
 import { resolveFamilyQuest, type FamilyQuestInput, type FamilyQuestResult } from '../game/familyQuests';
 import { BOSSES, WEAK_BONUS, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
@@ -29,6 +29,7 @@ export interface Raw {
   mvpSince: string | null;
   reminderHour: number;
   seasonSince: string | null;
+  reviewOk: { memberId: number; date: string; points: number }[];
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
 }
@@ -222,7 +223,7 @@ export function buildFamily(raw: Raw, today: string): Family {
   let leader: MvpInfo['leader'] = null;
   for (const m of raw.members.filter((x) => createdOf.get(x.id)! <= today)) {
     const pts = members.get(m.id)!.days.get(today)?.total ?? 0;
-    const ratio = m.goal > 0 ? pts / m.goal : 0;
+    const ratio = dayRatio(pts, m.goal);
     if (pts > 0 && (!leader || ratio > leader.ratio)) leader = { memberId: m.id, points: pts, ratio, qualified: ratio >= 1 };
   }
 

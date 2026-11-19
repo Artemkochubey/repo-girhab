@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
+import { adminView } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -115,6 +116,20 @@ describe('действия', () => {
     expect(db.select().from(s.config).get()!.reminderHour).toBe(-1);
     expect(err(() => runAction(db, dad, 'setConfig', { reminderHour: 30 }))?.status).toBe(400);
   });
+  it('метка «проверить»: подсказывает родителю, не режет очки, «всё в порядке» скрывает', () => {
+    for (let i = 0; i < 12; i++) runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 95 });
+    const before = loadFamily(db, NOW).family.members.get(2)!.days.get('2026-11-19')!.total;
+    expect(before).toBeGreaterThan(0);                                       // очки засчитаны, метка ничего не блокирует
+    const state = () => adminView(loadFamily(db, NOW).raw, loadFamily(db, NOW).family, { loot: [], lootRare: [], lootLegend: [], questSets: [] });
+    const flags = state().review.filter((f) => f.memberId === 2);
+    expect(flags).toHaveLength(1);
+    expect(flags[0].reasons.some((r) => r.includes('Подход близок к максимуму'))).toBe(true);
+    expect(flags[0].reasons.some((r) => r.startsWith('Много подходов'))).toBe(true);
+    expect(err(() => runAction(db, kid, 'reviewOk', { memberId: 2, date: '2026-11-19' }))?.status).toBe(403);
+    runAction(db, dad, 'reviewOk', { memberId: 2, date: '2026-11-19' });
+    expect(state().review.filter((f) => f.memberId === 2)).toHaveLength(0);
+    expect(loadFamily(db, NOW).family.members.get(2)!.days.get('2026-11-19')!.total).toBe(before);
+  });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];
     expect(err(() => runAction(db, kid, 'setQuests', { date: 'default', items }))?.status).toBe(403);
@@ -194,7 +209,8 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 0 }))?.status).toBe(400);
     expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'pushups' }))?.status).toBe(400);                 // ни минут, ни повторов
     for (let i = 0; i < 10; i++) runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 100 });              // пытаемся накрутить
-    expect(st().days.get('2026-11-19')!.stats.workoutMinutes).toBeCloseTo(22.5, 1);                                 // потолок упражнения за день
+    // 1030 отжиманий: сырых 66,5 очка, после убывающей дневной кривой 53,25 (потолка нет, но дешевеет)
+    expect(st().days.get('2026-11-19')!.stats.workoutMinutes).toBeCloseTo(53.25, 1);
   });
   it('семейные квесты: создаёт родитель, ребёнок отмечает «сделали», родитель подтверждает — опыт всем', () => {
     expect(err(() => runAction(db, kid, 'saveFamilyQuest', { title: 'Прогулка', xp: 30, kind: 'manual' }))?.status).toBe(403);

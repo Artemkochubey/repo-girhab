@@ -37,6 +37,13 @@ describe('сезоны', () => {
     expect(lazy.winner).toBeNull();
     expect(lazy.rows[0].chests).toBe(0);
   });
+  it('вклад одного дня в рейтинг ограничен двумя нормами', () => {
+    // у первого один гигантский день в остальные ноль, у второго ровно норма каждый день
+    const s = buildSeason('2026-10', '2026-11-05', '2026-10-01', [M(1, 60), M(2, 60)], (id, d) => (id === 1 ? (d === '2026-10-05' ? 100000 : 40) : 60));
+    expect(s.rows.find((r) => r.memberId === 1)!.ratio).toBeLessThan(1);
+    expect(s.winner).toBe(2);
+    expect(s.rows.find((r) => r.memberId === 1)!.points).toBeGreaterThan(100000);   // очки видны как есть
+  });
   it('призы только за сезоны после старта функции', () => {
     const before = buildSeason('2026-09', '2026-11-05', '2026-10-15', [M(1, 60, '2026-09-01')], flat({ 1: 60 }));
     expect(before).toMatchObject({ finished: true, awardable: false });

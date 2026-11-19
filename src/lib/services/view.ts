@@ -1,5 +1,6 @@
 import { shopDiscount } from '../game/talents';
 import { SEASON_CHESTS } from '../game/seasons';
+import { reviewDay, reviewHidden } from '../game/review';
 import { BOSSES } from '../game/boss';
 import { questHint, questProgress } from '../game/quests';
 import { allocateWorkouts } from '../game/reps';
@@ -28,6 +29,21 @@ const RADAR = [
   { key: 'Дисциплина', spheres: ['habits'] },
 ];
 
+/** Дни за последнюю неделю с меткой «проверить» (без уже просмотренных родителем). */
+export function reviewFlags(raw: Raw, fam: Family, memberId: number) {
+  const st = fam.members.get(memberId)!, m = raw.members.find((x) => x.id === memberId)!;
+  const out: { memberId: number; date: string; points: number; reasons: string[] }[] = [];
+  for (const d of dateRange(addDays(fam.today, -7), fam.today)) {
+    const day = st.days.get(d);
+    if (!day) continue;
+    const prev = dateRange(addDays(d, -14), addDays(d, -1)).map((x) => st.days.get(x)?.total ?? 0);
+    const works = raw.workouts.filter((w) => w.memberId === memberId && w.date === d).map((w, i) => ({ id: w.id ?? i, minutes: w.minutes, reps: w.reps ?? null, exercise: w.exercise ?? null }));
+    const reasons = reviewDay({ points: day.total, superGoal: m.superGoal, prevPoints: prev, workouts: works });
+    if (reasons.length && !reviewHidden(day.total, raw.reviewOk.find((r) => r.memberId === memberId && r.date === d))) out.push({ memberId, date: d, points: Math.round(day.total), reasons });
+  }
+  return out;
+}
+
 export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: string = fam.today) {
   const myWorkouts = allocateWorkouts(raw.workouts.filter((w) => w.memberId === st.id).map((w, i) => ({ ...w, id: w.id ?? i })));
   const today = st.days.get(date) ?? st.days.get(fam.today)!;
@@ -49,6 +65,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     mvpWins: fam.mvp.wins[st.id] ?? 0,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
+    reviewDates: reviewFlags(raw, fam, st.id).map((f) => f.date),
     achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),
     // развитие ума по дням за 30 дней: для схемы мозга
     mindLog: dateRange(addDays(fam.today, -29), fam.today).flatMap((d) => {
@@ -82,7 +99,11 @@ export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRar
     quests[m.id] = { items: st.days.get(fam.today)?.quests ?? [], hasDefault: raw.quests.some((q) => q.memberId === m.id && q.date === 'default') };
   }
   const familyQuestsAll = [...fam.familyQuests].sort((a, b) => b.id - a.id).slice(0, 30).map(fqView);
-  return { pending, quests, familyQuestsAll, ...loot };
+  const review = raw.members.flatMap((m) => reviewFlags(raw, fam, m.id)).map((f) => ({
+    ...f, entries: allocateWorkouts(raw.workouts.filter((w) => w.memberId === f.memberId && w.date === f.date).map((w, i) => ({ ...w, id: w.id ?? i })))
+      .map((w) => ({ id: w.id, minutes: w.minutes, reps: w.reps ?? null, exercise: w.exercise ?? null, eq: w.eq })),
+  }));
+  return { pending, quests, familyQuestsAll, review, ...loot };
 }
 
 const fqView = (q: Family['familyQuests'][number]) => ({

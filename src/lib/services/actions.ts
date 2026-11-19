@@ -140,6 +140,15 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       else fail(400, 'Неизвестный тип записи');
       return { ok: true };
     }
+    case 'reviewOk': {
+      // родитель посмотрел день с меткой «проверить»: метка скрывается, пока очки дня заметно не вырастут
+      needParent();
+      const memberId = target(), date = dateArg();
+      const st = loadFamily(db, now).family.members.get(memberId)!;
+      const points = st.days.get(date)?.total ?? 0;
+      db.insert(s.reviewOk).values({ memberId, date, points }).onConflictDoUpdate({ target: [s.reviewOk.memberId, s.reviewOk.date], set: { points } }).run();
+      return { ok: true };
+    }
     case 'listEntries': {
       const memberId = target();
       return {

@@ -1,8 +1,9 @@
 import { addDays } from '../date';
+import { DAY_RATIO_CAP } from './mvp';
 
 /**
  * Сезон — календарный месяц. Рейтинг идёт по очкам относительно личной нормы (так у младшего те же шансы):
- * счёт = очки за дни сезона / (норма × дни участия). Опыт и уровень не сбрасываются, сбрасывается только таблица.
+ * счёт = очки за дни сезона (день не больше 2 норм) / (норма × дни участия). Опыт и уровень не сбрасываются, сбрасывается только таблица.
  * Итоги считаются из истории, поэтому ничего не хранится; призы только за сезоны, начавшиеся после старта функции.
  */
 export const SEASON_CHESTS = [3, 1] as const;     // победителю и второму месту
@@ -42,13 +43,13 @@ export function buildSeason(id: string, today: string, since: string | null, mem
   for (const m of members) {
     const from = m.createdOn > start ? m.createdOn : start;
     if (from > last || m.goal <= 0) continue;
-    let points = 0, days = 0, normDays = 0, bestDay = 0;
+    let points = 0, counted = 0, days = 0, normDays = 0, bestDay = 0;
     for (let d = from; d <= last; d = addDays(d, 1)) {
       const p = pointsOf(m.id, d);
-      points += p; days++; bestDay = Math.max(bestDay, p);
+      points += p; counted += Math.min(p, m.goal * DAY_RATIO_CAP); days++; bestDay = Math.max(bestDay, p);
       if (p >= m.goal) normDays++;
     }
-    const ratio = points / (m.goal * days);
+    const ratio = counted / (m.goal * days);   // вклад дня ограничен DAY_RATIO_CAP нормами
     rows.push({ memberId: m.id, points: Math.round(points), ratio, days, normDays, bestDay: Math.round(bestDay), eligible: days >= Math.min(MIN_DAYS, new Date(end).getUTCDate()) && ratio >= MIN_RATIO, rank: 0, chests: 0 });
   }
   rows.sort((a, b) => b.ratio - a.ratio || b.points - a.points || a.memberId - b.memberId);

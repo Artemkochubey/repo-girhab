@@ -179,3 +179,11 @@ export const dayMvp = sqliteTable('day_mvp', {
   ratio: real('ratio').notNull(),
   createdAt: createdAt(),
 });
+
+// Родитель посмотрел день с меткой «проверить»; points — очки дня на момент просмотра
+export const reviewOk = sqliteTable('review_ok', {
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  points: real('points').notNull(),
+  createdAt: createdAt(),
+}, (t) => [unique('review_ok_unique').on(t.memberId, t.date)]);

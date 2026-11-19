@@ -5,6 +5,7 @@ import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { QuestSets } from '@/components/QuestSets';
+import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
 import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '@/lib/game/loot';
@@ -78,6 +79,8 @@ function AdminSettings() {
           })}
         </ul>
       </Section>
+
+      <ReviewBlock />
 
       <Section title="👪 Участники и нормы баллов">
         {s.members.map((m) => <MemberRow key={m.id} m={m} />)}
