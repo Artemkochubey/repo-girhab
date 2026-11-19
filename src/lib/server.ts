@@ -14,7 +14,8 @@ export async function getCtx(): Promise<Ctx> {
   return { memberId: m ? Number(m) : null, parent: !!p && Number(p) > Date.now() };
 }
 
-export const cookieOpts = { httpOnly: true, sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 365 };
+// COOKIE_SECURE=1 включается на сервере с HTTPS (docker-compose.prod.yml)
+export const cookieOpts = { httpOnly: true, sameSite: 'lax' as const, secure: process.env.COOKIE_SECURE === '1', path: '/', maxAge: 60 * 60 * 24 * 365 };
 export const parentCookie = () => ({ name: PARENT_COOKIE, value: sign(String(Date.now() + PARENT_TTL_MS)), options: { ...cookieOpts, maxAge: PARENT_TTL_MS / 1000 } });
 
 export function handle(fn: () => Promise<unknown> | unknown) {
