@@ -1,5 +1,6 @@
 import { openDb } from '../src/lib/db/client';
 import { config, member, hero } from '../src/lib/db/schema';
+import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '../src/lib/game/loot';
 
 const db = openDb();
 if (db.select().from(config).get()) {
@@ -9,9 +10,9 @@ if (db.select().from(config).get()) {
 
 db.insert(config).values({
   id: 1,
-  loot: ['+15 минут экрана', 'Выбрать музыку в машине', 'Десерт на выбор'],
-  lootRare: ['Выбрать фильм вечера', '+30 минут экрана', 'Поход в парк'],
-  lootLegend: ['Выбрать ужин', 'Семейная активность на выбор'],
+  loot: LOOT_COMMON,
+  lootRare: LOOT_RARE,
+  lootLegend: LOOT_LEGEND,
 }).run();
 
 // Имена временные: поменяйте в «Настройках» после запуска.

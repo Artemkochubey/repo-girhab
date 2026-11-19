@@ -4,6 +4,7 @@ import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
 import { AVATARS } from '../game/avatars';
+import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '../game/loot';
 import { weekStart } from '../game/boss';
 import { questEnd, validFamilyQuest } from '../game/familyQuests';
 import { CUSTOM_EXERCISE, MUSCLE_IDS, exerciseById, isMuscleId } from '../game/muscles';
@@ -382,7 +383,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       for (const k of ['loot', 'lootRare', 'lootLegend'] as const)
         if (a[k] !== undefined) {
           const v = a[k];
-          if (!Array.isArray(v) || v.length > 50 || v.some((x) => typeof x !== 'string' || !x.trim() || x.length > 80)) fail(400, 'Список наград некорректен');
+          if (!Array.isArray(v) || v.length > 200 || v.some((x) => typeof x !== 'string' || !x.trim() || x.length > 80)) fail(400, 'Список наград некорректен');
           patch[k] = (v as string[]).map((x) => x.trim());
         }
       if (a.timezone !== undefined) {
@@ -391,6 +392,18 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       }
       if (Object.keys(patch).length) db.update(s.config).set(patch).where(eq(s.config.id, 1)).run();
       return { ok: true };
+    }
+    case 'addLootFromCatalog': {
+      // подмешивает в списки наград недостающие варианты из каталога; существующие не трогает и не стирает
+      needParent();
+      const tiers = { loot: LOOT_COMMON, lootRare: LOOT_RARE, lootLegend: LOOT_LEGEND } as const;
+      const key = a.tier === 'rare' ? 'lootRare' : a.tier === 'legend' ? 'lootLegend' : a.tier === 'common' ? 'loot' : null;
+      if (!key) fail(400, 'Неизвестный список');
+      const cur = cfg[key!];
+      const have = new Set(cur.map((x) => x.trim().toLowerCase()));
+      const add = tiers[key!].filter((x) => !have.has(x.toLowerCase()));
+      db.update(s.config).set({ [key!]: [...cur, ...add].slice(0, 200) }).where(eq(s.config.id, 1)).run();
+      return { added: add.length };
     }
     case 'changePin': {
       needParent();

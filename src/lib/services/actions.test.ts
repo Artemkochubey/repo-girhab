@@ -197,4 +197,17 @@ describe('действия', () => {
     expect(rows().find((r) => r.date === '2026-11-16')!.memberId).toBe(2);
     expect(loadFamily(db, NOW).family.mvp.wins).toEqual({ 2: 1 });
   });
+  it('каталог наград: добавляет недостающие, не дублирует и не трогает свои', () => {
+    db.update(s.config).set({ loot: ['Мой особый приз', '+10 минут экрана'] }).run();
+    expect(err(() => runAction(db, kid, 'addLootFromCatalog', { tier: 'common' }))?.status).toBe(403);
+    expect(err(() => runAction(db, dad, 'addLootFromCatalog', { tier: 'nope' }))?.status).toBe(400);
+    const r1 = runAction(db, dad, 'addLootFromCatalog', { tier: 'common' }) as { added: number };
+    const loot = db.select().from(s.config).get()!.loot;
+    expect(loot[0]).toBe('Мой особый приз');
+    expect(new Set(loot.map((x) => x.toLowerCase())).size).toBe(loot.length);
+    expect(r1.added).toBeGreaterThan(60);
+    expect((runAction(db, dad, 'addLootFromCatalog', { tier: 'common' }) as { added: number }).added).toBe(0);   // повтор ничего не добавляет
+    runAction(db, dad, 'addLootFromCatalog', { tier: 'rare' });
+    expect(db.select().from(s.config).get()!.lootRare.length).toBeGreaterThan(30);
+  });
 });

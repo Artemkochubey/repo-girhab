@@ -6,6 +6,7 @@ import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
+import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '@/lib/game/loot';
 
 type M = ReturnType<typeof useGame>['s']['members'][number];
 
@@ -98,7 +99,16 @@ function AdminSettings() {
           <label className="xpl">Часовой пояс <input value={tz} onChange={(e) => setTz(e.target.value)} /></label>
         </div>
         {([['loot', 'Обычные награды (по одной на строку)'], ['lootRare', 'Редкие (25%)'], ['lootLegend', 'Легендарные (5%)']] as const).map(([k, l]) => (
-          <label key={k} className="col">{l}<textarea rows={4} value={loot[k]} onChange={(e) => setLoot({ ...loot, [k]: e.target.value })} /></label>
+          <div key={k} className="col">
+            <label className="col">{l} <small className="muted">· сейчас {lines(loot[k]).length}</small><textarea rows={5} value={loot[k]} onChange={(e) => setLoot({ ...loot, [k]: e.target.value })} /></label>
+            <button type="button" className="btn ghost sm" onClick={async () => {
+              const tier = k === 'loot' ? 'common' : k === 'lootRare' ? 'rare' : 'legend';
+              const have = new Set(lines(loot[k]).map((x) => x.toLowerCase()));
+              const add = (k === 'loot' ? LOOT_COMMON : k === 'lootRare' ? LOOT_RARE : LOOT_LEGEND).filter((x) => !have.has(x.toLowerCase()));
+              if (!add.length) { toast('Все варианты из каталога уже есть'); return; }
+              try { await act('addLootFromCatalog', { tier }); setLoot({ ...loot, [k]: [...lines(loot[k]), ...add].join('\n') }); toast(`Добавлено вариантов: ${add.length}`); } catch { /* toast уже показан */ }
+            }}>＋ Добавить варианты из каталога ({(k === 'loot' ? LOOT_COMMON : k === 'lootRare' ? LOOT_RARE : LOOT_LEGEND).filter((x) => !new Set(lines(loot[k]).map((y) => y.toLowerCase())).has(x.toLowerCase())).length} новых)</button>
+          </div>
         ))}
         <button className="btn" onClick={saveCfg}>Сохранить</button>
       </Section>
