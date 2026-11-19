@@ -108,3 +108,4 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 /* Праздничное окно новых достижений */
 .celebrate { text-align: center; display: grid; gap: 10px; justify-items: center; } .celebrate .big { font-size: 4rem; animation: pop .6s ease; } @keyframes pop { 0% { transform: scale(.2) rotate(-20deg); opacity: 0 } 70% { transform: scale(1.2) rotate(6deg) } 100% { transform: scale(1) rotate(0); opacity: 1 } }
 .mvp { display: grid; gap: 8px; } .mvp-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel2); border-radius: 12px; padding: 10px 12px; } .mvp-row small { margin-left: 6px; }
+.catsearch { width: 100%; margin: 6px 0; }

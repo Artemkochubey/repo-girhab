@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { Chips, Section } from '@/components/ui';
 import { STUDY_KINDS } from '@/lib/db/schema';
-import { HABIT_CATALOG } from '@/lib/game/habits';
+import { HABIT_CATALOG, HABIT_GROUPS } from '@/lib/game/habits';
 
 export default function Mind() {
   const { s, act, date } = useGame();
@@ -12,6 +12,10 @@ export default function Mind() {
   const [habit, setHabit] = useState('');
   const [book, setBook] = useState('');
   const have = new Set(d.habits.map((h) => h.name));
+  const [q, setQ] = useState('');
+  const [group, setGroup] = useState<string>(HABIT_GROUPS[0].title);
+  const [catOpen, setCatOpen] = useState(false);
+  const catalogShown = (q.trim() ? HABIT_CATALOG.filter((h) => h.toLowerCase().includes(q.trim().toLowerCase())) : HABIT_GROUPS.find((g) => g.title === group)!.items).filter((h) => !have.has(h));
 
   return (
     <>
@@ -39,9 +43,17 @@ export default function Mind() {
             </li>
           ))}
         </ul>
-        <details><summary>Каталог привычек</summary>
+        <details open={catOpen} onToggle={(e) => setCatOpen((e.target as HTMLDetailsElement).open)}>
+          <summary>Каталог привычек ({HABIT_CATALOG.filter((h) => !have.has(h)).length} можно добавить)</summary>
+          <input className="catsearch" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти привычку…" aria-label="Поиск по каталогу привычек" />
+          {!q.trim() && (
+            <div className="row wrapRow" role="tablist">
+              {HABIT_GROUPS.map((g) => <button key={g.title} role="tab" aria-selected={g.title === group} className={`btn ${g.title === group ? '' : 'ghost'} sm`} onClick={() => setGroup(g.title)}>{g.title}</button>)}
+            </div>
+          )}
           <div className="row wrapRow">
-            {HABIT_CATALOG.filter((h) => !have.has(h)).map((h) => <button key={h} className="btn ghost" onClick={() => act('addHabit', { name: h })}>＋ {h}</button>)}
+            {catalogShown.length === 0 && <p className="muted small">{q.trim() ? 'Ничего не найдено: добавьте свою привычку ниже.' : 'Все привычки этой группы уже добавлены.'}</p>}
+            {catalogShown.map((h) => <button key={h} className="btn ghost" onClick={() => act('addHabit', { name: h })}>＋ {h}</button>)}
           </div>
         </details>
         <form className="row" onSubmit={(e) => { e.preventDefault(); if (habit.trim()) { act('addHabit', { name: habit }); setHabit(''); } }}>
