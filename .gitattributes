@@ -1,0 +1,5 @@
+# .bat и .ps1 должны иметь Windows-переводы строк, иначе cmd.exe работает неверно
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sh text eol=lf
+*.command text eol=lf
