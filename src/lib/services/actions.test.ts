@@ -142,4 +142,19 @@ describe('действия', () => {
     const log = loadFamily(db, NOW).family.members.get(2)!;
     expect(log.xp).toBeGreaterThan(0); // очки считаются по минутам, как и раньше
   });
+  it('повторы: ставка упражнения, лимиты и защита от накрутки', () => {
+    const st = () => loadFamily(db, NOW).family.members.get(2)!;
+    runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 30 });       // 30 × 0.2 = 6 очков до бонусов
+    const row = db.select().from(s.workoutEntry).all()[0];
+    expect(row).toMatchObject({ exercise: 'pushups', reps: 30, minutes: 0 });
+    const base = st().days.get('2026-11-19')!.stats.workoutMinutes;
+    expect(base).toBeCloseTo(6, 1);
+    expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 101 }))?.status).toBe(400);      // больше max за подход
+    expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'running', reps: 20 }))?.status).toBe(400);       // нет ставки
+    expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'custom', muscles: ['abs'], reps: 20 }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 0 }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'addWorkout', { exercise: 'pushups' }))?.status).toBe(400);                 // ни минут, ни повторов
+    for (let i = 0; i < 10; i++) runAction(db, kid, 'addWorkout', { exercise: 'pushups', reps: 100 });              // пытаемся накрутить
+    expect(st().days.get('2026-11-19')!.stats.workoutMinutes).toBeCloseTo(22.5, 1);                                 // потолок упражнения за день
+  });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE `workout_entry` ADD `reps` integer;

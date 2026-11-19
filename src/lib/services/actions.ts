@@ -49,7 +49,8 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
   switch (action) {
     case 'addWorkout': {
       const memberId = target(), date = dateArg();
-      const minutes = int(a.minutes, 1, 600, 'Минуты');
+      const reps = a.reps === undefined || a.reps === null ? null : a.reps;
+      const minutes = reps === null ? int(a.minutes, 1, 600, 'Минуты') : 0;
       let exercise: string | null = null;
       let muscles: string[] | null = null;
       if (a.exercise !== undefined && a.exercise !== null) {
@@ -61,7 +62,12 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
         } else if (exerciseById(String(a.exercise))) exercise = String(a.exercise);
         else fail(400, 'Неизвестная тренировка');
       }
-      db.insert(s.workoutEntry).values({ memberId, date, minutes, exercise, muscles, createdBy: ctx.memberId }).run();
+      if (reps !== null) {
+        const spec = exerciseById(String(a.exercise))?.rep;
+        if (!spec) fail(400, 'Для этого упражнения повторы не считаются: укажите минуты');
+        int(reps, 1, spec!.max, `Повторы за один подход (не больше ${spec!.max})`);
+      }
+      db.insert(s.workoutEntry).values({ memberId, date, minutes, reps: reps as number | null, exercise, muscles, createdBy: ctx.memberId }).run();
       return { ok: true };
     }
     case 'addStudy': {

@@ -1,5 +1,6 @@
 import { BOSSES } from '../game/boss';
 import { questHint, questProgress } from '../game/quests';
+import { allocateWorkouts } from '../game/reps';
 import { addDays, dateRange } from '../date';
 import type { Family, Raw, MemberState } from './engine';
 
@@ -23,6 +24,7 @@ const RADAR = [
 ];
 
 export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: string = fam.today) {
+  const myWorkouts = allocateWorkouts(raw.workouts.filter((w) => w.memberId === st.id).map((w, i) => ({ ...w, id: w.id ?? i })));
   const today = st.days.get(date) ?? st.days.get(fam.today)!;
   const radarFrom = addDays(fam.today, -29);
   const radar = RADAR.map((r) => ({
@@ -40,9 +42,9 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     wallet: { balance: st.balance, spent: st.spentPoints },
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
-    workoutLog: raw.workouts.filter((w) => w.memberId === st.id && w.date >= addDays(fam.today, -29))
-      .map((w) => ({ id: w.id, date: w.date, minutes: w.minutes, exercise: w.exercise ?? null, muscles: w.muscles ?? null })),
-    entries: { workouts: mine(raw.workouts), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
+    workoutLog: myWorkouts.filter((w) => w.date >= addDays(fam.today, -29))
+      .map((w) => ({ id: w.id, date: w.date, minutes: w.minutes, reps: w.reps ?? null, eq: w.eq, exercise: w.exercise ?? null, muscles: w.muscles ?? null })),
+    entries: { workouts: myWorkouts.filter((w) => w.date === date), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
     day: { points: today.total, stats: today.stats, bySphere: today.bySphere,
       quests: today.quests.map((q, i) => ({ ...q, completed: today.questsDone[i] })) },
     habits: raw.habits.filter((h) => h.memberId === st.id).map((h) => ({

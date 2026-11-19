@@ -23,23 +23,25 @@ export const muscleName = (id: string): string => MUSCLES.find((m) => m.id === i
 export const isMuscleId = (v: unknown): v is MuscleId => typeof v === 'string' && (MUSCLE_IDS as string[]).includes(v);
 
 export type ExerciseCategory = 'Силовые' | 'Кардио' | 'Игры и спорт' | 'Растяжка';
-export interface Exercise { id: string; name: string; emoji: string; cat: ExerciseCategory; w: Partial<Record<MuscleId, number>> }
+/** Подсчёт «по повторам»: цена одного повтора, потолки засчёта и лимит за один подход. */
+export interface RepSpec { pts: number; soft: number; hard: number; max: number }
+export interface Exercise { id: string; name: string; emoji: string; cat: ExerciseCategory; w: Partial<Record<MuscleId, number>>; rep?: RepSpec }
 
 /** Вес — доля нагрузки на мышцу за минуту (0..1). Значения экспертные, округлённые. */
 export const EXERCISES: Exercise[] = [
-  { id: 'pushups', name: 'Отжимания', emoji: '💪', cat: 'Силовые', w: { chest: 1, triceps: 0.8, shoulders: 0.6, abs: 0.3 } },
-  { id: 'squats', name: 'Приседания', emoji: '🦵', cat: 'Силовые', w: { quads: 1, glutes: 0.8, hamstrings: 0.4, calves: 0.3, lower_back: 0.2 } },
-  { id: 'lunges', name: 'Выпады', emoji: '🚶', cat: 'Силовые', w: { quads: 0.9, glutes: 0.9, hamstrings: 0.5, calves: 0.3, adductors: 0.3 } },
-  { id: 'pullups', name: 'Подтягивания', emoji: '🧗', cat: 'Силовые', w: { lats: 1, biceps: 0.8, forearms: 0.5, shoulders: 0.4, traps: 0.4, abs: 0.2 } },
+  { id: 'pushups', name: 'Отжимания', emoji: '💪', cat: 'Силовые', w: { chest: 1, triceps: 0.8, shoulders: 0.6, abs: 0.3 }, rep: { pts: 0.2, soft: 75, hard: 150, max: 100 } },
+  { id: 'squats', name: 'Приседания', emoji: '🦵', cat: 'Силовые', w: { quads: 1, glutes: 0.8, hamstrings: 0.4, calves: 0.3, lower_back: 0.2 }, rep: { pts: 0.12, soft: 120, hard: 240, max: 150 } },
+  { id: 'lunges', name: 'Выпады', emoji: '🚶', cat: 'Силовые', w: { quads: 0.9, glutes: 0.9, hamstrings: 0.5, calves: 0.3, adductors: 0.3 }, rep: { pts: 0.16, soft: 90, hard: 180, max: 100 } },
+  { id: 'pullups', name: 'Подтягивания', emoji: '🧗', cat: 'Силовые', w: { lats: 1, biceps: 0.8, forearms: 0.5, shoulders: 0.4, traps: 0.4, abs: 0.2 }, rep: { pts: 0.5, soft: 30, hard: 60, max: 40 } },
   { id: 'plank', name: 'Планка', emoji: '🧘', cat: 'Силовые', w: { abs: 1, obliques: 0.6, shoulders: 0.4, lower_back: 0.4, glutes: 0.3 } },
-  { id: 'crunches', name: 'Пресс (скручивания)', emoji: '🔥', cat: 'Силовые', w: { abs: 1, obliques: 0.5 } },
-  { id: 'bridge', name: 'Ягодичный мостик', emoji: '🍑', cat: 'Силовые', w: { glutes: 1, hamstrings: 0.6, lower_back: 0.4 } },
-  { id: 'curl', name: 'Гантели: бицепс', emoji: '🏋️', cat: 'Силовые', w: { biceps: 1, forearms: 0.5 } },
-  { id: 'press', name: 'Жим гантелей', emoji: '🏋️', cat: 'Силовые', w: { shoulders: 1, triceps: 0.7, chest: 0.5, traps: 0.3 } },
-  { id: 'dips', name: 'Брусья', emoji: '🤸', cat: 'Силовые', w: { triceps: 1, chest: 0.7, shoulders: 0.5 } },
-  { id: 'superman', name: 'Лодочка (спина)', emoji: '🛶', cat: 'Силовые', w: { lower_back: 1, glutes: 0.5, traps: 0.4, lats: 0.3 } },
-  { id: 'burpees', name: 'Берпи', emoji: '⚡', cat: 'Силовые', w: { quads: 0.6, chest: 0.5, shoulders: 0.5, abs: 0.5, triceps: 0.4, glutes: 0.4 } },
-  { id: 'calf_raise', name: 'Подъём на носки', emoji: '🦶', cat: 'Силовые', w: { calves: 1 } },
+  { id: 'crunches', name: 'Пресс (скручивания)', emoji: '🔥', cat: 'Силовые', w: { abs: 1, obliques: 0.5 }, rep: { pts: 0.1, soft: 150, hard: 300, max: 150 } },
+  { id: 'bridge', name: 'Ягодичный мостик', emoji: '🍑', cat: 'Силовые', w: { glutes: 1, hamstrings: 0.6, lower_back: 0.4 }, rep: { pts: 0.12, soft: 120, hard: 240, max: 100 } },
+  { id: 'curl', name: 'Гантели: бицепс', emoji: '🏋️', cat: 'Силовые', w: { biceps: 1, forearms: 0.5 }, rep: { pts: 0.16, soft: 90, hard: 180, max: 60 } },
+  { id: 'press', name: 'Жим гантелей', emoji: '🏋️', cat: 'Силовые', w: { shoulders: 1, triceps: 0.7, chest: 0.5, traps: 0.3 }, rep: { pts: 0.16, soft: 90, hard: 180, max: 60 } },
+  { id: 'dips', name: 'Брусья', emoji: '🤸', cat: 'Силовые', w: { triceps: 1, chest: 0.7, shoulders: 0.5 }, rep: { pts: 0.25, soft: 60, hard: 120, max: 60 } },
+  { id: 'superman', name: 'Лодочка (спина)', emoji: '🛶', cat: 'Силовые', w: { lower_back: 1, glutes: 0.5, traps: 0.4, lats: 0.3 }, rep: { pts: 0.12, soft: 120, hard: 240, max: 100 } },
+  { id: 'burpees', name: 'Берпи', emoji: '⚡', cat: 'Силовые', w: { quads: 0.6, chest: 0.5, shoulders: 0.5, abs: 0.5, triceps: 0.4, glutes: 0.4 }, rep: { pts: 0.25, soft: 60, hard: 120, max: 60 } },
+  { id: 'calf_raise', name: 'Подъём на носки', emoji: '🦶', cat: 'Силовые', w: { calves: 1 }, rep: { pts: 0.07, soft: 200, hard: 400, max: 200 } },
 
   { id: 'running', name: 'Бег', emoji: '🏃', cat: 'Кардио', w: { calves: 0.8, quads: 0.7, hamstrings: 0.6, glutes: 0.5, abductors: 0.3, abs: 0.2 } },
   { id: 'walking', name: 'Быстрая ходьба', emoji: '🚶', cat: 'Кардио', w: { calves: 0.5, quads: 0.4, glutes: 0.4, hamstrings: 0.3 } },
@@ -69,7 +71,7 @@ export const CATEGORIES: ExerciseCategory[] = ['Силовые', 'Кардио',
 export const exerciseById = (id: string | null | undefined) => EXERCISES.find((e) => e.id === id);
 export const CUSTOM_EXERCISE = 'custom';
 
-export interface WorkoutLike { date: string; minutes: number; exercise?: string | null; muscles?: string[] | null }
+export interface WorkoutLike { date: string; minutes: number; eq?: number; exercise?: string | null; muscles?: string[] | null }
 
 /** Веса мышц для записи: из каталога, либо поровну по выбранным мышцам для «своей» тренировки. */
 export function entryWeights(e: Pick<WorkoutLike, 'exercise' | 'muscles'>): Partial<Record<MuscleId, number>> {
@@ -88,7 +90,7 @@ export function muscleLoads(entries: WorkoutLike[], from: string, to: string): R
   const out = Object.fromEntries(MUSCLE_IDS.map((m) => [m, 0])) as Record<MuscleId, number>;
   for (const e of entries) {
     if (e.date < from || e.date > to) continue;
-    for (const [m, w] of Object.entries(entryWeights(e))) out[m as MuscleId] += e.minutes * (w ?? 0);
+    for (const [m, w] of Object.entries(entryWeights(e))) out[m as MuscleId] += (e.eq ?? e.minutes) * (w ?? 0);
   }
   return out;
 }

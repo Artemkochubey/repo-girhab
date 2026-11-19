@@ -97,3 +97,4 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 /* Широкие блоки (карта года) прокручиваются внутри карточки, а не растягивают страницу */
 .wrap > *, .card { min-width: 0; } .yh { min-width: 0; max-width: 100%; } .yh-scroll { min-width: 0; }
 .legend.heat-legend i { width: 13px; height: 13px; border-radius: 3px; }
+.repinfo { margin: 0; padding: 8px 12px; background: var(--panel2); border-radius: 10px; font-size: .88rem; color: var(--muted); } .repinfo b { color: var(--accent); }

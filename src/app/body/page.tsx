@@ -5,6 +5,7 @@ import { useGame } from '@/components/Shell';
 import { Chips, Section } from '@/components/ui';
 import { HeatLegend, YearHeat } from '@/components/YearHeat';
 import { rpc } from '@/lib/client';
+import { DAY_REP_CAP, allocateWorkouts, maxRepPoints } from '@/lib/game/reps';
 import { addDays } from '@/lib/date';
 import {
   CATEGORIES, CUSTOM_EXERCISE, EXERCISES, MUSCLES, exerciseById, intensityFloor, muscleIntensity, muscleLoads, muscleName,
@@ -13,7 +14,10 @@ import {
 
 const RANGES = [{ id: 'day', label: 'Сегодня', days: 1 }, { id: 'week', label: '7 дней', days: 7 }, { id: 'month', label: '30 дней', days: 30 }] as const;
 type View = 'front' | 'back' | 'both';
-interface Row { id: number; date: string; minutes: number; exercise: string | null; muscles: string[] | null }
+interface Row { id: number; date: string; minutes: number; reps: number | null; exercise: string | null; muscles: string[] | null; eq?: number }
+const fmt = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
+/** «30 мин» или «40 раз · +8 оч.» */
+const amount = (w: { minutes: number; reps: number | null; eq?: number }) => (w.reps ? `${w.reps} раз · +${fmt(w.eq ?? 0)} оч.` : `${w.minutes} мин`);
 
 const dayTitle = (date: string, today: string) => {
   if (date === today) return 'Сегодня';
@@ -27,7 +31,10 @@ export default function Body() {
   const [range, setRange] = useState<(typeof RANGES)[number]['id']>('week');
   const [view, setView] = useState<View>('front');
   const [cat, setCat] = useState<ExerciseCategory>('Силовые');
-  const [exercise, setExercise] = useState<string | null>(null);
+  const [exercise, setExerciseRaw] = useState<string | null>(null);
+  const [unit, setUnit] = useState<'min' | 'reps'>('min');
+  // при выборе упражнения со счётом по повторам сразу переключаемся на повторы
+  const setExercise = (id: string | null) => { setExerciseRaw(id); setUnit(exerciseById(id)?.rep ? 'reps' : 'min'); };
   const [custom, setCustom] = useState<MuscleId[]>([]);
   const [hover, setHover] = useState<MuscleId | null>(null);
   const [sel, setSel] = useState<string | null>(null);
@@ -44,7 +51,7 @@ export default function Body() {
   const byDate = useMemo(() => {
     const m = new Map<string, { minutes: number; items: Row[]; warmup: { id: number } | null }>();
     const get = (date: string) => { let x = m.get(date); if (!x) m.set(date, (x = { minutes: 0, items: [], warmup: null })); return x; };
-    for (const w of all?.workouts ?? []) { const x = get(w.date); x.items.push(w); x.minutes += w.minutes; }
+    for (const w of allocateWorkouts(all?.workouts ?? [])) { const x = get(w.date); x.items.push(w); x.minutes += w.eq; }
     for (const w of all?.warmups ?? []) get(w.date).warmup = { id: w.id };
     for (const x of m.values()) x.items.sort((a, b) => b.id - a.id);
     return m;
@@ -65,10 +72,17 @@ export default function Body() {
     if (exercise !== CUSTOM_EXERCISE) { setExercise(CUSTOM_EXERCISE); setCustom([m]); return; }
     setCustom((c) => (c.includes(m) ? c.filter((x) => x !== m) : [...c, m]));
   };
-  const addWorkout = (minutes: number) => {
+  const repMode = unit === 'reps' && !!ex?.rep;
+  const addWorkout = (n: number) => {
     if (exercise === CUSTOM_EXERCISE && !custom.length) { toast('Выберите мышцы на силуэте или тренировку из списка'); return; }
-    return act('addWorkout', { minutes, exercise: exercise ?? undefined, muscles: exercise === CUSTOM_EXERCISE ? custom : undefined });
+    if (repMode && n > ex!.rep!.max) { toast(`За один подход можно записать не больше ${ex!.rep!.max} раз`); return; }
+    const args = repMode ? { reps: n } : { minutes: n };
+    return act('addWorkout', { ...args, exercise: exercise ?? undefined, muscles: exercise === CUSTOM_EXERCISE ? custom : undefined });
   };
+  // сколько очков за повторы уже засчитано сегодня и сколько ещё можно получить
+  const repsToday = d.entries.workouts.filter((w) => w.reps);
+  const repPtsDay = repsToday.reduce((a, w) => a + w.eq, 0);
+  const repPtsEx = repsToday.filter((w) => w.exercise === exercise).reduce((a, w) => a + w.eq, 0);
   const info = hover ?? (exercise === CUSTOM_EXERCISE ? custom[custom.length - 1] : null) ?? null;
   const label = (e: { exercise: string | null; muscles: string[] | null }) => {
     const x = exerciseById(e.exercise);
@@ -83,10 +97,10 @@ export default function Body() {
     if (!x && !always) return null;
     return (
       <div className="hday">
-        <div className="hhead"><b>{dayTitle(date, s.today)}</b><span className="muted">{x ? `${x.minutes} мин${x.warmup ? ' · 🔥 зарядка' : ''}` : 'тренировок нет'}</span></div>
+        <div className="hhead"><b>{dayTitle(date, s.today)}</b><span className="muted">{x ? `${fmt(x.minutes)} оч.${x.warmup ? ' · 🔥 зарядка' : ''}` : 'тренировок нет'}</span></div>
         <ul className="list">
           {x?.items.map((w) => (
-            <li key={w.id}>{label(w)} · {w.minutes} мин {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })} aria-label="Удалить запись">✕</button>}</li>
+            <li key={w.id}>{label(w)} · {amount(w)} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })} aria-label="Удалить запись">✕</button>}</li>
           ))}
           {x?.warmup && <li>🔥 Зарядка {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'warmup', id: x.warmup!.id })} aria-label="Удалить зарядку">✕</button>}</li>}
         </ul>
@@ -116,7 +130,7 @@ export default function Body() {
           : <p className="muted small">За выбранный период нагрузки нет. Запишите тренировку с выбором упражнения — мышцы начнут краснеть.</p>}
       </Section>
 
-      <Section title="Тренировка" right={<span className="muted">за день: {d.day.stats.workoutMinutes} мин</span>}>
+      <Section title="Тренировка" right={<span className="muted">за день: {fmt(d.day.stats.workoutMinutes)} оч.</span>}>
         <div className="row wrapRow">
           {CATEGORIES.map((c) => <button key={c} className={`btn ${cat === c && exercise !== CUSTOM_EXERCISE ? '' : 'ghost'} sm`} onClick={() => { setCat(c); if (exercise === CUSTOM_EXERCISE) setExercise(null); }}>{c}</button>)}
           <button className={`btn ${exercise === CUSTOM_EXERCISE ? '' : 'ghost'} sm`} onClick={() => { setExercise(exercise === CUSTOM_EXERCISE ? null : CUSTOM_EXERCISE); setCustom([]); }}>🎯 Свои мышцы</button>
@@ -133,10 +147,24 @@ export default function Body() {
         {exercise === CUSTOM_EXERCISE && <p className="muted">Нажимайте на мышцы на силуэте выше — они подсветятся золотом. Выбрано: {custom.length ? custom.map(muscleName).join(', ') : 'ничего'}.</p>}
         {ex && <p className="muted">Работают: {Object.entries(ex.w).sort((a, b) => b[1]! - a[1]!).map(([m]) => muscleName(m)).join(', ')}.</p>}
         {!exercise && <p className="muted small">Выберите упражнение или свои мышцы, чтобы нагрузка попала на силуэт. Можно записать и просто минуты без выбора.</p>}
-        <Chips values={[15, 30, 45, 60, 90]} onPick={(n) => addWorkout(n)} />
+        {ex?.rep && (
+          <div className="row wrapRow">
+            <button className={`btn ${repMode ? '' : 'ghost'} sm`} onClick={() => setUnit('reps')}>🔢 Повторы</button>
+            <button className={`btn ${repMode ? 'ghost' : ''} sm`} onClick={() => setUnit('min')}>⏱ Минуты</button>
+          </div>
+        )}
+        {repMode && ex?.rep && (
+          <p className="repinfo">
+            <b>1 раз = {fmt(ex.rep.pts)} очка.</b> До {ex.rep.soft} раз за день по полной цене, до {ex.rep.hard} — за половину, дальше очки не начисляются.
+            За подход — не больше {ex.rep.max}. Сегодня по упражнению: {fmt(repPtsEx)} из {fmt(maxRepPoints(ex.rep))} очков; за все повторы за день — {fmt(repPtsDay)} из {DAY_REP_CAP}.
+          </p>
+        )}
+        {repMode
+          ? <Chips key="reps" values={[10, 20, 30, 50]} unit="раз" onPick={(n) => addWorkout(n)} />
+          : <Chips key="min" values={[15, 30, 45, 60, 90]} onPick={(n) => addWorkout(n)} />}
         <ul className="list">
           {d.entries.workouts.map((w) => (
-            <li key={w.id}>{label(w)} · {w.minutes} мин {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })}>✕</button>}</li>
+            <li key={w.id}>{label(w)} · {amount(w)} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })}>✕</button>}</li>
           ))}
         </ul>
       </Section>

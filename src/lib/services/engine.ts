@@ -1,4 +1,5 @@
 import { addDays, dateRange, todayIn } from '../date';
+import { allocateWorkouts } from '../game/reps';
 import { BOSSES, WEAK_BONUS, bossForDate, bossHp, bossRewards, weekStart } from '../game/boss';
 import { CLASS_SPHERES, recommendSub, type Cls } from '../game/classes';
 import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../game/level';
@@ -11,7 +12,7 @@ export interface Raw {
   timezone: string;
   members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
   heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
-  workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null }[];
+  workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null; reps?: number | null }[];
   warmups: { memberId: number; date: string }[];
   study: { memberId: number; date: string; kind: StudyKind; minutes: number }[];
   habits: { id: number; memberId: number; name: string }[];
@@ -61,7 +62,8 @@ export function buildFamily(raw: Raw, today: string): Family {
     const cls: Cls | null = hero.clsChosen ? hero.cls : null;
     const stats = new Map<string, DayStats>();
     const get = (date: string) => { let s = stats.get(date); if (!s) stats.set(date, (s = emptyDay())); return s; };
-    for (const w of raw.workouts) if (w.memberId === m.id) get(w.date).workoutMinutes += w.minutes;
+    // минуты считаются как есть, повторы — по ставке упражнения с потолками (см. game/reps.ts)
+    for (const w of allocateWorkouts(raw.workouts.filter((x) => x.memberId === m.id).map((x, i) => ({ ...x, id: x.id ?? i })))) get(w.date).workoutMinutes += w.eq;
     for (const w of raw.warmups) if (w.memberId === m.id) get(w.date).warmups = 1;
     for (const s of raw.study) if (s.memberId === m.id) { const d = get(s.date); d.study[s.kind] = (d.study[s.kind] ?? 0) + s.minutes; }
     for (const c of raw.habitChecks) if (habitOwner.get(c.habitId) === m.id) get(c.date).habits++;
