@@ -1,0 +1,119 @@
+import { sqliteTable, text, integer, real, unique, index } from 'drizzle-orm/sqlite-core';
+
+// Все даты — строки 'YYYY-MM-DD' в часовом поясе семьи (config.timezone).
+const createdAt = () => text('created_at').notNull().$defaultFn(() => new Date().toISOString());
+
+export const member = sqliteTable('member', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  emoji: text('emoji').notNull().default('🙂'),
+  color: text('color').notNull().default('#8b5cf6'),
+  isParent: integer('is_parent', { mode: 'boolean' }).notNull().default(false),
+  goal: integer('goal').notNull().default(60),
+  superGoal: integer('super_goal').notNull().default(100),
+  createdAt: createdAt(),
+});
+
+export const config = sqliteTable('config', {
+  id: integer('id').primaryKey(), // всегда 1
+  timezone: text('timezone').notNull().default('Asia/Novosibirsk'),
+  pinHash: text('pin_hash'),
+  minutes: integer('minutes').notNull().default(30),
+  superMinutes: integer('super_minutes').notNull().default(60),
+  loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),
+  lootRare: text('loot_rare', { mode: 'json' }).$type<string[]>().notNull(),
+  lootLegend: text('loot_legend', { mode: 'json' }).$type<string[]>().notNull(),
+});
+
+const entryBase = {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  createdBy: integer('created_by'),
+  createdAt: createdAt(),
+};
+
+export const workoutEntry = sqliteTable('workout_entry', {
+  ...entryBase,
+  minutes: integer('minutes').notNull(),
+}, (t) => [index('workout_member_date').on(t.memberId, t.date)]);
+
+export const warmupEntry = sqliteTable('warmup_entry', {
+  ...entryBase,
+}, (t) => [unique('warmup_member_date').on(t.memberId, t.date)]);
+
+export const STUDY_KINDS = ['Книги', 'Языки', 'Учёба', 'Навыки', 'Творчество', 'Мышление'] as const;
+export type StudyKind = (typeof STUDY_KINDS)[number];
+
+export const studyEntry = sqliteTable('study_entry', {
+  ...entryBase,
+  kind: text('kind', { enum: STUDY_KINDS }).notNull(),
+  minutes: integer('minutes').notNull(),
+}, (t) => [index('study_member_date').on(t.memberId, t.date)]);
+
+export const habit = sqliteTable('habit', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+  createdAt: createdAt(),
+});
+
+export const habitCheck = sqliteTable('habit_check', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  habitId: integer('habit_id').notNull().references(() => habit.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  createdAt: createdAt(),
+}, (t) => [unique('habit_check_unique').on(t.habitId, t.date)]);
+
+export const book = sqliteTable('book', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  finishedAt: text('finished_at').notNull(),
+}, (t) => [unique('book_unique').on(t.memberId, t.title)]);
+
+export const hero = sqliteTable('hero', {
+  memberId: integer('member_id').primaryKey().references(() => member.id, { onDelete: 'cascade' }),
+  cls: text('cls', { enum: ['w', 'm', 'b', 'p'] }).notNull().default('w'),
+  clsChangedAt: text('cls_changed_at').notNull().$defaultFn(() => new Date().toISOString()),
+  sub: text('sub', { enum: ['w', 'm', 'b', 'p'] }),
+  talents: text('talents', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(() => []),
+});
+
+export type QuestItem = {
+  t: string;          // название
+  xp: number;         // 1..100
+  k: 'manual' | 'warmup' | 'workout' | 'habits' | 'study';
+  m?: number;         // минуты или штуки
+  kind?: string;      // вид учёбы для k='study' (или 'any')
+  done?: boolean;     // ручная отметка
+  pending?: boolean;  // ждёт подтверждения родителя
+};
+
+// date = 'default' — шаблон «на каждый день»
+export const questOverride = sqliteTable('quest_override', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  items: text('items', { mode: 'json' }).$type<QuestItem[]>().notNull(),
+}, (t) => [unique('quest_override_unique').on(t.memberId, t.date)]);
+
+export const chestOpened = sqliteTable('chest_opened', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  n: integer('n').notNull(),
+  rarity: text('rarity', { enum: ['common', 'rare', 'legend'] }).notNull(),
+  reward: text('reward').notNull(),
+  date: text('date').notNull(),
+}, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
+
+export const bossWeek = sqliteTable('boss_week', {
+  weekStart: text('week_start').primaryKey(),
+  bossId: integer('boss_id').notNull(),
+  hp: integer('hp').notNull(),
+  damageTotal: real('damage_total').notNull().default(0),
+  defeated: integer('defeated', { mode: 'boolean' }).notNull().default(false),
+  mvpMemberId: integer('mvp_member_id'),
+  finalizedAt: text('finalized_at'),
+});
