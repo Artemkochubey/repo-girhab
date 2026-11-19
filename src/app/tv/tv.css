@@ -30,3 +30,15 @@
 .tv-mvp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.4vw; }
 .tv-mvpi { display: flex; align-items: center; gap: 16px; background: #2a2210; border: 4px solid #ffd24a; border-radius: 20px; padding: 14px 20px; } .tv-mvpi > span { font-size: 2.8rem; } .tv-mvpi small { display: block; color: #f0e1a8; font-size: .65em; } .tv-mvpi b { font-size: 1.1em; }
 .tv-brand { display: flex; align-items: baseline; gap: 14px; } .tv-brand b { font: 700 1.5rem Georgia, serif; color: #ffd978; letter-spacing: .03em; } .tv-brand small { color: #cbbff0; font-size: .75rem; }
+/* Гора на ТВ: справа от босса и героев */
+.tv-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 30vw); gap: 2vw; align-items: start; }
+.tv-left { display: grid; gap: 2vw; min-width: 0; }
+.tv-mountain { background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 1.2vw; display: grid; gap: 10px; }
+.tv-mountain h2 { margin: 0; color: #ffd978; font: 700 1.4rem Georgia, serif; }
+.tv-mountain .mountain { max-width: none; }
+@media (max-width: 1100px) { .tv-top { grid-template-columns: 1fr; } .tv-mountain .mountain { max-width: 560px; } }
+.tv-top { grid-template-columns: minmax(0, 1fr) minmax(420px, 34vw); }
+.tv-left .tv-heroes { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.mountain.m-tv .m-label { font-size: 13px; stroke-width: 3.5px; } .mountain.m-tv .m-label.cur { font-size: 13px; } .mountain.m-tv .m-lvl { font-size: 10px; }
+.tv-mountain { align-content: start; } .tv-mountain .mountain { aspect-ratio: 360 / 430; height: auto; }
+.tv-mountain-box { display: block; min-width: 0; } .tv-mountain .mountain { align-self: start; }

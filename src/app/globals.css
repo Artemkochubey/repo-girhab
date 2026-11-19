@@ -140,3 +140,4 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .m-label { font-size: 10.5px; fill: #a59dd0; font-weight: 600; paint-order: stroke; stroke: #0d0a1e; stroke-width: 3px; } .m-label.done { fill: #ffe6a0; } .m-label.cur { fill: #ffd24a; font-size: 12px; }
 .m-lvl { font-size: 8.5px; fill: #8c84bd; paint-order: stroke; stroke: #0d0a1e; stroke-width: 2.5px; }
 .rank { color: var(--accent); font-weight: 600; margin: 0; } .climb-info { display: grid; gap: 6px; } .climb-info p { margin: 0; }
+.mountain { aspect-ratio: 360 / 430; } .tv-mountain { align-content: start; }

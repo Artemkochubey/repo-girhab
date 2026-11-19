@@ -28,9 +28,10 @@ function position(level: number, xp?: number): [number, number] {
   return [a[0] + (b[0] - a[0]) * r.progress, a[1] + (b[1] - a[1]) * r.progress];
 }
 
-export const MountainClimb = memo(function MountainClimb({ climbers }: { climbers: Climber[] }) {
+export const MountainClimb = memo(function MountainClimb({ climbers, tv = false }: { climbers: Climber[]; tv?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
-  const me = climbers.find((c) => c.me) ?? climbers[0];
+  // свой герой; если его нет (ТВ) — лидер семьи, до него светится тропа
+  const me = climbers.find((c) => c.me) ?? [...climbers].sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0) || b.level - a.level)[0];
   const myRank = rankFor(me?.level ?? 1, me?.xp);
   const reached = myRank.index;
   const reachedPath = trail(STAGES.slice(0, reached + 1).concat(myRank.next ? [position(me.level, me.xp)] : []));
@@ -38,12 +39,12 @@ export const MountainClimb = memo(function MountainClimb({ climbers }: { climber
   const placed: { c: Climber; x: number; y: number }[] = [];
   for (const c of [...climbers].sort((a, b) => Number(!!a.me) - Number(!!b.me))) {
     let [x, y] = position(c.level, c.xp);
-    while (placed.some((p) => Math.hypot(p.x - x, p.y - y) < 15)) x += 14;
+    while (placed.some((p) => Math.hypot(p.x - x, p.y - y) < (tv ? 24 : 15))) x += tv ? 22 : 14;
     placed.push({ c, x, y });
   }
 
   return (
-    <svg viewBox="0 0 360 430" className="mountain" role="img" aria-label={`Восхождение: ${myRank.rank.name}`}>
+    <svg viewBox="0 0 360 430" className={`mountain${tv ? ' m-tv' : ''}`} role="img" aria-label={`Восхождение: ${myRank.rank.name}`}>
       <defs>
         <linearGradient id={`sky-${uid}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#0b0820" /><stop offset="0.45" stopColor="#1d1846" /><stop offset="1" stopColor="#2b2350" /></linearGradient>
         <linearGradient id={`rock-${uid}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5a5482" /><stop offset="0.5" stopColor="#3a3462" /><stop offset="1" stopColor="#241f44" /></linearGradient>
@@ -97,8 +98,8 @@ export const MountainClimb = memo(function MountainClimb({ climbers }: { climber
       {placed.map(({ c, x, y }) => (
         <g key={c.id} transform={`translate(${x} ${y - (c.me ? 20 : 15)})`}>
           <title>{`${c.name}: уровень ${c.level}, ${rankFor(c.level, c.xp).rank.name}`}</title>
-          <circle r={c.me ? 13 : 9.5} fill="#120d22" stroke={c.color} strokeWidth={c.me ? 3 : 2} />
-          <text textAnchor="middle" dominantBaseline="central" fontSize={c.me ? 15 : 11}>{c.emoji}</text>
+          <circle r={c.me || tv ? 13 : 9.5} fill="#120d22" stroke={c.color} strokeWidth={c.me || tv ? 3 : 2} />
+          <text textAnchor="middle" dominantBaseline="central" fontSize={c.me || tv ? 15 : 11}>{c.emoji}</text>
         </g>
       ))}
     </svg>

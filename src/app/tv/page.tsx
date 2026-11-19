@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
+import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import './tv.css';
 
@@ -53,6 +54,8 @@ export default function TvPage() {
     <div className="tv">
       {off && <div className="tv-off">Нет связи с сервером…</div>}
       <div className="tv-brand"><b>{APP_EMOJI} {APP_NAME}</b><small>демо v{APP_VERSION}</small></div>
+      <div className="tv-top">
+        <div className="tv-left">
       <section className="tv-boss">
         <div className="tv-boss-emoji">{boss.defeated ? '🏆' : boss.boss.emoji}</div>
         <div className="tv-boss-main">
@@ -101,6 +104,15 @@ export default function TvPage() {
           );
         })}
       </section>
+
+        </div>
+        <section className="tv-mountain">
+          <h2>⛰ Восхождение семьи</h2>
+          <div className="tv-mountain-box">
+            <MountainClimb tv climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
+          </div>
+        </section>
+      </div>
 
       <section className="tv-quests">
         {d.members.map((m) => {
