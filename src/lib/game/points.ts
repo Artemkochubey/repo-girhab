@@ -1,6 +1,6 @@
 import { CLASS_SPHERES, MAIN_BONUS, subBonus } from './classes';
 import { talentById } from './talents';
-import { type DayStats, type HeroBuild, type Sphere, type StudyKind } from './types';
+import type { DayStats, HeroBuild, Sphere, StudyKind } from './types';
 
 export const POINTS = { warmup: 10, habit: 5, habitCap: 6, book: 50 } as const;
 
@@ -64,4 +64,32 @@ function isoWeekKey(date: string): string {
   const d = new Date(date + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
   return d.toISOString().slice(0, 10);
+}
+
+/** Очки без классов и талантов — основа для серий. */
+export const basePoints = (d: DayStats): number =>
+  d.workoutMinutes + Math.min(d.warmups, 1) * POINTS.warmup + Math.min(d.habits, POINTS.habitCap) * POINTS.habit +
+  d.books * POINTS.book + Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0);
+
+/**
+ * Длина серии на конец каждого дня (dates по возрастанию).
+ * Пустой сегодняшний день серию не обрывает. Щит прощает один пропуск в неделю.
+ */
+export function streakForward(
+  dates: string[], active: (date: string) => boolean, shield: boolean, today: string,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  let streak = 0;
+  const shieldUsed = new Set<string>();
+  for (const date of dates) {
+    if (active(date)) streak++;
+    else if (date === today) { /* день ещё идёт */ }
+    else {
+      const wk = isoWeekKey(date);
+      if (shield && streak > 0 && !shieldUsed.has(wk)) shieldUsed.add(wk);
+      else streak = 0;
+    }
+    out.set(date, streak);
+  }
+  return out;
 }

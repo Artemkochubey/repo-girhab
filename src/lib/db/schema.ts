@@ -1,3 +1,4 @@
+import type { QuestItem } from '../game/quests';
 import { sqliteTable, text, integer, real, unique, index } from 'drizzle-orm/sqlite-core';
 
 // Все даты — строки 'YYYY-MM-DD' в часовом поясе семьи (config.timezone).
@@ -81,15 +82,7 @@ export const hero = sqliteTable('hero', {
   talents: text('talents', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(() => []),
 });
 
-export type QuestItem = {
-  t: string;          // название
-  xp: number;         // 1..100
-  k: 'manual' | 'warmup' | 'workout' | 'habits' | 'study';
-  m?: number;         // минуты или штуки
-  kind?: string;      // вид учёбы для k='study' (или 'any')
-  done?: boolean;     // ручная отметка
-  pending?: boolean;  // ждёт подтверждения родителя
-};
+export type { QuestItem };
 
 // date = 'default' — шаблон «на каждый день»
 export const questOverride = sqliteTable('quest_override', {
