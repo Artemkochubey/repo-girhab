@@ -50,6 +50,8 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
       checked: raw.habitChecks.some((c) => c.habitId === h.id && c.date === date),
     })),
     history: dateRange(from, fam.today).map((d) => [d, st.days.get(d)?.total ?? 0] as const),
+    // активность «Тела» по дням: минуты тренировок + 10 за зарядку
+    bodyHistory: dateRange(from, fam.today).map((d) => { const s = st.days.get(d)?.stats; return [d, s ? s.workoutMinutes + (s.warmups ? 10 : 0) : 0] as const; }),
   };
 }
 

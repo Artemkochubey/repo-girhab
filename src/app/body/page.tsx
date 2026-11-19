@@ -2,7 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BodyFigure, LoadLegend } from '@/components/BodyFigure';
 import { useGame } from '@/components/Shell';
-import { Chips, Heatmap, Section } from '@/components/ui';
+import { Chips, Section } from '@/components/ui';
+import { HeatLegend, YearHeat } from '@/components/YearHeat';
+import { rpc } from '@/lib/client';
 import { addDays } from '@/lib/date';
 import {
   CATEGORIES, CUSTOM_EXERCISE, EXERCISES, MUSCLES, exerciseById, intensityFloor, muscleIntensity, muscleLoads, muscleName,
@@ -11,6 +13,13 @@ import {
 
 const RANGES = [{ id: 'day', label: 'Сегодня', days: 1 }, { id: 'week', label: '7 дней', days: 7 }, { id: 'month', label: '30 дней', days: 30 }] as const;
 type View = 'front' | 'back' | 'both';
+interface Row { id: number; date: string; minutes: number; exercise: string | null; muscles: string[] | null }
+
+const dayTitle = (date: string, today: string) => {
+  if (date === today) return 'Сегодня';
+  if (date === addDays(today, -1)) return 'Вчера';
+  return new Date(date + 'T00:00:00').toLocaleDateString('ru', { day: 'numeric', month: 'long', weekday: 'short' });
+};
 
 export default function Body() {
   const { s, act, toast } = useGame();
@@ -21,6 +30,26 @@ export default function Body() {
   const [exercise, setExercise] = useState<string | null>(null);
   const [custom, setCustom] = useState<MuscleId[]>([]);
   const [hover, setHover] = useState<MuscleId | null>(null);
+  const [sel, setSel] = useState<string | null>(null);
+  const [shown, setShown] = useState(10);
+  const [all, setAll] = useState<{ workouts: Row[]; warmups: { id: number; date: string }[] } | null>(null);
+
+  // Вся история тренировок: перечитываем, когда записи меняются
+  useEffect(() => {
+    let off = false;
+    rpc<{ workouts: Row[]; warmups: { id: number; date: string }[] }>('listEntries').then((r) => { if (!off) setAll(r); }).catch(() => {});
+    return () => { off = true; };
+  }, [d.xp, d.workoutLog.length, d.entries.workouts.length, d.day.stats.warmups]);
+
+  const byDate = useMemo(() => {
+    const m = new Map<string, { minutes: number; items: Row[]; warmup: { id: number } | null }>();
+    const get = (date: string) => { let x = m.get(date); if (!x) m.set(date, (x = { minutes: 0, items: [], warmup: null })); return x; };
+    for (const w of all?.workouts ?? []) { const x = get(w.date); x.items.push(w); x.minutes += w.minutes; }
+    for (const w of all?.warmups ?? []) get(w.date).warmup = { id: w.id };
+    for (const x of m.values()) x.items.sort((a, b) => b.id - a.id);
+    return m;
+  }, [all]);
+  const historyDays = useMemo(() => [...byDate.keys()].sort().reverse(), [byDate]);
 
   useEffect(() => { if (window.innerWidth >= 700) setView('both'); }, []);
 
@@ -47,8 +76,23 @@ export default function Body() {
   };
 
   const figs = (['front', 'back'] as const).filter((v) => view === 'both' || view === v);
-  const total = d.history.reduce((a, [, v]) => a + v, 0);
-  const active = d.history.filter(([, v]) => v > 0).length;
+  const active = d.bodyHistory.filter(([, v]) => v > 0).length;
+
+  const DayBlock = ({ date, always }: { date: string; always?: boolean }) => {
+    const x = byDate.get(date);
+    if (!x && !always) return null;
+    return (
+      <div className="hday">
+        <div className="hhead"><b>{dayTitle(date, s.today)}</b><span className="muted">{x ? `${x.minutes} мин${x.warmup ? ' · 🔥 зарядка' : ''}` : 'тренировок нет'}</span></div>
+        <ul className="list">
+          {x?.items.map((w) => (
+            <li key={w.id}>{label(w)} · {w.minutes} мин {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })} aria-label="Удалить запись">✕</button>}</li>
+          ))}
+          {x?.warmup && <li>🔥 Зарядка {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'warmup', id: x.warmup!.id })} aria-label="Удалить зарядку">✕</button>}</li>}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -103,8 +147,18 @@ export default function Body() {
         </button>
       </Section>
 
-      <Section title="Год по дням" right={<span className="muted">{active} активных дней · {total} очков</span>}>
-        <Heatmap data={d.history as [string, number][]} />
+      <Section title="История тренировок" right={<span className="muted">{historyDays.length ? `${historyDays.length} дн. с занятиями` : ''}</span>}>
+        {!all && <p className="muted">Загрузка…</p>}
+        {all && historyDays.length === 0 && <p className="muted">Тренировок пока нет. Запишите первую выше — она появится здесь.</p>}
+        {historyDays.slice(0, shown).map((date) => <DayBlock key={date} date={date} />)}
+        {historyDays.length > shown && <button className="btn ghost" onClick={() => setShown(shown + 10)}>Показать ещё</button>}
+      </Section>
+
+      <Section title="Год по дням" right={<span className="muted">{active} активных дней</span>}>
+        <YearHeat data={d.bodyHistory as [string, number][]} today={s.today} selected={sel} onSelect={(x) => setSel(sel === x ? null : x)} />
+        <HeatLegend />
+        <p className="muted small">Очки за тело: минуты тренировок и 10 за зарядку. Нажмите на день, чтобы увидеть, что было.</p>
+        {sel && <DayBlock date={sel} always />}
       </Section>
     </>
   );

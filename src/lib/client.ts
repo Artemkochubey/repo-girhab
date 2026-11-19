@@ -40,5 +40,6 @@ export interface State {
     entries: { workouts: { id: number; minutes: number; exercise: string | null; muscles: string[] | null }[]; study: { id: number; kind: string; minutes: number }[]; warmups: { id: number }[]; books: { id: number; title: string }[] };
     habits: { id: number; name: string; checked: boolean }[];
     history: [string, number][];
+    bodyHistory: [string, number][];
   };
 }

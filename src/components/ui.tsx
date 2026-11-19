@@ -36,20 +36,6 @@ export function Radar({ data }: { data: { key: string; value: number }[] }) {
   );
 }
 
-export function Heatmap({ data }: { data: [string, number][] }) {
-  const max = Math.max(1, ...data.map(([, v]) => v));
-  const first = new Date(data[0][0] + 'T00:00:00Z');
-  const pad = (first.getUTCDay() + 6) % 7;
-  const cells: ([string, number] | null)[] = [...Array(pad).fill(null), ...data];
-  return (
-    <div className="heat" aria-label="Тепловая карта за год">
-      {cells.map((c, i) => c
-        ? <i key={i} title={`${c[0]}: ${c[1]}`} style={{ opacity: c[1] ? 0.25 + 0.75 * (c[1] / max) : 0.08 }} className={c[1] ? 'on' : ''} />
-        : <i key={i} className="blank" />)}
-    </div>
-  );
-}
-
 export const Section = ({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) => (
   <section className="card"><div className="row between"><h2>{title}</h2>{right}</div>{children}</section>
 );

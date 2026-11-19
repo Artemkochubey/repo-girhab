@@ -44,8 +44,6 @@ input { background: #0f0b1a; color: var(--text); border: 1px solid var(--line); 
 .confirm { background: var(--panel2); border: 1px solid var(--accent); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
 .radar { width: 100%; max-width: 320px; margin: 0 auto; } .radar text { fill: var(--text); font-size: 10px; } .radar .val { fill: var(--accent); }
 .grid-line { fill: none; stroke: var(--line); } .radar-area { fill: #c9a24b55; stroke: var(--accent); stroke-width: 2; }
-.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; overflow-x: auto; padding-bottom: 6px; }
-.heat i { width: 12px; height: 12px; border-radius: 3px; background: #fff1; display: block; } .heat i.on { background: var(--accent); } .heat i.blank { background: none; }
 .modal { position: fixed; inset: 0; background: #000a; display: grid; place-items: center; z-index: 20; padding: 16px; } .modal .card { width: min(340px, 100%); }
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--accent); padding: 10px 16px; border-radius: 12px; z-index: 30; }
 details summary { cursor: pointer; color: var(--muted); margin: 6px 0; }
@@ -86,3 +84,16 @@ textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid va
 .cp-head .close { margin: 0; font-size: 1.3rem; min-width: 40px; min-height: 40px; }
 .cp-body { overflow-y: auto; padding: 12px 14px; display: grid; gap: 10px; flex: 1; -webkit-overflow-scrolling: touch; }
 .cp-foot { padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel); }
+
+/* Год по дням (тепловая карта) */
+.yh { display: flex; gap: 6px; align-items: flex-start; } .yh-days { display: grid; grid-template-rows: repeat(7, 13px); gap: 3px; margin-top: 17px; font-size: .62rem; color: var(--muted); line-height: 13px; }
+.yh-scroll { overflow-x: auto; padding-bottom: 6px; flex: 1; }
+.yh-months { display: grid; gap: 3px; height: 14px; margin-bottom: 3px; font-size: .68rem; color: var(--muted); white-space: nowrap; }
+.yh-grid { display: grid; grid-template-rows: repeat(7, 13px); grid-auto-flow: column; gap: 3px; width: max-content; }
+.yh-cell { width: 13px; height: 13px; border-radius: 3px; border: 0; padding: 0; display: block; }
+.yh-cell.blank { background: none; } .l0 { background: #2f2752; } .l1 { background: #6b4f2a; } .l2 { background: #9a7330; } .l3 { background: #c9a24b; } .l4 { background: #ffd24a; }
+button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; outline-offset: 1px; } .yh-cell.sel { outline: 2px solid #4aa3ff; outline-offset: 1px; }
+.hday { background: var(--panel2); border-radius: 12px; padding: 8px 12px; display: grid; gap: 4px; } .hhead { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+/* Широкие блоки (карта года) прокручиваются внутри карточки, а не растягивают страницу */
+.wrap > *, .card { min-width: 0; } .yh { min-width: 0; max-width: 100%; } .yh-scroll { min-width: 0; }
+.legend.heat-legend i { width: 13px; height: 13px; border-radius: 3px; }
