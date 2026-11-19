@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
+import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import './tv.css';
@@ -111,6 +112,7 @@ export default function TvPage() {
           <div className="tv-mountain-box">
             <MountainClimb tv climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
           </div>
+          <ClimbRoster climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
         </section>
       </div>
 

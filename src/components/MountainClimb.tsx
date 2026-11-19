@@ -4,11 +4,11 @@ import { RANKS, rankFor } from '@/lib/game/ranks';
 
 // Точки этапов на тропе: серпантин от подножия к вершине, дальше — путь по облакам и звёздам
 const STAGES: [number, number][] = [
-  [52, 396], [128, 374], [84, 342], [156, 316], [104, 280], [178, 252],
+  [102, 394], [146, 366], [84, 342], [156, 316], [104, 280], [178, 252],
   [138, 214], [160, 150], [214, 104], [258, 72], [298, 46], [334, 22],
 ];
 // Подписи: слева или справа от точки
-const LABEL_LEFT = [false, false, true, false, true, false, true, true, true, true, true, true];
+const LABEL_LEFT = [true, false, true, false, true, false, true, true, true, true, true, true];
 
 const MOUNTAIN = 'M0 430 L0 372 L36 340 L74 292 L112 236 L140 188 L160 140 L178 162 L214 98 L246 142 L280 196 L318 262 L360 318 L360 430 Z';
 const FAR = 'M0 330 L38 270 L70 300 L118 220 L150 262 L200 200 L246 236 L300 170 L360 236 L360 430 L0 430 Z';
@@ -35,13 +35,22 @@ export const MountainClimb = memo(function MountainClimb({ climbers, tv = false 
   const myRank = rankFor(me?.level ?? 1, me?.xp);
   const reached = myRank.index;
   const reachedPath = trail(STAGES.slice(0, reached + 1).concat(myRank.next ? [position(me.level, me.xp)] : []));
-  // расставляем героев, чтобы стоящие рядом не перекрывали друг друга
-  const placed: { c: Climber; x: number; y: number }[] = [];
-  for (const c of [...climbers].sort((a, b) => Number(!!a.me) - Number(!!b.me))) {
-    let [x, y] = position(c.level, c.xp);
-    while (placed.some((p) => Math.hypot(p.x - x, p.y - y) < (tv ? 24 : 15))) x += tv ? 22 : 14;
-    placed.push({ c, x, y });
-  }
+  // Метки героев: точка на тропе + выноска + подписанная плашка. Плашки стоят с той стороны от тропы,
+  // где нет подписи этапа, и не налезают друг на друга.
+  const W = tv ? 92 : 80, H = tv ? 26 : 22;
+  const pins = climbers.map((c) => { const [x, y] = position(c.level, c.xp); return { c, x, y, idx: rankFor(c.level, c.xp).index }; }).sort((a, b) => a.y - b.y);
+  const lastY: Record<'l' | 'r', number> = { l: -99, r: -99 };
+  const fits = (px: number, sd: 'l' | 'r') => (sd === 'r' ? px + 20 + W <= 358 : px - 20 - W >= 2);
+  const tags = pins.map((p) => {
+    const want: 'l' | 'r' = LABEL_LEFT[p.idx] ? 'r' : 'l';
+    // для каждой стороны считаем, насколько плашку придётся сдвинуть от её точки, и берём сторону с меньшим сдвигом
+    const options = (['l', 'r'] as const).filter((sd) => fits(p.x, sd)).map((sd) => ({ sd, y: Math.max(p.y, lastY[sd] + H + 3) }));
+    const best = (options.length ? options : [{ sd: want, y: Math.max(p.y, lastY[want] + H + 3) }])
+      .sort((u, v) => Math.abs(u.y - p.y) - Math.abs(v.y - p.y) || Number(v.sd === want) - Number(u.sd === want))[0];
+    lastY[best.sd] = best.y;
+    const x = best.sd === 'r' ? Math.min(p.x + 20, 358 - W) : Math.max(p.x - 20 - W, 2);
+    return { ...p, side: best.sd, tx: x, ty: best.y };
+  });
 
   return (
     <svg viewBox="0 0 360 430" className={`mountain${tv ? ' m-tv' : ''}`} role="img" aria-label={`Восхождение: ${myRank.rank.name}`}>
@@ -94,14 +103,23 @@ export const MountainClimb = memo(function MountainClimb({ climbers, tv = false 
         );
       })}
 
-      {/* герои семьи на горе */}
-      {placed.map(({ c, x, y }) => (
-        <g key={c.id} transform={`translate(${x} ${y - (c.me ? 20 : 15)})`}>
-          <title>{`${c.name}: уровень ${c.level}, ${rankFor(c.level, c.xp).rank.name}`}</title>
-          <circle r={c.me || tv ? 13 : 9.5} fill="#120d22" stroke={c.color} strokeWidth={c.me || tv ? 3 : 2} />
-          <text textAnchor="middle" dominantBaseline="central" fontSize={c.me || tv ? 15 : 11}>{c.emoji}</text>
-        </g>
-      ))}
+      {/* герои семьи: выноска к точке на тропе и подписанная плашка */}
+      {tags.map(({ c, x, y, tx, ty, side }) => {
+        const short = c.name.length > 8 ? c.name.slice(0, 7) + '…' : c.name;
+        const ex = side === 'r' ? tx : tx + W;
+        return (
+          <g key={c.id}>
+            <title>{`${c.name}: уровень ${c.level}, ${rankFor(c.level, c.xp).rank.name}`}</title>
+            <line x1={x} y1={y} x2={ex} y2={ty} stroke={c.color} strokeWidth="1.6" strokeOpacity="0.9" />
+            {c.me && <circle cx={x} cy={y} r="9" fill={c.color} opacity="0.35" className="brain-pulse" />}
+            <circle cx={x} cy={y} r="4.6" fill={c.color} stroke="#fff" strokeWidth="1.6" />
+            <rect x={tx} y={ty - H / 2} width={W} height={H} rx={H / 2} fill="#120d22" stroke={c.color} strokeWidth={c.me ? 2.6 : 1.8} />
+            <text x={tx + H / 2} y={ty} textAnchor="middle" dominantBaseline="central" fontSize={H * 0.62}>{c.emoji}</text>
+            <text x={tx + H - 1} y={ty - 3} dominantBaseline="central" className="m-name" fill="#fff">{short}{c.me ? ' ★' : ''}</text>
+            <text x={tx + H - 1} y={ty + (tv ? 7 : 6)} dominantBaseline="central" className="m-nlvl">ур. {c.level}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 });

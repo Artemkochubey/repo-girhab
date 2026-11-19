@@ -42,3 +42,5 @@
 .mountain.m-tv .m-label { font-size: 13px; stroke-width: 3.5px; } .mountain.m-tv .m-label.cur { font-size: 13px; } .mountain.m-tv .m-lvl { font-size: 10px; }
 .tv-mountain { align-content: start; } .tv-mountain .mountain { aspect-ratio: 360 / 430; height: auto; }
 .tv-mountain-box { display: block; min-width: 0; } .tv-mountain .mountain { align-self: start; }
+.mountain.m-tv .m-name { font-size: 12.5px; } .mountain.m-tv .m-nlvl { font-size: 10px; }
+.tv-mountain .roster li { background: #241b42; font-size: .8em; grid-template-columns: 1.6rem 2.6rem 1fr 5rem; } .tv-mountain .r-main small { color: #cbbff0; font-size: .72em; } .tv-mountain .r-av { width: 2.6rem; height: 2.6rem; }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Achievements } from '@/components/Achievements';
+import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { AvatarPicker } from '@/components/AvatarPicker';
@@ -41,7 +42,10 @@ export default function Hero() {
       </section>
 
       <Section title="⛰ Восхождение">
-        <MountainClimb climbers={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }))} />
+        {(() => {
+          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
+          return <><MountainClimb climbers={climbers} /><ClimbRoster climbers={climbers} /></>;
+        })()}
         {(() => {
           const r = rankFor(d.level, d.xp);
           return (
@@ -50,7 +54,7 @@ export default function Hero() {
               {r.next
                 ? <><Bar value={Math.round(r.progress * 100)} max={100} label={`до «${r.next.name}» (ур. ${r.next.level}): ещё ${r.xpToNext} опыта`} /></>
                 : <p className="gold">Выше только небо: пройдены все этапы восхождения!</p>}
-              <p className="muted small">Каждый этап — новое звание. На горе видны все герои семьи; вы — крупнее.</p>
+              <p className="muted small">Каждый этап — новое звание. У каждого героя плашка с именем и выноской к его точке на тропе, ★ — это вы.</p>
             </div>
           );
         })()}
