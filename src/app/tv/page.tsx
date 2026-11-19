@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
+import { rankFor } from '@/lib/game/ranks';
 import './tv.css';
 
 interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
@@ -8,7 +9,7 @@ interface Tv {
   familyQuests: TvFq[];
   mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
   today: string;
-  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; level: number; pointsToday: number }[];
+  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
   quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
 }
@@ -93,7 +94,7 @@ export default function TvPage() {
           const pct = Math.min(100, (m.pointsToday / m.superGoal) * 100);
           return (
             <div key={m.id} className="tv-hero" style={{ borderColor: m.color }}>
-              <div className="tv-hero-top"><span className="tv-av">{m.emoji}</span><div><b>{m.name}</b><small>уровень {m.level} · 🏅 {m.badges}</small></div></div>
+              <div className="tv-hero-top"><span className="tv-av">{m.emoji}</span><div><b>{m.name}</b><small>уровень {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name} · 🏅 {m.badges}</small></div></div>
               <div className="tv-pts"><div style={{ width: `${pct}%`, background: m.color }} /></div>
               <div className="tv-pts-label">{m.pointsToday} / {m.superGoal}{m.pointsToday >= m.goal ? ' ✓' : ''}</div>
             </div>

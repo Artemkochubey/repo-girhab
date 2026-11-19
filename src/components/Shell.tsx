@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { post, rpc, type State } from '@/lib/client';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
+import { rankFor } from '@/lib/game/ranks';
 import { ClassPicker } from './ClassPicker';
 
 interface Ctx {
@@ -85,7 +86,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {s.members.map((m) => (
             <button key={m.id} className="card pick" style={{ borderColor: m.color }}
               onClick={async () => { await post('/api/session', { memberId: m.id }); reload(); }}>
-              <span className="big">{m.emoji}</span><b>{m.name}</b><span className="muted">ур. {m.level}</span>
+              <span className="big">{m.emoji}</span><b>{m.name}</b><span className="muted">ур. {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name}</span>
             </button>
           ))}
         </div>

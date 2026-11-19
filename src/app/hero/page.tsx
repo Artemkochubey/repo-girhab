@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Achievements } from '@/components/Achievements';
+import { MountainClimb } from '@/components/MountainClimb';
+import { rankFor } from '@/lib/game/ranks';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
@@ -32,10 +34,27 @@ export default function Hero() {
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level} <small className="gold">🏅 {d.achievements.filter((a) => a.earnedOn).length}</small></h1>
+          <p className="rank">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</p>
           <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}{!h.cls && <> <button className="btn" onClick={askClass}>Выбрать класс</button></>}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
         </div>
       </section>
+
+      <Section title="⛰ Восхождение">
+        <MountainClimb climbers={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }))} />
+        {(() => {
+          const r = rankFor(d.level, d.xp);
+          return (
+            <div className="climb-info">
+              <p><b>{r.rank.emoji} {r.rank.name}</b> · {r.rank.text}</p>
+              {r.next
+                ? <><Bar value={Math.round(r.progress * 100)} max={100} label={`до «${r.next.name}» (ур. ${r.next.level}): ещё ${r.xpToNext} опыта`} /></>
+                : <p className="gold">Выше только небо: пройдены все этапы восхождения!</p>}
+              <p className="muted small">Каждый этап — новое звание. На горе видны все герои семьи; вы — крупнее.</p>
+            </div>
+          );
+        })()}
+      </Section>
 
       <Section title="Характеристики (30 дней)"><Radar data={d.radar} /></Section>
 

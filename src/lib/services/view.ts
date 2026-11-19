@@ -10,7 +10,7 @@ const summary = (raw: Raw, fam: Family) =>
   raw.members.map((m) => {
     const st = fam.members.get(m.id)!;
     return { id: m.id, name: m.name, emoji: m.emoji, color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
-      badges: st.achievements.filter((a) => a.earnedOn).length, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
+      badges: st.achievements.filter((a) => a.earnedOn).length, xp: st.xp, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
       damageThisWeek: fam.boss.byMember[m.id] ?? 0 };
   });
 

@@ -135,3 +135,8 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .brain-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: .78rem; color: var(--muted); } .brain-legend span { display: inline-flex; align-items: center; gap: 6px; } .brain-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 /* Заголовок карточки с кнопками: на узком экране кнопки уходят на новую строку, а не ломают слова */
 .card > .row.between { flex-wrap: wrap; gap: 8px; } .btn.sm { white-space: nowrap; }
+/* Восхождение */
+.mountain { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; border-radius: 14px; }
+.m-label { font-size: 10.5px; fill: #a59dd0; font-weight: 600; paint-order: stroke; stroke: #0d0a1e; stroke-width: 3px; } .m-label.done { fill: #ffe6a0; } .m-label.cur { fill: #ffd24a; font-size: 12px; }
+.m-lvl { font-size: 8.5px; fill: #8c84bd; paint-order: stroke; stroke: #0d0a1e; stroke-width: 2.5px; }
+.rank { color: var(--accent); font-weight: 600; margin: 0; } .climb-info { display: grid; gap: 6px; } .climb-info p { margin: 0; }
