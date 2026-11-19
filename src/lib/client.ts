@@ -24,7 +24,11 @@ export interface AchievementDto { id: string; group: string; name: string; emoji
 
 export interface MvpDto { yesterday: { date: string; memberId: number; points: number } | null; leader: { memberId: number; points: number; ratio: number; qualified: boolean } | null }
 
+export interface SeasonRowDto { memberId: number; points: number; ratio: number; days: number; normDays: number; bestDay: number; eligible: boolean; rank: number; chests: number }
+export interface SeasonDto { id: string; start: string; end: string; daysLeft: number; finished: boolean; awardable: boolean; rows: SeasonRowDto[]; winner: number | null; second: number | null }
+
 export interface State {
+  season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
   familyQuests: FamilyQuestDto[];
   mvp: MvpDto;
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };

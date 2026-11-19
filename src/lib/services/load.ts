@@ -27,6 +27,7 @@ export function loadRaw(db: Db): Raw {
     dayMvps: db.select().from(s.dayMvp).all(),
     mvpSince: getConfig(db).mvpSince,
     reminderHour: getConfig(db).reminderHour,
+    seasonSince: getConfig(db).seasonSince,
     shopItems: db.select().from(s.shopItem).all(),
     purchases: db.select().from(s.shopPurchase).all(),
   };
@@ -39,6 +40,7 @@ export function loadFamily(db: Db, now = new Date()) {
   // MVP дня: первый запуск запоминает дату старта (сундуки задним числом не начисляются);
   // итоги закончившихся дней сохраняются, чтобы поздние правки записей их не меняли.
   if (!raw.mvpSince) db.update(s.config).set({ mvpSince: today }).where(eq(s.config.id, 1)).run();
+  if (!raw.seasonSince) db.update(s.config).set({ seasonSince: today }).where(eq(s.config.id, 1)).run();
   for (const p of family.mvp.pending) db.insert(s.dayMvp).values({ date: p.date, memberId: p.memberId, points: p.points, ratio: p.ratio }).onConflictDoNothing().run();
   return { raw, family };
 }

@@ -5,6 +5,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { hourIn } from '@/lib/clock';
+import { seasonName } from '@/lib/game/seasons';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import './tv.css';
 
@@ -13,6 +14,7 @@ interface Tv {
   familyQuests: TvFq[];
   mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
   today: string; timezone: string; reminderHour: number;
+  season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
   record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
@@ -102,6 +104,7 @@ export default function TvPage() {
 
       <section className="tv-mvp-row">
         <div className="tv-mvpi"><span>🏆</span><div><small>MVP вчера</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.yesterday?.memberId); return m ? `${m.emoji} ${m.name} +1 🎁` : 'не было'; })()}</b></div></div>
+        <div className="tv-mvpi"><span>🏆</span><div><small>Сезон {seasonName(d.season.id)} · осталось {d.season.daysLeft} дн.</small><b>{(() => { const t = d.season.top.filter((r) => r.points > 0).slice(0, 3); return t.length ? t.map((r, i) => { const m = d.members.find((x) => x.id === r.memberId); return m ? `${['🥇', '🥈', '🥉'][i]} ${m.emoji} ${Math.round(r.ratio * 100)}%` : ''; }).join('  ') : 'пока никого'; })()}</b></div></div>
         <div className="tv-mvpi"><span>⚡</span><div><small>Сегодня лидирует</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.leader?.memberId); return m ? `${m.emoji} ${m.name} · ${Math.round(d.mvp.leader!.ratio * 100)}%` : 'пока никого'; })()}</b></div></div>
       </section>
 

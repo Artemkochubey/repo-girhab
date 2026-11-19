@@ -1,0 +1,1 @@
+ALTER TABLE `config` ADD `season_since` text;

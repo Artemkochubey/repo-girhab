@@ -22,6 +22,8 @@ export const config = sqliteTable('config', {
   pinHash: text('pin_hash'),
   // с какого дня считается MVP дня (ставится при первом запуске версии с этой функцией, чтобы не начислять сундуки задним числом)
   mvpSince: text('mvp_since'),
+  // с какого дня идут сезоны с призами (ставится при первом запуске; призы только за сезоны, начавшиеся не раньше этого месяца)
+  seasonSince: text('season_since'),
   minutes: integer('minutes').notNull().default(30),
   superMinutes: integer('super_minutes').notNull().default(60),
   loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),

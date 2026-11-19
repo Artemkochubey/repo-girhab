@@ -165,3 +165,10 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .reminder { border-color: #6f58c9; background: linear-gradient(135deg, #241b42, #1a1430); } .reminder.super { border-color: var(--accent); }
 .sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; } .set { display: grid; gap: 6px; align-content: start; } .set .list { margin: 0; padding-left: 0; }
 .sets-row { align-items: center; } .btn.sm { min-height: 32px; padding: 4px 10px; font-size: .85rem; }
+
+/* Сезон: рейтинг */
+.board { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.board li { display: grid; grid-template-columns: 32px 1fr auto; gap: 2px 8px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.board li.me { border-color: #6f58c9; } .board li.first { border-color: var(--accent); box-shadow: 0 0 12px #c9a24b44; }
+.board .pos { font-size: 1.4rem; text-align: center; } .board .pct { font-size: 1.2rem; } .board .bar { grid-column: 1 / -1; height: 8px; border-radius: 6px; background: #120d22; overflow: hidden; } .board .bar div { height: 100%; border-radius: 6px; } .board small { grid-column: 1 / -1; }
+.season-old { margin-bottom: 8px; } .season-old summary { cursor: pointer; padding: 6px 0; } .season-old .board { margin-top: 8px; }

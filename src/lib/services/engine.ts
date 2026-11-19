@@ -8,6 +8,7 @@ import { CLASS_SPHERES, recommendSub, type Cls } from '../game/classes';
 import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../game/level';
 import { basePoints, dayPoints, streakForward } from '../game/points';
 import { allQuestsDone, defaultQuests, questDone, questXpEarned, type QuestItem } from '../game/quests';
+import { buildSeasons, type SeasonsResult } from '../game/seasons';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
@@ -27,6 +28,7 @@ export interface Raw {
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;
   reminderHour: number;
+  seasonSince: string | null;
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
 }
@@ -63,7 +65,7 @@ export interface MvpInfo {
   wins: Record<number, number>;
   byDate: Record<string, number>;   // дата → победитель (0 — не было)
 }
-export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo }
+export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo; seasons: SeasonsResult }
 
 const CLASS_OF: Partial<Record<Sphere, Cls>> = {};
 for (const c of Object.keys(CLASS_SPHERES) as Cls[]) for (const s of CLASS_SPHERES[c]) CLASS_OF[s] ??= c;
@@ -224,8 +226,11 @@ export function buildFamily(raw: Raw, today: string): Family {
     if (pts > 0 && (!leader || ratio > leader.ratio)) leader = { memberId: m.id, points: pts, ratio, qualified: ratio >= 1 };
   }
 
+  // Сезоны (месяцы): рейтинг по очкам относительно нормы, призы победителям
+  const seasons = buildSeasons(today, raw.seasonSince, raw.members.map((m) => ({ id: m.id, goal: m.goal, createdOn: createdOf.get(m.id)! })), (id, d) => members.get(id)?.days.get(d)?.total ?? 0);
+
   for (const st of members.values()) {
-    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY);
+    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0));
     // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.
     const mine = raw.purchases.filter((p) => p.memberId === st.id && p.status !== 'cancelled');
     st.spentPoints = mine.filter((p) => p.currency === 'points').reduce((a, p) => a + p.price, 0);
@@ -245,9 +250,10 @@ export function buildFamily(raw: Raw, today: string): Family {
       bossWinDates: wins.map((w) => addDays(w.weekStart, 6)),
       mvpDates: bossHistory.filter((w) => w.finished && w.defeated && w.mvp === st.id).map((w) => addDays(w.weekStart, 6)),
       dayMvpDates: mvpDatesOf.get(st.id) ?? [],
+      seasonWinDates: seasons.winDates[st.id] ?? [],
     });
   }
-  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) } };
+  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) }, seasons };
 }
 
 export { BOSSES };

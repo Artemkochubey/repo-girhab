@@ -57,6 +57,13 @@
       "when": 1795090415753,
       "tag": "0007_unusual_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795102913104,
+      "tag": "0008_sticky_black_crow",
+      "breakpoints": true
     }
   ]
 }

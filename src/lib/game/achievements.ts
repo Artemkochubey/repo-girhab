@@ -1,6 +1,6 @@
 import { levelFromXp } from './level';
 
-export type Metric = 'dayMvps' | 'streak' | 'books' | 'workoutDays' | 'warmups' | 'study' | 'habits' | 'level' | 'questDays' | 'chests' | 'bossWins' | 'mvp' | 'bigDays';
+export type Metric = 'dayMvps' | 'streak' | 'books' | 'workoutDays' | 'warmups' | 'study' | 'habits' | 'level' | 'questDays' | 'chests' | 'bossWins' | 'mvp' | 'bigDays' | 'seasonWins';
 
 export interface AchievementDef { id: string; group: string; name: string; emoji: string; text: string; metric: Metric; target: number }
 
@@ -37,6 +37,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'mvp1', group: 'Боссы', name: 'MVP недели', emoji: '🏆', text: 'Нанести больше всех урона боссу', metric: 'mvp', target: 1 },
   { id: 'mvpd1', group: 'Боссы', name: 'MVP дня', emoji: '🥇', text: 'Стать лучшим за день в семье', metric: 'dayMvps', target: 1 },
   { id: 'mvpd10', group: 'Боссы', name: 'Звезда семьи', emoji: '🌠', text: '10 раз стать MVP дня', metric: 'dayMvps', target: 10 },
+  { id: 'seas1', group: 'Сезоны', name: 'Чемпион сезона', emoji: '🏅', text: 'Выиграть месячный сезон семьи', metric: 'seasonWins', target: 1 },
+  { id: 'seas3', group: 'Сезоны', name: 'Легенда сезонов', emoji: '👑', text: 'Выиграть 3 сезона', metric: 'seasonWins', target: 3 },
   { id: 'big1', group: 'Рекорды', name: 'Рекордный день', emoji: '⚡', text: 'Набрать за день 1,5 супер-нормы', metric: 'bigDays', target: 1 },
   { id: 'big10', group: 'Рекорды', name: 'Машина', emoji: '🚀', text: '10 рекордных дней', metric: 'bigDays', target: 10 },
 ];
@@ -52,6 +54,7 @@ export interface AchievementInput {
   bossWinDates: string[];
   mvpDates: string[];
   dayMvpDates: string[];
+  seasonWinDates?: string[];
 }
 
 export interface AchievementState extends AchievementDef { value: number; earnedOn: string | null }
@@ -75,6 +78,7 @@ export function computeAchievements(i: AchievementInput): AchievementState[] {
     bossWins: cumulativeBy(i.dates, i.bossWinDates),
     mvp: cumulativeBy(i.dates, i.mvpDates),
     dayMvps: cumulativeBy(i.dates, i.dayMvpDates),
+    seasonWins: cumulativeBy(i.dates, i.seasonWinDates ?? []),
     bigDays: cumulative(i.points.map((p) => (p >= i.superGoal * BIG_DAY_FACTOR ? 1 : 0))),
   };
   return ACHIEVEMENTS.map((a) => {

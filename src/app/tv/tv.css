@@ -27,7 +27,7 @@
 .tv-fqi { background: #12261c; border: 4px solid #4cae6a; border-radius: 20px; padding: 16px 20px; display: grid; gap: 10px; } .tv-fqi.done { background: #17301f; }
 .tv-fqt { display: flex; align-items: center; gap: 16px; } .tv-fqt > span { font-size: 2.6rem; } .tv-fqt > div { flex: 1; min-width: 0; } .tv-fqt small { display: block; color: #cbeed8; font-size: .7em; } .tv-fqt em { color: #ffd978; font-style: normal; font-weight: 700; }
 .tv-fqs { font-size: 1.15rem; color: #e6f7ec; }
-.tv-mvp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.4vw; }
+.tv-mvp-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4vw; }
 .tv-mvpi { display: flex; align-items: center; gap: 16px; background: #2a2210; border: 4px solid #ffd24a; border-radius: 20px; padding: 14px 20px; } .tv-mvpi > span { font-size: 2.8rem; } .tv-mvpi small { display: block; color: #f0e1a8; font-size: .65em; } .tv-mvpi b { font-size: 1.1em; }
 .tv-brand { display: flex; align-items: baseline; gap: 14px; } .tv-brand b { font: 700 1.5rem Georgia, serif; color: #ffd978; letter-spacing: .03em; } .tv-brand small { color: #cbbff0; font-size: .75rem; }
 /* Гора на ТВ: справа от босса и героев */

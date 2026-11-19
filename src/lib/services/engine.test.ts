@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -66,6 +66,24 @@ describe('движок семьи', () => {
     const boosted = buildFamily(raw, '2026-11-19').members.get(1)!.xp;
     expect(boosted).toBeGreaterThan(plain);
     expect(boosted).toBeLessThanOrEqual(Math.round(plain * 1.06) + 1);
+  });
+  it('сезон: победитель месяца получает 3 сундука, второй 1, только если сезон идёт после старта функции', () => {
+    const mk = (since: string | null) => {
+      const raw = base();
+      raw.seasonSince = since;
+      for (const id of [1, 2]) raw.quests.push({ memberId: id, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] });
+      for (let d = 1; d <= 30; d++) {
+        const date = `2026-11-${String(d).padStart(2, '0')}`;
+        raw.workouts.push({ memberId: 1, date, minutes: 60 }, { memberId: 2, date, minutes: 40 });
+      }
+      return buildFamily(raw, '2026-12-03');
+    };
+    const none = mk(null), on = mk('2026-11-01');
+    expect(on.seasons.history[0]).toMatchObject({ id: '2026-11', winner: 1, second: 2, awardable: true });
+    expect(on.members.get(1)!.chestsEarned - none.members.get(1)!.chestsEarned).toBe(3);
+    expect(on.members.get(2)!.chestsEarned - none.members.get(2)!.chestsEarned).toBe(1);
+    expect(on.members.get(1)!.achievements.find((x) => x.id === 'seas1')!.earnedOn).toBe('2026-11-30');
+    expect(on.members.get(2)!.achievements.find((x) => x.id === 'seas1')!.earnedOn).toBeNull();
   });
   it('победа над боссом прошлой недели даёт сундуки', () => {
     const raw = base();

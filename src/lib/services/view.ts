@@ -1,4 +1,5 @@
 import { shopDiscount } from '../game/talents';
+import { SEASON_CHESTS } from '../game/seasons';
 import { BOSSES } from '../game/boss';
 import { questHint, questProgress } from '../game/quests';
 import { allocateWorkouts } from '../game/reps';
@@ -108,6 +109,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
     admin: opts.admin ?? null,
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
+    season: { current: fam.seasons.current, history: fam.seasons.history.slice(0, 6), prizes: SEASON_CHESTS, wins: fam.seasons.wins },
     shop: shopView(raw, opts.memberId, opts.parent),
     detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
@@ -125,7 +127,8 @@ export function tvState(raw: Raw, fam: Family) {
     };
   };
   return {
-    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, members: summary(raw, fam), boss: bossView(fam.boss),
+    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour,
+    season: { id: fam.seasons.current.id, daysLeft: fam.seasons.current.daysLeft, top: fam.seasons.current.rows.slice(0, 4).map((r) => ({ memberId: r.memberId, ratio: r.ratio, points: r.points })) }, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),
