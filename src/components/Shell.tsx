@@ -33,7 +33,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const act = useCallback(async (action: string, args: Record<string, unknown> = {}) => {
     try { const r = await rpc(action, { date: date || undefined, ...args }); await reload(); return r; }
-    catch (e) { toast((e as Error).message); throw e; }
+    catch (e) {
+      const msg = (e as Error).message;
+      if (msg.includes('PIN')) { setPinOpen(true); toast('Режим родителя закончился: введите PIN и повторите действие'); reload(); }
+      else toast(msg);
+      throw e;
+    }
   }, [date, reload, toast]);
 
   if (path.startsWith('/tv')) return <>{children}</>;

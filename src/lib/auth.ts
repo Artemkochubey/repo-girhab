@@ -39,7 +39,8 @@ export function verifyPin(pin: string, stored: string | null): boolean {
 }
 export const validPin = (p: unknown): p is string => typeof p === 'string' && /^\d{4,8}$/.test(p);
 
-export const PARENT_TTL_MS = 15 * 60_000;
+// Режим родителя: 30 минут, продлевается при каждом действии родителя (см. api/rpc)
+export const PARENT_TTL_MS = 30 * 60_000;
 const fails = new Map<string, { n: number; until: number }>();
 /** 5 неверных попыток подряд — блокировка на 5 минут. */
 export function pinLocked(key: string, now = Date.now()): number {
