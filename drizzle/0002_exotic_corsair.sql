@@ -1,0 +1,1 @@
+ALTER TABLE `hero` ADD `cls_chosen` integer DEFAULT false NOT NULL;

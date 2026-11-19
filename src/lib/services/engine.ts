@@ -10,7 +10,7 @@ import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } 
 export interface Raw {
   timezone: string;
   members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
-  heroes: { memberId: number; cls: Cls; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
+  heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
   workouts: { memberId: number; date: string; minutes: number }[];
   warmups: { memberId: number; date: string }[];
   study: { memberId: number; date: string; kind: StudyKind; minutes: number }[];
@@ -30,7 +30,7 @@ export interface DayCalc { stats: DayStats; total: number; bySphere: Partial<Rec
 
 export interface MemberState {
   id: number;
-  hero: { cls: Cls; sub: Cls | null; clsChangedAt: string; talents: string[] };
+  hero: { cls: Cls | null; sub: Cls | null; clsChangedAt: string; talents: string[] };
   xp: number; level: number; into: number; span: number;
   streak: number;
   talentPointsFree: number;
@@ -57,7 +57,8 @@ export function buildFamily(raw: Raw, today: string): Family {
   const habitOwner = new Map(raw.habits.map((h) => [h.id, h.memberId]));
 
   for (const m of raw.members) {
-    const hero = raw.heroes.find((h) => h.memberId === m.id) ?? { memberId: m.id, cls: 'w' as Cls, sub: null, clsChangedAt: m.createdAt, talents: [] };
+    const hero = raw.heroes.find((h) => h.memberId === m.id) ?? { memberId: m.id, cls: 'w' as Cls, clsChosen: false, sub: null, clsChangedAt: m.createdAt, talents: [] };
+    const cls: Cls | null = hero.clsChosen ? hero.cls : null;
     const stats = new Map<string, DayStats>();
     const get = (date: string) => { let s = stats.get(date); if (!s) stats.set(date, (s = emptyDay())); return s; };
     for (const w of raw.workouts) if (w.memberId === m.id) get(w.date).workoutMinutes += w.minutes;
@@ -99,7 +100,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       }
       return { days, xp };
     };
-    const build: HeroBuild = { cls: hero.cls, sub: hero.sub, talents: hero.talents, level: 1 };
+    const build: HeroBuild = { cls, sub: hero.sub, talents: hero.talents, level: 1 };
     // Два прохода: уровень для бонуса подкласса берём из очков без бонуса подкласса.
     const a = calc(build, false);
     const b = calc({ ...build, level: levelFromXp(a.xp) }, true);
@@ -110,11 +111,11 @@ export function buildFamily(raw: Raw, today: string): Family {
     for (const dc of b.days.values()) for (const [s, v] of Object.entries(dc.bySphere)) { const c = CLASS_OF[s as Sphere]; if (c) clsPoints[c] += v ?? 0; }
 
     members.set(m.id, {
-      id: m.id, hero: { cls: hero.cls, sub: hero.sub, clsChangedAt: hero.clsChangedAt, talents: hero.talents },
+      id: m.id, hero: { cls, sub: hero.sub, clsChangedAt: hero.clsChangedAt, talents: hero.talents },
       xp: b.xp, level, into: prog.into, span: prog.span,
       streak: streaks.get(today) ?? 0,
-      talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, hero.cls),
-      recommendedSub: recommendSub(clsPoints, hero.cls),
+      talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, cls),
+      recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
       spentPoints: 0, spentChests: 0, balance: 0,

@@ -41,7 +41,7 @@ export function canChangeClass(changedAtMs: number, nowMs: number): { ok: boolea
 }
 
 /** Рекомендуемая вторая сфера — где больше всего очков (кроме основной). */
-export function recommendSub(points: Record<Cls, number>, main: Cls): Cls | null {
+export function recommendSub(points: Record<Cls, number>, main: Cls | null): Cls | null {
   let best: Cls | null = null;
   for (const c of ['w', 'm', 'b', 'p'] as Cls[]) {
     if (c === main) continue;
@@ -49,3 +49,37 @@ export function recommendSub(points: Record<Cls, number>, main: Cls): Cls | null
   }
   return best && points[best] > 0 ? best : null;
 }
+
+/** Описание классов для экрана выбора. */
+export const CLASS_INFO: Record<Cls, {
+  sphere: string; bonus: string; pitch: string; examples: string; talents: string;
+}> = {
+  w: {
+    sphere: 'Тело',
+    bonus: '+20% очков за тренировки и зарядку',
+    pitch: 'Для тех, кто любит движение и спорт: каждая минута тренировки стоит больше.',
+    examples: 'Тренировки, зарядка, бег, турник, танцы, игры во дворе',
+    talents: 'Таланты: сильнее тренировки и ежедневные бонусы за долгую тренировку (20 и 45 минут).',
+  },
+  m: {
+    sphere: 'Ум',
+    bonus: '+20% очков за учёбу, мышление и книги',
+    pitch: 'Для тех, кто любит учиться, читать и решать головоломки.',
+    examples: 'Школьные задания, чтение, шахматы, логические задачи',
+    talents: 'Таланты: книги, языки, мышление, бонусы за долгую учёбу.',
+  },
+  b: {
+    sphere: 'Творчество',
+    bonus: '+20% очков за творчество, навыки и языки',
+    pitch: 'Для тех, кто рисует, пишет, играет музыку и осваивает новое ремесло.',
+    examples: 'Рисование, музыка, поделки, изучение языков, новые навыки',
+    talents: 'Таланты: творчество, навыки, языки и бонус за разнообразие в день.',
+  },
+  p: {
+    sphere: 'Дисциплина',
+    bonus: '+20% очков за привычки',
+    pitch: 'Для тех, кто держит режим: сон, зубы, уборка, порядок — и не сбивается.',
+    examples: 'Привычки дня: режим, вода, уборка, чтение перед сном',
+    talents: 'Таланты: привычки, серии дней и «щит серии», который прощает один пропуск в неделю.',
+  },
+};

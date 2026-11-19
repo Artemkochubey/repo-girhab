@@ -114,12 +114,15 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
     case 'setClass': {
       const memberId = target();
       if (!CLASSES.includes(a.cls as string)) fail(400, 'Неизвестный класс');
-      if (a.confirm !== true) fail(400, 'Нужно подтверждение смены класса');
+      if (a.confirm !== true) fail(400, 'Нужно подтверждение выбора класса');
       const h = db.select().from(s.hero).where(eq(s.hero.memberId, memberId)).get()!;
-      if (h.cls === a.cls) return { ok: true };
-      const c = canChangeClass(Date.parse(h.clsChangedAt), now.getTime());
-      if (!c.ok && !ctx.parent) fail(403, `Смена класса доступна с ${new Date(c.availableAtMs!).toISOString().slice(0, 10)}`);
-      db.update(s.hero).set({ cls: a.cls as Cls, clsChangedAt: now.toISOString(), sub: h.sub === a.cls ? null : h.sub }).where(eq(s.hero.memberId, memberId)).run();
+      if (h.clsChosen && h.cls === a.cls) return { ok: true };
+      // Первый выбор свободен всегда; дальше — 24 часа бесплатно, затем пауза 7 дней.
+      if (h.clsChosen) {
+        const c = canChangeClass(Date.parse(h.clsChangedAt), now.getTime());
+        if (!c.ok && !ctx.parent) fail(403, `Смена класса доступна с ${new Date(c.availableAtMs!).toISOString().slice(0, 10)}`);
+      }
+      db.update(s.hero).set({ cls: a.cls as Cls, clsChosen: true, clsChangedAt: now.toISOString(), sub: h.sub === a.cls ? null : h.sub }).where(eq(s.hero.memberId, memberId)).run();
       return { ok: true };
     }
     case 'setSub': {
@@ -127,6 +130,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const h = db.select().from(s.hero).where(eq(s.hero.memberId, memberId)).get()!;
       const st = loadFamily(db, now).family.members.get(memberId)!;
       if (a.sub !== null && !CLASSES.includes(a.sub as string)) fail(400, 'Неизвестный класс');
+      if (!h.clsChosen) fail(400, 'Сначала выберите класс');
       if (a.sub === h.cls) fail(400, 'Подкласс должен отличаться от класса');
       if (a.sub !== null && st.level < 5) fail(403, 'Подкласс открывается с 5 уровня');
       db.update(s.hero).set({ sub: a.sub as Cls | null }).where(eq(s.hero.memberId, memberId)).run();
@@ -136,7 +140,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const memberId = target();
       const h = db.select().from(s.hero).where(eq(s.hero.memberId, memberId)).get()!;
       const st = loadFamily(db, now).family.members.get(memberId)!;
-      const r = canBuyTalent(String(a.id), h.talents, h.cls, st.level);
+      const r = canBuyTalent(String(a.id), h.talents, h.clsChosen ? h.cls : null, st.level);
       if (!r.ok) fail(400, r.reason!);
       db.update(s.hero).set({ talents: [...h.talents, String(a.id)] }).where(eq(s.hero.memberId, memberId)).run();
       return { ok: true };

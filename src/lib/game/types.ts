@@ -13,7 +13,7 @@ export interface DayStats {
 }
 
 export interface HeroBuild {
-  cls: Cls;
+  cls: Cls | null;         // null — класс ещё не выбран
   sub: Cls | null;
   talents: string[];
   level: number;            // для бонуса подкласса

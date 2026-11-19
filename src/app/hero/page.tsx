@@ -4,7 +4,7 @@ import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
-import { CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
+import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
 import { TALENTS, canBuyTalent, talentCost } from '@/lib/game/talents';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
@@ -18,8 +18,8 @@ export default function Hero() {
   const [chest, setChest] = useState<{ rarity: string; reward: string } | null>(null);
   const [picking, setPicking] = useState<Cls | null>(null);
   const [pickAvatar, setPickAvatar] = useState(false);
-  const change = canChangeClass(Date.parse(h.clsChangedAt), Date.now());
-  const subName = h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
+  const change = h.cls ? canChangeClass(Date.parse(h.clsChangedAt), Date.now()) : { ok: true as const };
+  const subName = h.cls && h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
   const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
 
   return (
@@ -31,7 +31,7 @@ export default function Hero() {
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level}</h1>
-          <p>{CLASS_NAMES[h.cls]}{subName ? ` · ${subName}` : ''}</p>
+          <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
         </div>
       </section>
@@ -42,26 +42,26 @@ export default function Hero() {
         <div className="grid">
           {CLS.map((c) => (
             <button key={c} className={`card pick ${h.cls === c ? 'sel' : ''}`} disabled={h.cls === c} onClick={() => setPicking(c)}>
-              <b>{CLASS_NAMES[c]}</b><span className="muted">{SPHERE[c]} +20%</span>
+              <b>{CLASS_NAMES[c]}</b><span className="muted">{CLASS_INFO[c].bonus}</span><small className="muted">{CLASS_INFO[c].pitch}</small>
             </button>
           ))}
         </div>
-        <p className="muted small">{change.ok ? 'Смена класса сейчас доступна.' : `Смена класса откроется ${new Date(change.availableAtMs!).toLocaleDateString('ru')}.`} Бонусы пересчитываются за всю историю.</p>
+        <p className="muted small">{!h.cls ? 'Выберите класс — он усилит одну из сфер на 20%.' : change.ok ? 'Смена класса сейчас доступна.' : `Смена класса откроется ${new Date(change.availableAtMs!).toLocaleDateString('ru')}.`} Бонусы пересчитываются за всю историю.</p>
         {picking && (
           <div className="confirm">
-            Сменить класс на {CLASS_NAMES[picking]}? Это изменит очки за всю историю.
+            {h.cls ? 'Сменить класс' : 'Выбрать класс'}: {CLASS_NAMES[picking]}? {CLASS_INFO[picking].bonus}.{h.cls ? ' Очки пересчитаются за всю историю.' : ''}
             <div className="row">
-              <button className="btn" onClick={async () => { await act('setClass', { cls: picking, confirm: true }); setPicking(null); }}>Да, сменить</button>
+              <button className="btn" onClick={async () => { await act('setClass', { cls: picking, confirm: true }); setPicking(null); }}>{h.cls ? 'Да, сменить' : 'Да, выбрать'}</button>
               <button className="btn ghost" onClick={() => setPicking(null)}>Отмена</button>
             </div>
           </div>
         )}
         <h3>Подкласс</h3>
-        {d.level < 5 ? <p className="muted">Откроется на 5 уровне (+10% второй сферы).</p> : (
+        {!h.cls ? <p className="muted">Сначала выберите класс.</p> : d.level < 5 ? <p className="muted">Откроется на 5 уровне (+10% второй сферы).</p> : (
           <div className="row wrapRow">
             {CLS.filter((c) => c !== h.cls).map((c) => (
               <button key={c} className={`btn ${h.sub === c ? '' : 'ghost'}`} onClick={() => act('setSub', { sub: h.sub === c ? null : c })}>
-                {SUBCLASS_NAMES[h.cls][c]} ({SPHERE[c]} +{Math.round(subBonus(d.level) * 100)}%){d.recommendedSub === c ? ' ★' : ''}
+                {SUBCLASS_NAMES[h.cls!][c]} ({SPHERE[c]} +{Math.round(subBonus(d.level) * 100)}%){d.recommendedSub === c ? ' ★' : ''}
               </button>
             ))}
           </div>

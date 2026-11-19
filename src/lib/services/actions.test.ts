@@ -17,7 +17,7 @@ beforeEach(() => {
   db.insert(s.config).values({ id: 1, loot: ['a'], lootRare: ['b'], lootLegend: ['c'] }).run();
   for (const [i, parent] of [[1, true], [2, false]] as const) {
     db.insert(s.member).values({ name: 'm' + i, isParent: parent, createdAt: '2026-11-01T00:00:00Z' }).run();
-    db.insert(s.hero).values({ memberId: i, clsChangedAt: '2026-11-01T00:00:00Z' }).run();
+    db.insert(s.hero).values({ memberId: i, clsChosen: true, clsChangedAt: '2026-11-01T00:00:00Z' }).run();
   }
   db.insert(s.questOverride).values([
     { memberId: 1, date: 'default', items: [{ t: 'дом', xp: 20, k: 'manual' }] },
@@ -115,5 +115,18 @@ describe('действия', () => {
     expect(loadFamily(db, NOW).family.members.get(2)!.chestsAvailable).toBe(before - 1);
     runAction(db, dad, 'archiveShopItem', { id: chestItem, active: false });
     expect(err(() => runAction(db, kid, 'buyItem', { itemId: chestItem }))?.status).toBe(404);
+  });
+  it('первый выбор класса: до него бонусов нет, талантов и подкласса нет', () => {
+    db.update(s.hero).set({ clsChosen: false }).run();
+    runAction(db, kid, 'addWorkout', { minutes: 250 });
+    const st = () => loadFamily(db, NOW).family.members.get(2)!;
+    expect(st().hero.cls).toBeNull();
+    const base = st().xp;
+    expect(err(() => runAction(db, kid, 'buyTalent', { id: 'w1a' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'setSub', { sub: 'm' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'setClass', { cls: 'w' }))?.status).toBe(400); // нужно confirm
+    runAction(db, kid, 'setClass', { cls: 'w', confirm: true }); // выбор «воин» тоже засчитывается как выбор
+    expect(st().hero.cls).toBe('w');
+    expect(st().xp).toBeGreaterThan(base); // +20% к тренировке
   });
 });

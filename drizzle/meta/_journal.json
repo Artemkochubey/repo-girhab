@@ -15,6 +15,13 @@
       "when": 1795063136756,
       "tag": "0001_slim_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795063274411,
+      "tag": "0002_exotic_corsair",
+      "breakpoints": true
     }
   ]
 }

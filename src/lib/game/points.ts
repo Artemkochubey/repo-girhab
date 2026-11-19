@@ -9,8 +9,8 @@ const STUDY_KINDS: StudyKind[] = ['Книги', 'Языки', 'Учёба', 'Н�
 /** Множитель сферы: 1 + класс + подкласс + таланты. */
 export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true): number {
   let m = 1;
-  if (CLASS_SPHERES[hero.cls].includes(sphere)) m += MAIN_BONUS;
-  if (useSub && hero.sub && hero.sub !== hero.cls && CLASS_SPHERES[hero.sub].includes(sphere)) m += subBonus(hero.level);
+  if (hero.cls && CLASS_SPHERES[hero.cls].includes(sphere)) m += MAIN_BONUS;
+  if (useSub && hero.cls && hero.sub && hero.sub !== hero.cls && CLASS_SPHERES[hero.sub].includes(sphere)) m += subBonus(hero.level);
   for (const id of hero.talents) {
     const e = talentById(id)?.effect;
     if (e?.type === 'mult' && e.spheres.includes(sphere)) m += e.pct;

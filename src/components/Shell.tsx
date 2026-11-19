@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { post, rpc, type State } from '@/lib/client';
+import { ClassPicker } from './ClassPicker';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -18,6 +19,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [date, setDate] = useState('');
   const [msg, setMsg] = useState('');
   const [pinOpen, setPinOpen] = useState(false);
+  const [classLater, setClassLater] = useState(false);
   const path = usePathname();
 
   const toast = useCallback((m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3500); }, []);
@@ -66,6 +68,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="wrap">{children}</main>
+      {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
       {pinOpen && <PinModal setup={!s.pinSet} onClose={() => setPinOpen(false)} onDone={() => { setPinOpen(false); reload(); }} toast={toast} />}
       {msg && <div className="toast" role="status">{msg}</div>}
     </C.Provider>

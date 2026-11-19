@@ -45,16 +45,17 @@ export const TALENTS: Talent[] = [
 export const talentById = (id: string) => TALENTS.find((t) => t.id === id);
 
 /** Стоимость: номер яруса; в ветке своего класса max(1, ярус-1). */
-export const talentCost = (t: Talent, cls: Cls): number =>
+export const talentCost = (t: Talent, cls: Cls | null): number =>
   t.branch === cls ? Math.max(1, t.tier - 1) : t.tier;
 
-export const spentPoints = (owned: string[], cls: Cls): number =>
+export const spentPoints = (owned: string[], cls: Cls | null): number =>
   owned.reduce((s, id) => { const t = talentById(id); return s + (t ? talentCost(t, cls) : 0); }, 0);
 
 /** Можно ли купить талант: очки, предыдущий ярус, взаимоисключение. */
 export function canBuyTalent(
-  id: string, owned: string[], cls: Cls, level: number,
+  id: string, owned: string[], cls: Cls | null, level: number,
 ): { ok: boolean; reason?: string } {
+  if (!cls) return { ok: false, reason: 'Сначала выберите класс' };
   const t = talentById(id);
   if (!t) return { ok: false, reason: 'Нет такого таланта' };
   if (owned.includes(id)) return { ok: false, reason: 'Уже куплен' };

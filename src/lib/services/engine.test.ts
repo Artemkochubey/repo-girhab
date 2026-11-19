@@ -8,8 +8,8 @@ const base = (): Raw => ({
     { id: 2, name: 'B', emoji: '', color: '', isParent: false, goal: 40, superGoal: 70, createdAt: '2026-11-01T00:00:00Z' },
   ],
   heroes: [
-    { memberId: 1, cls: 'w', sub: null, clsChangedAt: '', talents: [] },
-    { memberId: 2, cls: 'm', sub: null, clsChangedAt: '', talents: [] },
+    { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
+    { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
   workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], shopItems: [], purchases: [],
 });

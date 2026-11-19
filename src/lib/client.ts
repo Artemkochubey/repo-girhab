@@ -20,7 +20,7 @@ export interface State {
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
   config: { minutes: number; superMinutes: number; timezone: string };
-  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; level: number; cls: string; sub: string | null; pointsToday: number; damageThisWeek: number }[];
+  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number }[];
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
     pending: { memberId: number; date: string; index: number; t: string; xp: number }[];
@@ -29,7 +29,7 @@ export interface State {
   };
   detail: null | {
     id: number; date: string; xp: number; level: number; into: number; span: number; streak: number; talentPointsFree: number; recommendedSub: string | null;
-    hero: { cls: 'w' | 'm' | 'b' | 'p'; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
+    hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
     radar: { key: string; value: number }[];

@@ -77,6 +77,8 @@ export const book = sqliteTable('book', {
 export const hero = sqliteTable('hero', {
   memberId: integer('member_id').primaryKey().references(() => member.id, { onDelete: 'cascade' }),
   cls: text('cls', { enum: ['w', 'm', 'b', 'p'] }).notNull().default('w'),
+  // false, пока игрок не выбрал класс сам: до этого класс-бонусов нет
+  clsChosen: integer('cls_chosen', { mode: 'boolean' }).notNull().default(false),
   clsChangedAt: text('cls_changed_at').notNull().$defaultFn(() => new Date().toISOString()),
   sub: text('sub', { enum: ['w', 'm', 'b', 'p'] }),
   talents: text('talents', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(() => []),
