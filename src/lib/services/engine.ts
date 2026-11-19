@@ -60,6 +60,7 @@ export interface MvpInfo {
   yesterday: { date: string; memberId: number; points: number } | null;
   leader: { memberId: number; points: number; ratio: number; qualified: boolean } | null;
   wins: Record<number, number>;
+  byDate: Record<string, number>;   // дата → победитель (0 — не было)
 }
 export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo }
 
@@ -242,7 +243,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       dayMvpDates: mvpDatesOf.get(st.id) ?? [],
     });
   }
-  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins } };
+  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) } };
 }
 
 export { BOSSES };

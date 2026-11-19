@@ -12,7 +12,7 @@ interface Ctx {
 const C = createContext<Ctx | null>(null);
 export const useGame = () => useContext(C)!;
 
-const NAV = [['/', '🏠 Сегодня'], ['/hero', '🛡 Герой'], ['/body', '💪 Тело'], ['/mind', '🧠 Ум'], ['/shop', '🛍 Магазин'], ['/settings', '⚙️ Настройки']] as const;
+const NAV: readonly (readonly [string, string])[] = [['/', '🏠 Сегодня'], ['/hero', '🛡 Герой'], ['/body', '💪 Тело'], ['/mind', '🧠 Ум'], ['/shop', '🛍 Магазин'], ['/settings', '⚙️ Настройки']] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<State | null>(null);
@@ -96,7 +96,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
       <header className="top">
-        <nav>{NAV.map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
+        <nav>{[...NAV, ...(s.parent ? [['/report', '📊 Отчёт'] as const] : [])].map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
         <div className="who">
           <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
           {s.parent
