@@ -12,30 +12,50 @@ const summary = (raw: Raw, fam: Family) =>
       damageThisWeek: fam.boss.byMember[m.id] ?? 0 };
   });
 
-export function memberDetail(raw: Raw, fam: Family, st: MemberState) {
-  const today = st.days.get(fam.today)!;
+const RADAR = [
+  { key: 'Тело', spheres: ['workout', 'warmup'] },
+  { key: 'Учёба', spheres: ['Учёба'] },
+  { key: 'Мышление', spheres: ['Мышление'] },
+  { key: 'Книги', spheres: ['Книги', 'book'] },
+  { key: 'Творчество', spheres: ['Творчество', 'Навыки', 'Языки'] },
+  { key: 'Дисциплина', spheres: ['habits'] },
+];
+
+export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: string = fam.today) {
+  const today = st.days.get(date) ?? st.days.get(fam.today)!;
+  const radarFrom = addDays(fam.today, -29);
+  const radar = RADAR.map((r) => ({
+    key: r.key,
+    value: Math.round(dateRange(radarFrom, fam.today).reduce((sum, d) => {
+      const bs = st.days.get(d)?.bySphere ?? {};
+      return sum + r.spheres.reduce((a, sp) => a + ((bs as Record<string, number>)[sp] ?? 0), 0);
+    }, 0)),
+  }));
+  const mine = <T extends { memberId: number; date: string }>(rows: T[]) => rows.filter((r) => r.memberId === st.id && r.date === date);
   const from = addDays(fam.today, -364);
   return {
     id: st.id, hero: st.hero, xp: st.xp, level: st.level, into: st.into, span: st.span, streak: st.streak,
     talentPointsFree: st.talentPointsFree, recommendedSub: st.recommendedSub,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
-    today: { points: today.total, stats: today.stats, bySphere: today.bySphere,
+    date, radar,
+    entries: { workouts: mine(raw.workouts), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
+    day: { points: today.total, stats: today.stats, bySphere: today.bySphere,
       quests: today.quests.map((q, i) => ({ ...q, completed: today.questsDone[i] })) },
     habits: raw.habits.filter((h) => h.memberId === st.id).map((h) => ({
       id: h.id, name: h.name,
-      checkedToday: raw.habitChecks.some((c) => c.habitId === h.id && c.date === fam.today),
+      checked: raw.habitChecks.some((c) => c.habitId === h.id && c.date === date),
     })),
     history: dateRange(from, fam.today).map((d) => [d, st.days.get(d)?.total ?? 0] as const),
   };
 }
 
-export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean }) {
+export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean }) {
   const detailFor = (opts.memberId && fam.members.get(opts.memberId)) || null;
   return {
     today: fam.today, config: opts.cfg, pinSet: opts.pinSet, parent: opts.parent, me: opts.memberId,
     members: summary(raw, fam),
     boss: bossView(fam.boss),
-    detail: detailFor ? memberDetail(raw, fam, detailFor) : null,
+    detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
 }
 
