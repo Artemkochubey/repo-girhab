@@ -3,6 +3,7 @@ import { hashPin, validPin } from '../auth';
 import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
+import { AVATARS } from '../game/avatars';
 import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
 import { canBuyTalent } from '../game/talents';
@@ -206,6 +207,21 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       }).returning().get();
       db.insert(s.hero).values({ memberId: row.id, clsChangedAt: now.toISOString() }).run();
       return { id: row.id };
+    }
+    case 'setAvatar': {
+      const memberId = target();
+      const patch: Partial<typeof s.member.$inferInsert> = {};
+      if (a.emoji !== undefined) {
+        if (!AVATARS.includes(a.emoji as string)) fail(400, 'Такого аватара нет в списке');
+        patch.emoji = a.emoji as string;
+      }
+      if (a.color !== undefined) {
+        if (!/^#[0-9a-f]{6}$/i.test(String(a.color))) fail(400, 'Неверный цвет');
+        patch.color = String(a.color);
+      }
+      if (!Object.keys(patch).length) fail(400, 'Нечего менять');
+      db.update(s.member).set(patch).where(eq(s.member.id, memberId)).run();
+      return { ok: true };
     }
     case 'updateMember': {
       needParent();

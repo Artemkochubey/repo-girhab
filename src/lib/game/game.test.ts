@@ -125,3 +125,12 @@ describe('пояснения квестов', () => {
     expect(validQuestList([{ ...q, d: 'Убрать комнату' }])).toBe(true);
   });
 });
+
+import { AVATARS } from './avatars';
+describe('аватары', () => {
+  it('уникальны и достаточно короткие для хранения', () => {
+    expect(new Set(AVATARS).size).toBe(AVATARS.length);
+    expect(AVATARS.every((e) => e.length <= 8)).toBe(true);
+    expect(AVATARS.length).toBeGreaterThan(50);
+  });
+});

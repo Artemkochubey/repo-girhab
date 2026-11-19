@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
 import { TALENTS, canBuyTalent, talentCost } from '@/lib/game/talents';
@@ -16,14 +17,18 @@ export default function Hero() {
   const h = d.hero;
   const [chest, setChest] = useState<{ rarity: string; reward: string } | null>(null);
   const [picking, setPicking] = useState<Cls | null>(null);
+  const [pickAvatar, setPickAvatar] = useState(false);
   const change = canChangeClass(Date.parse(h.clsChangedAt), Date.now());
   const subName = h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
   const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
 
   return (
     <>
+      {pickAvatar && <AvatarPicker memberId={me.id} onClose={() => setPickAvatar(false)} />}
       <section className="card hero" style={{ borderColor: me.color }}>
-        <div className="big">{me.emoji}</div>
+        <button className="big avatar-btn" onClick={() => setPickAvatar(true)} aria-label="Сменить аватар" title="Сменить аватар">
+          {me.emoji}<span className="edit">✏️</span>
+        </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level}</h1>
           <p>{CLASS_NAMES[h.cls]}{subName ? ` · ${subName}` : ''}</p>

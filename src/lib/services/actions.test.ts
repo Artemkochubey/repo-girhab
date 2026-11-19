@@ -83,4 +83,12 @@ describe('действия', () => {
     runAction(db, dad, 'setQuests', { memberId: 2, date: 'default', items });
     expect(err(() => runAction(db, kid, 'setConfig', { minutes: 1 }))?.status).toBe(403);
   });
+  it('аватар: ребёнок меняет себе из списка, чужие и произвольные нельзя', () => {
+    runAction(db, kid, 'setAvatar', { emoji: '🐉', color: '#ef4444' });
+    expect(db.select().from(s.member).all()[1]).toMatchObject({ emoji: '🐉', color: '#ef4444' });
+    expect(err(() => runAction(db, kid, 'setAvatar', { emoji: '💩' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'setAvatar', { memberId: 1, emoji: '🐉' }))?.status).toBe(403);
+    expect(err(() => runAction(db, kid, 'setAvatar', { color: 'red' }))?.status).toBe(400);
+    runAction(db, dad, 'setAvatar', { memberId: 2, emoji: '🦄' });
+  });
 });
