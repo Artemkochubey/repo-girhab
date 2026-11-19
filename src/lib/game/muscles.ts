@@ -60,6 +60,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'climbing', name: 'Скалолазание', emoji: '🧗', cat: 'Игры и спорт', w: { forearms: 1, lats: 0.9, biceps: 0.7, shoulders: 0.5, abs: 0.4, quads: 0.3 } },
   { id: 'dancing', name: 'Танцы', emoji: '💃', cat: 'Игры и спорт', w: { quads: 0.5, calves: 0.5, glutes: 0.5, abs: 0.4, obliques: 0.3, shoulders: 0.2 } },
   { id: 'skating', name: 'Коньки / лыжи', emoji: '⛸️', cat: 'Игры и спорт', w: { quads: 0.8, glutes: 0.7, adductors: 0.5, abductors: 0.5, calves: 0.4 } },
+  { id: 'hockey', name: 'Хоккей', emoji: '🏒', cat: 'Игры и спорт', w: { quads: 0.9, glutes: 0.7, adductors: 0.6, abductors: 0.5, hamstrings: 0.5, calves: 0.5, abs: 0.5, obliques: 0.5, forearms: 0.5, shoulders: 0.4, lower_back: 0.3, triceps: 0.3, chest: 0.2 } },
   { id: 'games', name: 'Подвижные игры', emoji: '🤾', cat: 'Игры и спорт', w: { quads: 0.6, calves: 0.6, hamstrings: 0.4, glutes: 0.4 } },
 
   { id: 'stretching', name: 'Растяжка', emoji: '🤸', cat: 'Растяжка', w: { hamstrings: 0.5, quads: 0.4, lower_back: 0.4, adductors: 0.4, calves: 0.3, shoulders: 0.3 } },
