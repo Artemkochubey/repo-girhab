@@ -110,3 +110,31 @@ export const bossWeek = sqliteTable('boss_week', {
   mvpMemberId: integer('mvp_member_id'),
   finalizedAt: text('finalized_at'),
 });
+
+export const CURRENCIES = ['points', 'chests'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+export const shopItem = sqliteTable('shop_item', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  emoji: text('emoji').notNull().default('🎁'),
+  description: text('description').notNull().default(''),
+  price: integer('price').notNull(),
+  currency: text('currency', { enum: CURRENCIES }).notNull().default('points'),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: createdAt(),
+});
+
+// Название и цена копируются в покупку, чтобы история не менялась при правке товара.
+export const shopPurchase = sqliteTable('shop_purchase', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id'),
+  name: text('name').notNull(),
+  emoji: text('emoji').notNull(),
+  price: integer('price').notNull(),
+  currency: text('currency', { enum: CURRENCIES }).notNull(),
+  status: text('status', { enum: ['pending', 'done', 'cancelled'] }).notNull().default('pending'),
+  date: text('date').notNull(),
+  createdAt: createdAt(),
+}, (t) => [index('purchase_member').on(t.memberId)]);

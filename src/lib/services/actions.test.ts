@@ -91,4 +91,29 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'setAvatar', { color: 'red' }))?.status).toBe(400);
     runAction(db, dad, 'setAvatar', { memberId: 2, emoji: '🦄' });
   });
+  it('магазин: покупка, нехватка очков, выдача и отмена', () => {
+    const itemId = (runAction(db, dad, 'saveShopItem', { name: 'Кино', emoji: '🎬', price: 100, currency: 'points' }) as { id: number }).id;
+    expect(err(() => runAction(db, kid, 'saveShopItem', { name: 'x', price: 1 }))?.status).toBe(403);
+    expect(err(() => runAction(db, kid, 'buyItem', { itemId }))?.status).toBe(400); // 0 очков
+    runAction(db, kid, 'addWorkout', { minutes: 250 });
+    const bal = () => loadFamily(db, NOW).family.members.get(2)!;
+    const xp = bal().xp;
+    const pid = (runAction(db, kid, 'buyItem', { itemId }) as { id: number }).id;
+    expect(bal().balance).toBe(xp - 100);
+    expect(bal().xp).toBe(xp);
+    expect(err(() => runAction(db, kid, 'cancelPurchase', { id: pid }))?.status).toBe(403);
+    runAction(db, dad, 'cancelPurchase', { id: pid });
+    expect(bal().balance).toBe(xp);
+    expect(err(() => runAction(db, dad, 'fulfillPurchase', { id: pid }))?.status).toBe(409);
+  });
+  it('магазин: цена в сундуках и скрытые награды', () => {
+    const chestItem = (runAction(db, dad, 'saveShopItem', { name: 'Ужин', price: 1, currency: 'chests' }) as { id: number }).id;
+    expect(err(() => runAction(db, kid, 'buyItem', { itemId: chestItem }))?.status).toBe(400);
+    runAction(db, kid, 'addWorkout', { minutes: 300 }); // даёт уровни → сундуки
+    const before = loadFamily(db, NOW).family.members.get(2)!.chestsAvailable;
+    runAction(db, kid, 'buyItem', { itemId: chestItem });
+    expect(loadFamily(db, NOW).family.members.get(2)!.chestsAvailable).toBe(before - 1);
+    runAction(db, dad, 'archiveShopItem', { id: chestItem, active: false });
+    expect(err(() => runAction(db, kid, 'buyItem', { itemId: chestItem }))?.status).toBe(404);
+  });
 });

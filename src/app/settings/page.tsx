@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
+import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
 
 type M = ReturnType<typeof useGame>['s']['members'][number];
@@ -100,6 +101,8 @@ function AdminSettings() {
         ))}
         <button className="btn" onClick={saveCfg}>Сохранить</button>
       </Section>
+
+      <ShopAdmin />
 
       <Section title="⚔️ Редактор квестов">
         <div className="row wrapRow">

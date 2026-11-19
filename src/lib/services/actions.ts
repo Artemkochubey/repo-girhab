@@ -198,6 +198,58 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       return { rarity, reward };
     }
 
+    case 'saveShopItem': {
+      needParent();
+      const price = a.currency === 'chests' ? int(a.price, 1, 100, 'Цена в сундуках') : int(a.price, 1, 100000, 'Цена в очках');
+      const v = {
+        name: str(a.name, 60, 'Название'),
+        emoji: typeof a.emoji === 'string' && a.emoji.trim() ? a.emoji.trim().slice(0, 8) : '🎁',
+        description: typeof a.description === 'string' ? a.description.trim().slice(0, 120) : '',
+        price, currency: (a.currency === 'chests' ? 'chests' : 'points') as s.Currency,
+      };
+      if (a.id === undefined) return { id: db.insert(s.shopItem).values(v).returning().get().id };
+      const id = int(a.id, 1, 1e9, 'id');
+      if (!db.select().from(s.shopItem).where(eq(s.shopItem.id, id)).get()) fail(404, 'Нет такой награды');
+      db.update(s.shopItem).set(v).where(eq(s.shopItem.id, id)).run();
+      return { id };
+    }
+    case 'archiveShopItem': {
+      needParent();
+      db.update(s.shopItem).set({ active: a.active === true }).where(eq(s.shopItem.id, int(a.id, 1, 1e9, 'id'))).run();
+      return { ok: true };
+    }
+    case 'seedShopExamples': {
+      needParent();
+      if (db.select().from(s.shopItem).all().length) fail(409, 'В магазине уже есть награды');
+      db.insert(s.shopItem).values([
+        { name: 'Выбрать фильм вечера', emoji: '🎬', description: 'Вся семья смотрит то, что выбрал ты', price: 300, currency: 'points' },
+        { name: '+1 час игр', emoji: '🎮', description: 'Дополнительный час игр в выходной', price: 500, currency: 'points' },
+        { name: 'Выбрать ужин', emoji: '🍕', description: 'Любимое блюдо на ужин', price: 1, currency: 'chests' },
+        { name: 'Поход или поездка', emoji: '🏕', description: 'Семейный поход в выбранное место', price: 1500, currency: 'points' },
+        { name: 'Поход в кафе', emoji: '🍰', description: 'Сладкое в кафе всей семьёй', price: 3, currency: 'chests' },
+      ]).run();
+      return { ok: true };
+    }
+    case 'buyItem': {
+      const memberId = target();
+      const item = db.select().from(s.shopItem).where(eq(s.shopItem.id, int(a.itemId, 1, 1e9, 'Награда'))).get();
+      if (!item || !item.active) return fail(404, 'Награда недоступна');
+      const st = loadFamily(db, now).family.members.get(memberId)!;
+      if (item.currency === 'points' && st.balance < item.price) fail(400, `Не хватает ${item.price - st.balance} очков`);
+      if (item.currency === 'chests' && st.chestsAvailable < item.price) fail(400, `Не хватает сундуков: нужно ${item.price}, есть ${st.chestsAvailable}`);
+      const row = db.insert(s.shopPurchase).values({ memberId, itemId: item.id, name: item.name, emoji: item.emoji, price: item.price, currency: item.currency, date: today }).returning().get();
+      return { id: row.id };
+    }
+    case 'fulfillPurchase':
+    case 'cancelPurchase': {
+      needParent();
+      const id = int(a.id, 1, 1e9, 'id');
+      const p = db.select().from(s.shopPurchase).where(eq(s.shopPurchase.id, id)).get();
+      if (!p) return fail(404, 'Нет такой покупки');
+      if (p.status !== 'pending') fail(409, 'Покупка уже обработана');
+      db.update(s.shopPurchase).set({ status: action === 'fulfillPurchase' ? 'done' : 'cancelled' }).where(eq(s.shopPurchase.id, id)).run();
+      return { ok: true };
+    }
     case 'createMember': {
       needParent();
       const row = db.insert(s.member).values({

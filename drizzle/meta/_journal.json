@@ -8,6 +8,13 @@
       "when": 1795059490606,
       "tag": "0000_cynical_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795063136756,
+      "tag": "0001_slim_magus",
+      "breakpoints": true
     }
   ]
 }

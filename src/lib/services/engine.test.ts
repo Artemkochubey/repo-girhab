@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -58,5 +58,21 @@ describe('движок семьи', () => {
     expect(past.defeated).toBe(true);
     expect(past.mvp).toBe(1);
     expect(f.members.get(1)!.chestsEarned).toBeGreaterThanOrEqual(2);
+  });
+
+  it('кошелёк: траты не снижают уровень, отмена возвращает цену', () => {
+    const raw = base();
+    raw.quests.push({ memberId: 1, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] });
+    raw.workouts.push({ memberId: 1, date: '2026-11-19', minutes: 100 });
+    const mk = (status: 'pending' | 'cancelled', cur: 'points' | 'chests', price: number) =>
+      ({ id: 1, memberId: 1, itemId: 1, name: 'x', emoji: '', price, currency: cur, status, date: '2026-11-19' });
+    const before = buildFamily(raw, '2026-11-19').members.get(1)!;
+    expect(before.balance).toBe(120);
+    raw.purchases.push(mk('pending', 'points', 50), { ...mk('cancelled', 'points', 30), id: 2 }, { ...mk('pending', 'chests', 1), id: 3 });
+    const after = buildFamily(raw, '2026-11-19').members.get(1)!;
+    expect(after.xp).toBe(before.xp);
+    expect(after.level).toBe(before.level);
+    expect(after.balance).toBe(70);
+    expect(after.chestsAvailable).toBe(before.chestsAvailable - 1);
   });
 });

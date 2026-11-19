@@ -19,7 +19,12 @@ export interface Raw {
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
   chestsOpened: { memberId: number; n: number }[];
+  shopItems: ShopItemRow[];
+  purchases: PurchaseRow[];
 }
+
+export interface ShopItemRow { id: number; name: string; emoji: string; description: string; price: number; currency: 'points' | 'chests'; active: boolean }
+export interface PurchaseRow { id: number; memberId: number; itemId: number | null; name: string; emoji: string; price: number; currency: 'points' | 'chests'; status: 'pending' | 'done' | 'cancelled'; date: string }
 
 export interface DayCalc { stats: DayStats; total: number; bySphere: Partial<Record<Sphere, number>>; quests: QuestItem[]; questsDone: boolean[] }
 
@@ -33,6 +38,7 @@ export interface MemberState {
   days: Map<string, DayCalc>;
   questDays: number;
   chestsEarned: number; chestsOpened: number; chestsAvailable: number;
+  spentPoints: number; spentChests: number; balance: number;
 }
 
 export interface BossWeek {
@@ -111,6 +117,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       recommendedSub: recommendSub(clsPoints, hero.cls),
       days: b.days, questDays,
       chestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
+      spentPoints: 0, spentChests: 0, balance: 0,
     });
   }
 
@@ -147,7 +154,12 @@ export function buildFamily(raw: Raw, today: string): Family {
 
   for (const st of members.values()) {
     st.chestsEarned = chestsEarned(st.level, st.questDays, bossChests.get(st.id) ?? 0);
-    st.chestsAvailable = Math.max(0, st.chestsEarned - st.chestsOpened);
+    // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.
+    const mine = raw.purchases.filter((p) => p.memberId === st.id && p.status !== 'cancelled');
+    st.spentPoints = mine.filter((p) => p.currency === 'points').reduce((a, p) => a + p.price, 0);
+    st.spentChests = mine.filter((p) => p.currency === 'chests').reduce((a, p) => a + p.price, 0);
+    st.balance = st.xp - st.spentPoints;
+    st.chestsAvailable = Math.max(0, st.chestsEarned - st.chestsOpened - st.spentChests);
   }
   return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory };
 }

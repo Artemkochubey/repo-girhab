@@ -37,6 +37,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
   return {
     id: st.id, hero: st.hero, xp: st.xp, level: st.level, into: st.into, span: st.span, streak: st.streak,
     talentPointsFree: st.talentPointsFree, recommendedSub: st.recommendedSub,
+    wallet: { balance: st.balance, spent: st.spentPoints },
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
     entries: { workouts: mine(raw.workouts), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
@@ -64,6 +65,15 @@ export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRar
   return { pending, quests, ...loot };
 }
 
+export function shopView(raw: Raw, memberId: number | null, parent: boolean) {
+  const mine = (p: { memberId: number }) => parent || p.memberId === memberId;
+  return {
+    items: raw.shopItems.filter((i) => i.active),
+    allItems: parent ? raw.shopItems : [],
+    purchases: raw.purchases.filter(mine).sort((a, b) => b.id - a.id).slice(0, 40),
+  };
+}
+
 export function buildState(raw: Raw, fam: Family, opts: { memberId: number | null; parent: boolean; date?: string; cfg: { minutes: number; superMinutes: number; timezone: string }; pinSet: boolean; admin?: ReturnType<typeof adminView> }) {
   const detailFor = (opts.memberId && fam.members.get(opts.memberId)) || null;
   return {
@@ -71,6 +81,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
     members: summary(raw, fam),
     boss: bossView(fam.boss),
     admin: opts.admin ?? null,
+    shop: shopView(raw, opts.memberId, opts.parent),
     detail: detailFor ? memberDetail(raw, fam, detailFor, opts.date) : null,
   };
 }
