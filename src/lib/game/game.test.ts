@@ -147,3 +147,43 @@ describe('аватары', () => {
     expect(AVATARS.length).toBeGreaterThan(50);
   });
 });
+
+import { EXERCISES, MUSCLE_IDS, entryWeights, muscleIntensity, muscleLoads, intensityFloor } from './muscles';
+import { ANATOMY } from '../anatomy-data';
+describe('мышцы', () => {
+  it('каталог: уникальные id, веса 0..1 и только известные мышцы', () => {
+    expect(new Set(EXERCISES.map((e) => e.id)).size).toBe(EXERCISES.length);
+    for (const e of EXERCISES) for (const [m, w] of Object.entries(e.w)) {
+      expect(MUSCLE_IDS).toContain(m);
+      expect(w).toBeGreaterThan(0); expect(w).toBeLessThanOrEqual(1);
+    }
+  });
+  it('на силуэте есть все группы мышц', () => {
+    const used = new Set([...ANATOMY.front, ...ANATOMY.back].map((s) => s.m).filter(Boolean));
+    for (const m of MUSCLE_IDS) expect(used.has(m)).toBe(true);
+  });
+  it('нагрузка: период, веса, своя тренировка', () => {
+    const entries = [
+      { date: '2026-11-19', minutes: 30, exercise: 'pushups' },
+      { date: '2026-11-10', minutes: 100, exercise: 'pushups' },
+      { date: '2026-11-19', minutes: 20, exercise: 'custom', muscles: ['abs', 'glutes'] },
+      { date: '2026-11-19', minutes: 50 },
+    ];
+    const l = muscleLoads(entries, '2026-11-13', '2026-11-19');
+    expect(l.chest).toBe(30);
+    expect(l.triceps).toBe(24);
+    expect(l.abs).toBe(30 * 0.3 + 20);
+    expect(l.glutes).toBe(20);
+    expect(l.quads).toBe(0);
+    expect(entryWeights({ exercise: 'custom', muscles: ['nope', 'abs'] })).toEqual({ abs: 1 });
+  });
+  it('интенсивность: чем больше нагрузка, тем краснее, и планка защищает от «всё красное»', () => {
+    const l = muscleLoads([{ date: 'd', minutes: 10, exercise: 'pushups' }], 'd', 'd');
+    const small = muscleIntensity(l, intensityFloor(1));
+    expect(small.chest).toBe(1);                   // 10 мин при планке 10
+    const week = muscleIntensity(l, intensityFloor(7));
+    expect(week.chest).toBeLessThan(0.2);          // одна тренировка за неделю — бледно
+    expect(small.triceps).toBeLessThan(small.chest);
+    expect(small.quads).toBe(0);
+  });
+});

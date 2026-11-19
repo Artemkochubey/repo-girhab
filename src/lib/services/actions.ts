@@ -4,6 +4,7 @@ import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
 import { AVATARS } from '../game/avatars';
+import { CUSTOM_EXERCISE, MUSCLE_IDS, exerciseById, isMuscleId } from '../game/muscles';
 import { canChangeClass, type Cls } from '../game/classes';
 import { pickReward, rollRarity } from '../game/chests';
 import { canBuyTalent, luckBonuses } from '../game/talents';
@@ -48,7 +49,19 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
   switch (action) {
     case 'addWorkout': {
       const memberId = target(), date = dateArg();
-      db.insert(s.workoutEntry).values({ memberId, date, minutes: int(a.minutes, 1, 600, 'Минуты'), createdBy: ctx.memberId }).run();
+      const minutes = int(a.minutes, 1, 600, 'Минуты');
+      let exercise: string | null = null;
+      let muscles: string[] | null = null;
+      if (a.exercise !== undefined && a.exercise !== null) {
+        if (a.exercise === CUSTOM_EXERCISE) {
+          const ms = a.muscles;
+          if (!Array.isArray(ms) || ms.length < 1 || ms.length > MUSCLE_IDS.length || !ms.every(isMuscleId)) fail(400, 'Выберите от 1 до 16 групп мышц');
+          exercise = CUSTOM_EXERCISE;
+          muscles = [...new Set(ms as string[])];
+        } else if (exerciseById(String(a.exercise))) exercise = String(a.exercise);
+        else fail(400, 'Неизвестная тренировка');
+      }
+      db.insert(s.workoutEntry).values({ memberId, date, minutes, exercise, muscles, createdBy: ctx.memberId }).run();
       return { ok: true };
     }
     case 'addStudy': {

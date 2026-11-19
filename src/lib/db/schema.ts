@@ -37,6 +37,9 @@ const entryBase = {
 export const workoutEntry = sqliteTable('workout_entry', {
   ...entryBase,
   minutes: integer('minutes').notNull(),
+  // id тренировки из каталога, 'custom' (свой набор мышц) или null (общая тренировка)
+  exercise: text('exercise'),
+  muscles: text('muscles', { mode: 'json' }).$type<string[]>(),
 }, (t) => [index('workout_member_date').on(t.memberId, t.date)]);
 
 export const warmupEntry = sqliteTable('warmup_entry', {

@@ -72,3 +72,11 @@ textarea, select { background: #0f0b1a; color: var(--text); border: 1px solid va
 .pick.locked { opacity: .65; border-style: dashed; } .gold { color: var(--accent); }
 .subtable { width: 100%; border-collapse: collapse; font-size: .85rem; } .subtable th { text-align: left; padding: 6px 8px 6px 0; white-space: nowrap; vertical-align: top; } .subtable td { color: var(--muted); padding: 6px 0; }
 .branch { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 4px; }
+.btn.sm { min-height: 34px; padding: 4px 12px; font-size: .9rem; }
+.figs { display: flex; justify-content: center; gap: 12px; } .figure { width: 100%; max-width: 280px; height: auto; display: block; }
+.muscle-hit { cursor: pointer; outline: none; } .muscle-hit:focus-visible { stroke: #fff; stroke-width: .8; }
+.legend { display: flex; align-items: center; gap: 8px; justify-content: center; color: var(--muted); font-size: .8rem; } .legend i { display: block; width: 140px; height: 10px; border-radius: 999px; }
+.muscle-info { margin: 0; text-align: center; min-height: 1.5em; }
+.top-muscles { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .top-muscles li { display: grid; grid-template-columns: 11rem 1fr; align-items: center; gap: 8px; font-size: .88rem; } .top-muscles i { display: block; height: 8px; min-width: 6px; border-radius: 999px; background: linear-gradient(90deg, #c9354c, #ff1424); }
+.exgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; } .ex { display: flex; align-items: center; gap: 8px; text-align: left; background: var(--panel2); border: 2px solid transparent; border-radius: 12px; padding: 8px 10px; } .ex span { font-size: 1.4rem; } .ex b { font-weight: 600; font-size: .9rem; } .ex.on { border-color: var(--accent); background: #3a2f63; }
+@media (max-width: 420px) { .top-muscles li { grid-template-columns: 8rem 1fr; } }

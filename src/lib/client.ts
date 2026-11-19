@@ -36,7 +36,8 @@ export interface State {
     day: { points: number; stats: { workoutMinutes: number; warmups: number; study: Record<string, number>; habits: number; books: number; questXp: number };
       bySphere: Record<string, number>;
       quests: { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };
-    entries: { workouts: { id: number; minutes: number }[]; study: { id: number; kind: string; minutes: number }[]; warmups: { id: number }[]; books: { id: number; title: string }[] };
+    workoutLog: { id: number; date: string; minutes: number; exercise: string | null; muscles: string[] | null }[];
+    entries: { workouts: { id: number; minutes: number; exercise: string | null; muscles: string[] | null }[]; study: { id: number; kind: string; minutes: number }[]; warmups: { id: number }[]; books: { id: number; title: string }[] };
     habits: { id: number; name: string; checked: boolean }[];
     history: [string, number][];
   };

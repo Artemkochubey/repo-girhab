@@ -129,4 +129,17 @@ describe('действия', () => {
     expect(st().hero.cls).toBe('w');
     expect(st().xp).toBeGreaterThan(base); // +20% к тренировке
   });
+  it('тренировка с упражнением и своими мышцами', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 20, exercise: 'pushups' });
+    runAction(db, kid, 'addWorkout', { minutes: 15, exercise: 'custom', muscles: ['abs', 'abs', 'glutes'] });
+    runAction(db, kid, 'addWorkout', { minutes: 10 });
+    const rows = db.select().from(s.workoutEntry).all();
+    expect(rows.map((r) => r.exercise)).toEqual(['pushups', 'custom', null]);
+    expect(rows[1].muscles).toEqual(['abs', 'glutes']);
+    expect(err(() => runAction(db, kid, 'addWorkout', { minutes: 5, exercise: 'qwerty' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'addWorkout', { minutes: 5, exercise: 'custom', muscles: [] }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'addWorkout', { minutes: 5, exercise: 'custom', muscles: ['wings'] }))?.status).toBe(400);
+    const log = loadFamily(db, NOW).family.members.get(2)!;
+    expect(log.xp).toBeGreaterThan(0); // очки считаются по минутам, как и раньше
+  });
 });

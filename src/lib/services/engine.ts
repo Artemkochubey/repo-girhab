@@ -11,7 +11,7 @@ export interface Raw {
   timezone: string;
   members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
   heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
-  workouts: { memberId: number; date: string; minutes: number }[];
+  workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null }[];
   warmups: { memberId: number; date: string }[];
   study: { memberId: number; date: string; kind: StudyKind; minutes: number }[];
   habits: { id: number; memberId: number; name: string }[];

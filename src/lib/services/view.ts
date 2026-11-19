@@ -40,6 +40,8 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     wallet: { balance: st.balance, spent: st.spentPoints },
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
     date, radar,
+    workoutLog: raw.workouts.filter((w) => w.memberId === st.id && w.date >= addDays(fam.today, -29))
+      .map((w) => ({ id: w.id, date: w.date, minutes: w.minutes, exercise: w.exercise ?? null, muscles: w.muscles ?? null })),
     entries: { workouts: mine(raw.workouts), study: mine(raw.study), warmups: mine(raw.warmups), books: raw.books.filter((b) => b.memberId === st.id && b.finishedAt === date) },
     day: { points: today.total, stats: today.stats, bySphere: today.bySphere,
       quests: today.quests.map((q, i) => ({ ...q, completed: today.questsDone[i] })) },
