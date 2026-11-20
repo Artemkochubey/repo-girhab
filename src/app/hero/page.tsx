@@ -24,6 +24,10 @@ export default function Hero() {
   const [chest, setChest] = useState<{ rarity: string; reward: string } | null>(null);
   const [picking, setPicking] = useState<Cls | null>(null);
   const [pickAvatar, setPickAvatar] = useState(false);
+  // подкласс: сразу показываем выбор (не дожидаясь ответа сервера) и играем эффект
+  const [optSub, setOptSub] = useState<Cls | null | undefined>(undefined);
+  const [burst, setBurst] = useState<Cls | null>(null);
+  const curSub = optSub !== undefined ? optSub : h.sub;
   const change = h.cls ? canChangeClass(Date.parse(h.clsChangedAt), Date.now()) : { ok: true as const };
   const subName = h.cls && h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
   const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
@@ -84,14 +88,26 @@ export default function Hero() {
         )}
         <h3>Подкласс</h3>
         <p className="muted small">Вторая сфера усиливается дополнительно: с 5 уровня +10%, с 8 — +15%, с 12 — +20%. Сейчас у вас уровень {d.level}{d.level >= 5 ? `, бонус +${Math.round(subBonus(d.level) * 100)}%` : ''}.</p>
+        {h.cls && d.level >= 5 && <p className="sub-now">{curSub ? <>Ваш подкласс: <b className="gold">{SUBCLASS_NAMES[h.cls][curSub]}</b>. Нажмите на другую карточку, чтобы сменить, или на эту же, чтобы снять.</> : 'Подкласс не выбран: нажмите на карточку ниже.'}</p>}
         {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его подклассы.</p> : (
           <div className="grid">
             {CLS.filter((c) => c !== h.cls).map((c) => {
               const locked = d.level < 5;
-              const chosen = h.sub === c;
+              const chosen = curSub === c;
+              const pickSub = async () => {
+                const next = chosen ? null : c;
+                setOptSub(next);
+                if (next) { setBurst(c); setTimeout(() => setBurst(null), 1600); }
+                try {
+                  await act('setSub', { sub: next });
+                  toast(next ? `🎉 Подкласс выбран: ${SUBCLASS_NAMES[h.cls!][c]}. Сфера «${SPHERE[c]}» усилена на +${Math.round(subBonus(d.level) * 100)}%` : 'Подкласс снят');
+                } catch { /* act уже показал сообщение об ошибке */ }
+                finally { setOptSub(undefined); }
+              };
               return (
-                <button key={c} className={`card pick sub ${chosen ? 'sel' : ''} ${locked ? 'locked' : ''}`} disabled={locked}
-                  onClick={() => act('setSub', { sub: chosen ? null : c })}>
+                <button key={c} className={`card pick sub ${chosen ? 'sel' : ''} ${burst === c ? 'burst' : ''} ${locked ? 'locked' : ''}`} disabled={locked} aria-pressed={chosen}
+                  onClick={pickSub}>
+                  {chosen && <span className="sub-badge">✔ Ваш подкласс</span>}
                   <b>{locked ? '🔒 ' : ''}{SUBCLASS_NAMES[h.cls!][c]}{!locked && d.recommendedSub === c ? ' ★' : ''}</b>
                   <span className="muted">{CLASS_NAMES[h.cls!]} + {SPHERE[c]}</span>
                   <small className="muted">{CLASS_INFO[c].bonus.replace('+20%', locked ? '+10%…' : `+${Math.round(subBonus(d.level) * 100)}%`)}</small>

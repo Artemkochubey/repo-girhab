@@ -180,3 +180,15 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .prize { display: flex; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid #8f7bd0; border-radius: 12px; padding: 10px 12px; }
 .prize.r-rare { border-left-color: #7fb4ff; } .prize.r-legend { border-left-color: #ffd24a; box-shadow: 0 0 10px #ffd24a33; } .prize.delivered { opacity: .6; } .prize.requested { border-color: var(--accent); }
 .prize .col { display: grid; gap: 4px; justify-items: end; }
+
+/* Подкласс: заметный выбор и эффект */
+.pick.sub { position: relative; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.pick.sub:not(:disabled):hover { transform: translateY(-2px); border-color: #b9a5ff; }
+.pick.sub.sel { border-color: #ffd24a; background: linear-gradient(135deg, #3d2f14, #241b42); box-shadow: 0 0 0 1px #ffd24a, 0 0 22px #ffd24a66; transform: scale(1.02); }
+.sub-badge { position: absolute; top: -10px; right: 10px; background: #ffd24a; color: #1b1405; font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.pick.sub.burst { animation: sub-pop .7s ease; }
+.pick.sub.burst::after { content: '✨ 🌟 ✨'; position: absolute; left: 0; right: 0; top: -34px; text-align: center; font-size: 1.4rem; pointer-events: none; animation: sub-spark 1.5s ease-out forwards; }
+.sub-now { margin: 4px 0 8px; }
+@keyframes sub-pop { 0% { transform: scale(.92); } 45% { transform: scale(1.12) rotate(-1.5deg); } 100% { transform: scale(1.02); } }
+@keyframes sub-spark { 0% { opacity: 0; transform: translateY(8px) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { .pick.sub.burst, .pick.sub.burst::after { animation: none; } }
