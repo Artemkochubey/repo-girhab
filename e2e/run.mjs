@@ -36,7 +36,7 @@ for (let i = 0; i < 60; i++) {
 const results = [];
 const check = async (name, fn) => {
   try { await fn(); results.push([true, name]); console.log('✔', name); }
-  catch (e) { results.push([false, name]); console.log('✖', name, '\n   ', String(e.message ?? e).split('\n')[0]); }
+  catch (e) { results.push([false, name]); console.log('✖', name, '\n   ', String(e.message ?? e).split('\n')[0], '\n   ', String(e.stack ?? '').split('\n').find((l) => l.includes('run.mjs')) ?? ''); }
 };
 const ok = (cond, msg) => { if (!cond) throw new Error(msg); };
 
@@ -74,6 +74,15 @@ await check('сундуки: заработать и открыть на вкл�
   await p.goto(base + '/bag'); await p.waitForSelector('text=Открыть сундук'); await dismiss();
   await p.click('button:has-text("Открыть сундук")'); await p.waitForSelector('.reward');
 });
+await check('подарок: приз из сумки уходит другому герою', async () => {
+  await p.goto(base + '/bag'); await dismiss();
+  await p.click('.reward').catch(() => {});
+  const gift = p.locator('.prize button:has-text("Подарить")').first();
+  if (!(await gift.count())) { console.log('   (в сундуке выпало не призовое, подарок пропущен)'); return; }
+  await gift.click(); await p.click('.prize .btn.sm:has-text("Папа")'); await p.waitForTimeout(800);
+  const st = await state();
+  ok(st.detail.chestLog.some((c) => c.holder !== st.me), 'приз должен перейти к другому герою');
+});
 await check('рейтинг дня: места и источники очков', async () => {
   await p.goto(base + '/rating'); await p.waitForSelector('.rating-table'); await dismiss();
   const rows = await p.locator('.rating-table tbody tr').count();
@@ -109,6 +118,18 @@ await check('родитель: PIN, настройки, копия данных 
   await p.click('.btn:has-text("Создать копию сейчас")'); await p.waitForSelector('text=Копия создана');
   ok(fs.readdirSync(path.join(tmp, 'backups')).some((f) => f.endsWith('.db')), 'копия не появилась в основной папке');
   ok(fs.readdirSync(path.join(tmp, 'mirror')).some((f) => f.endsWith('.db')), 'копия не появилась во второй папке');
+});
+await check('цель семьи и режим «Малыш»: родитель включает, герой видит', async () => {
+  ok((await rpc('saveMonthGoal', { title: 'Поход', kind: 'points', target: 500, reward: 'Мороженое всем' })).id > 0, 'цель не сохранилась');
+  await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();
+  await p.click('summary:has-text("Семья и неделя")'); await p.waitForSelector('.month-goal');
+  const me = (await state()).me;
+  await rpc('setSimple', { memberId: me, on: true });
+  await p.goto(base + '/'); await p.waitForSelector('.kid-home'); await dismiss();
+  await p.click('.kid-big.kind'); await p.waitForSelector('.kid-pick');
+  await p.click('.kid-pick button:has-text("Поддержал")'); await p.waitForTimeout(700); await dismiss();
+  ok((await p.locator('.kid-pick button.done').count()) >= 1, 'доброе дело не отметилось');
+  await rpc('setSimple', { memberId: me, on: false });
 });
 await check('нет связи: полоса предупреждения появляется и исчезает', async () => {
   await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();

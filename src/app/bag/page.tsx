@@ -51,20 +51,27 @@ export default function Bag() {
   const run = (action: string, args: Record<string, unknown>, ok: string) => act(action, { memberId: me.id, ...args }).then(() => toast(ok)).catch(() => {});
   const arts = [...d.artifacts].sort((x, y) => (x.status === 'used' ? 1 : 0) - (y.status === 'used' ? 1 : 0) || (x.date < y.date ? 1 : -1));
   const [chest, setChest] = useState<{ rarity: string; reward: string; artifact?: string | null; gear?: string | null; talisman?: boolean; why?: string | null } | null>(null);
-  const inBag = d.chestLog.filter((c) => c.status === 'bag');
-  const asked = d.chestLog.filter((c) => c.status === 'requested');
-  const done = d.chestLog.filter((c) => c.status === 'delivered');
+  const mineNow = d.chestLog.filter((c) => c.holder === me.id);   // у меня сейчас (свои и подаренные мне)
+  const inBag = mineNow.filter((c) => c.status === 'bag');
+  const asked = mineNow.filter((c) => c.status === 'requested');
+  const done = mineNow.filter((c) => c.status === 'delivered');
+  const [giftFor, setGiftFor] = useState<string | null>(null);
+  const others = s.members.filter((m) => m.id !== me.id);
+  const whoName = (id: number) => s.members.find((m) => m.id === id);
 
   const Card = ({ c }: { c: (typeof d.chestLog)[number] }) => (
     <li className={`prize r-${c.rarity} ${c.status}`}>
-      <div className="grow"><small className="muted">Сундук №{c.n} · {c.date}{c.deliveredOn ? ` · выдано ${c.deliveredOn}` : ''}</small>
+      <div className="grow"><small className="muted">Сундук №{c.n} · {c.date}{c.deliveredOn ? ` · выдано ${c.deliveredOn}` : ''}{c.from !== me.id ? ` · 🎁 подарок от ${whoName(c.from)?.emoji ?? ''} ${whoName(c.from)?.name ?? ''}` : ''}</small>
         <div><small>{RAR[c.rarity] ?? c.rarity}</small></div><b>{c.reward}</b></div>
       <div className="col">
-        {c.status === 'bag' && <button className="btn" onClick={() => run('useChestPrize', { n: c.n }, 'Попросили родителя выдать приз')}>🎁 Использовать</button>}
+        {c.status === 'bag' && <button className="btn" onClick={() => run('useChestPrize', { from: c.from, n: c.n }, 'Попросили родителя выдать приз')}>🎁 Использовать</button>}
+        {c.status === 'bag' && others.length > 0 && (giftFor === `${c.from}:${c.n}`
+          ? <div className="row wrapRow">{others.map((m) => <button key={m.id} className="btn ghost sm" onClick={() => { setGiftFor(null); run('giftChestPrize', { from: c.from, n: c.n, to: m.id }, `🎁 Подарено: ${m.name}`); }}>{m.emoji} {m.name}</button>)}<button className="btn ghost sm" onClick={() => setGiftFor(null)}>Отмена</button></div>
+          : <button className="btn ghost sm" onClick={() => setGiftFor(`${c.from}:${c.n}`)}>🎀 Подарить</button>)}
         {c.status === 'requested' && <small className="gold">⏳ Ждёт родителя</small>}
-        {c.status === 'requested' && <button className="btn ghost sm" onClick={() => run('useChestPrize', { n: c.n, undo: true }, 'Приз вернулся в сумку')}>Отменить</button>}
-        {s.parent && c.status !== 'delivered' && <button className="btn" onClick={() => run('deliverChestPrize', { n: c.n }, 'Отмечено: выдано')}>✔ Выдано</button>}
-        {s.parent && c.status === 'delivered' && <button className="btn ghost sm" onClick={() => run('deliverChestPrize', { n: c.n, undo: true }, 'Вернули в сумку')}>↩ В сумку</button>}
+        {c.status === 'requested' && <button className="btn ghost sm" onClick={() => run('useChestPrize', { from: c.from, n: c.n, undo: true }, 'Приз вернулся в сумку')}>Отменить</button>}
+        {s.parent && c.status !== 'delivered' && <button className="btn" onClick={() => run('deliverChestPrize', { from: c.from, n: c.n }, 'Отмечено: выдано')}>✔ Выдано</button>}
+        {s.parent && c.status === 'delivered' && <button className="btn ghost sm" onClick={() => run('deliverChestPrize', { from: c.from, n: c.n, undo: true }, 'Вернули в сумку')}>↩ В сумку</button>}
       </div>
     </li>
   );
@@ -84,7 +91,7 @@ export default function Bag() {
         <details className="chestlog">
           <summary>📜 Что выпало ({d.chestLog.length})</summary>
           {d.chestLog.length === 0 ? <p className="muted small">Пока ни одного открытого сундука.</p> : (
-            <ul className="list">{d.chestLog.slice(0, 30).map((c) => <li key={c.n} className={`cl r-${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b> <small className="muted">{c.status === 'delivered' ? '✅ выдано' : c.status === 'requested' ? '⏳ ждёт выдачи' : '🎒 в сумке'}</small></li>)}</ul>
+            <ul className="list">{d.chestLog.slice(0, 30).map((c) => <li key={`${c.from}-${c.n}`} className={`cl r-${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b> <small className="muted">{c.holder !== me.id ? `🎀 подарено: ${whoName(c.holder)?.name ?? '?'}` : c.from !== me.id ? `🎁 подарок от ${whoName(c.from)?.name ?? '?'}` : c.status === 'delivered' ? '✅ выдано' : c.status === 'requested' ? '⏳ ждёт выдачи' : '🎒 в сумке'}</small></li>)}</ul>
           )}
         </details>
       </Section>

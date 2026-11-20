@@ -375,3 +375,36 @@ nav.tabs a { position: relative; } .new-dot { position: absolute; top: 4px; righ
 .week-days thead th small { display: block; font-weight: 400; } .week-days thead th.is-today { color: var(--accent); }
 .c-days b { font-size: 1.05rem; }
 @media (max-width: 560px) { .week-days .wd { min-width: 34px; } .week-days th, .week-days td { padding-left: 2px; padding-right: 2px; } .week-days .c-who { min-width: 62px; } .week-days .r-emoji { display: none; } }
+
+/* книга достижений */
+.book { display: grid; gap: 14px; } .book-cover { text-align: center; justify-items: center; padding: 24px 14px; } .book-brand { font-size: 4rem; } .book-title { font-size: 2.2rem; color: var(--accent); }
+.book-family, .book-counts { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; width: 100%; }
+.book-family li, .book-counts li { display: grid; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); text-align: center; } .book-family b, .book-counts b { font-size: 1.5rem; color: var(--accent); } .book-family small, .book-counts small { color: var(--muted); font-size: .75rem; }
+.book-head { display: flex; gap: 14px; align-items: center; } .book-head p { margin: 2px 0; } .book-name { font-size: 1.7rem; }
+.book-ach { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; } .book-ach li { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border: 1px solid var(--line); border-radius: 12px; } .book-ach .b-ico { font-size: 1.8rem; } .book-ach small { display: block; font-size: .78rem; }
+@media print {
+  .quick-fab, .offline-bar, .skip-link, nav.tabs { display: none !important; }
+  .book-page, .book-cover { break-inside: avoid; page-break-after: always; border: 2px solid #999 !important; }
+  .book-family li, .book-counts li, .book-ach li { background: #fff; border-color: #bbb; } .book-family b, .book-counts b, .book-title, .book h2 { color: #000; }
+}
+.seen-btn { margin-left: 6px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: .78rem; cursor: pointer; } .seen-btn.on { border-color: var(--accent); background: #3a2c14; } .seen-btn.static { cursor: default; display: inline-block; }
+.rating-tv .seen-btn { font-size: 1rem; }
+.month-goal { border-color: #5b4a99; } .month-goal.ok { border-color: var(--ok); background: #12261c; } .month-goal.late { border-color: #c9a24b88; }
+.bar .pace { position: absolute; top: -3px; bottom: -3px; width: 3px; background: #fff; opacity: .75; border-radius: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; } .grid2 label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+
+/* режим «Малыш» */
+.kid-home { display: grid; gap: 14px; } .kid-top { display: flex; gap: 12px; align-items: center; } .kid-say { display: grid; gap: 8px; } .kid-say p { margin: 0; font-size: 1.35rem; line-height: 1.3; font-weight: 600; }
+.kid-stars { text-align: center; gap: 10px; } .kid-starrow { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; font-size: 2.6rem; line-height: 1; } .kid-starrow span:not(.on) { opacity: .45; } .kid-starrow .gold { font-size: 2rem; }
+.kid-bar { height: 22px; } .kid-reward { margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+.kid-actions, .kid-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kid-big { display: grid; gap: 2px; justify-items: center; align-content: center; text-align: center; padding: 16px 6px; min-height: 124px; border-radius: 22px; border: 3px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; text-decoration: none; cursor: pointer; }
+.kid-big span { font-size: 3.2rem; line-height: 1; } .kid-big b { font-size: 1.25rem; } .kid-big small { color: var(--muted); font-size: .85rem; }
+.kid-big.body { border-color: #e8574a; background: #3a1d22; } .kid-big.mind { border-color: #5f9dff; background: #1b2a4a; } .kid-big.kind { border-color: #ffd24a; background: #3a2e12; }
+.kid-big.chest.ready { border-color: var(--accent); background: linear-gradient(135deg, #3a2c14, #5a4118); animation: kid-wiggle 1.6s ease-in-out infinite; }
+@keyframes kid-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } } @media (prefers-reduced-motion: reduce) { .kid-big.chest.ready { animation: none; } }
+.kid-quests ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; } .kid-quests li { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; padding: 8px; border-radius: 14px; background: var(--panel2); } .kid-quests li.done { opacity: .65; text-decoration: line-through; }
+.kid-check { font-size: 2rem; background: none; border: 0; cursor: pointer; padding: 0 4px; min-width: 48px; min-height: 48px; }
+.kid-sheet { display: grid; gap: 12px; } .kid-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .kid-tabs button { display: grid; justify-items: center; padding: 10px 4px; border-radius: 16px; border: 3px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer; } .kid-tabs button span { font-size: 2rem; } .kid-tabs button.on { border-color: var(--accent); background: #3a2c14; }
+.kid-pick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; } .kid-pick button { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 112px; padding: 10px 6px; border-radius: 20px; border: 3px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; font-size: 1.1rem; font-weight: 700; text-align: center; cursor: pointer; } .kid-pick button span { font-size: 2.8rem; line-height: 1; } .kid-pick small { color: var(--accent); font-size: .9rem; } .kid-pick button.done { border-color: var(--ok); background: #17301f; } .kid-pick button:disabled { opacity: .6; cursor: default; }
+@media (max-width: 380px) { .kid-big span { font-size: 2.6rem; } .kid-big b { font-size: 1.05rem; } }

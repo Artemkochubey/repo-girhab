@@ -6,7 +6,7 @@ export const TABS: Tab[] = [
   { id: 'battle', href: '/battle', emoji: '⚔️', label: 'Бой', match: ['/battle'] },
   { id: 'hero', href: '/hero', emoji: '🛡', label: 'Герой', match: ['/hero'] },
   { id: 'loot', href: '/bag', emoji: '🎒', label: 'Добыча', match: ['/bag', '/shop'] },
-  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/body', '/mind', '/season', '/rating', '/deeds', '/arsenal', '/rules', '/about', '/settings', '/report'] },
+  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/body', '/mind', '/season', '/rating', '/book', '/deeds', '/arsenal', '/rules', '/about', '/settings', '/report'] },
 ];
 
 /** Какая вкладка подсвечена на этом адресе (подстраницы «Ещё» и «Добычи» подсвечивают свою группу). */
@@ -21,6 +21,7 @@ export const MORE_ITEMS: MoreItem[] = [
   { href: '/season', emoji: '🏆', title: 'Сезон', text: 'Рейтинг семьи за месяц и призы' },
   { href: '/arsenal', emoji: '🗡', title: 'Арсенал', text: 'Всё снаряжение игры: мечи, посохи, доспехи' },
   { href: '/about', emoji: '✨', title: 'Что нового', text: 'Новинки игры по версиям' },
+  { href: '/book', emoji: '📖', title: 'Книга достижений', text: 'Итоги семьи и героев для печати' },
   { href: '/rules', emoji: '📖', title: 'Правила', text: 'Как всё работает: очки, уровни, сундуки, бои' },
   { href: '/settings', emoji: '⚙️', title: 'Настройки', text: 'Нормы, квесты, магазин, копии данных (нужен PIN)' },
   { href: '/report', emoji: '📊', title: 'Отчёт', text: 'Итоги недели для родителя', parent: true },

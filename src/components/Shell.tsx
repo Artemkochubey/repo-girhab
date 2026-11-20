@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { post, rpc, type State } from '@/lib/client';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { rankFor } from '@/lib/game/ranks';
@@ -10,6 +10,7 @@ import { SubclassPicker } from './SubclassPicker';
 import { TABS, activeTab } from '@/lib/nav';
 import { QuickLog } from './QuickLog';
 import { RELEASES } from '@/lib/changelogData';
+import { playSound, soundFor } from '@/lib/sound';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -38,6 +39,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+  // повышение уровня и победа над ордой: звук (если включён на этом устройстве)
+  const lvl = s?.detail?.level, outcome = s?.detail?.battle.live.fight.outcome;
+  const prevLvl = useRef<number | null>(null), prevOutcome = useRef<string | null>(null);
+  useEffect(() => {
+    if (lvl === undefined) return;
+    if (prevLvl.current !== null && lvl > prevLvl.current) playSound('levelup');
+    prevLvl.current = lvl;
+  }, [lvl, s?.me]);
+  useEffect(() => {
+    if (!outcome) return;
+    if (prevOutcome.current && prevOutcome.current !== 'victory' && outcome === 'victory') playSound('win');
+    prevOutcome.current = outcome;
+  }, [outcome, s?.me]);
   // точка на «Ещё», пока не открыта страница «Что нового» после обновления (первый запуск молча запоминаем)
   const [newVersion, setNewVersion] = useState(false);
   useEffect(() => {
@@ -64,7 +78,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => { const on = () => reload(); const off = () => setOffline(true); window.addEventListener('online', on); window.addEventListener('offline', off); return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); }; }, [reload]);
 
   const act = useCallback(async (action: string, args: Record<string, unknown> = {}) => {
-    try { const r = await rpc(action, { date: date || undefined, ...args }); await reload(); return r; }
+    try { const r = await rpc(action, { date: date || undefined, ...args }); await reload(); const snd = soundFor(action, r); if (snd) playSound(snd); return r; }
     catch (e) {
       const msg = (e as Error).message;
       if (msg.includes('PIN')) { setPinOpen(true); toast('Режим родителя закончился: введите PIN и повторите действие'); reload(); }

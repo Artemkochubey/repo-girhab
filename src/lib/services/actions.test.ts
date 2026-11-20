@@ -6,7 +6,7 @@ import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
 import { tvRecord } from './tvRecord';
-import { adminView, memberDetail, ratingView, ratingWeekView, tvState } from './view';
+import { adminView, buildState, memberDetail, monthGoalView, ratingView, ratingWeekView, tvState } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -78,7 +78,7 @@ describe('действия', () => {
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
     expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, gear: null, talisman: false, boss: false, why: null });
     const { raw, family } = loadFamily(db, NOW);
-    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, gear: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
+    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ from: 2, holder: 2, n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, gear: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
   });
   it('«Щедрая добыча»: второй приз из сундука', () => {
@@ -377,6 +377,73 @@ describe('действия', () => {
     expect(w.rows[0]!.place).toBe(1);
     expect(w.rows.every((r) => r.daily.filter((d) => d.date > family.today).every((d) => !d.counted))).toBe(true);   // будущие дни не считаются
     expect(ratingWeekView(raw, family, '2000-01-03').rows.every((r) => r.points === 0)).toBe(true);
+  });
+  it('подарок приза: уходит в сумку другого, запрос и выдача идут от нового хозяина', () => {
+    db.insert(s.chestOpened).values({ memberId: 2, n: 1, rarity: 'common', reward: 'Мороженое', date: '2026-11-19', status: 'bag' }).run();
+    const log = (id: number) => { const { raw, family } = loadFamily(db, NOW); return memberDetail(raw, family, family.members.get(id)!).chestLog; };
+    expect(err(() => runAction(db, kid, 'giftChestPrize', { n: 1, to: 2 }))?.status).toBe(400);       // себе нельзя
+    expect(err(() => runAction(db, kid, 'giftChestPrize', { n: 1, to: 999 }))?.status).toBe(404);
+    runAction(db, kid, 'giftChestPrize', { n: 1, to: 1 });
+    expect(log(1)[0]).toMatchObject({ from: 2, holder: 1, n: 1, status: 'bag' });                     // у папы в сумке
+    expect(log(2)[0]).toMatchObject({ from: 2, holder: 1 });                                          // в своём журнале виден, но уже не у меня
+    expect(err(() => runAction(db, kid, 'useChestPrize', { n: 1 }))?.status).toBe(404);              // ребёнок больше не может требовать этот приз
+    expect(err(() => runAction(db, kid, 'giftChestPrize', { n: 1, to: 1 }))?.status).toBe(404);
+    runAction(db, dad, 'useChestPrize', { from: 2, n: 1 });                                          // новый хозяин просит выдать
+    expect(err(() => runAction(db, dad, 'giftChestPrize', { from: 2, n: 1, to: 2 }))?.status).toBe(409);   // запрошенный не подарить
+    const { raw, family } = loadFamily(db, NOW);
+    expect(adminView(raw, family, { loot: [], lootRare: [], lootLegend: [], questSets: [] }).prizesRequested[0]).toMatchObject({ memberId: 1, from: 2, n: 1 });
+    runAction(db, dad, 'deliverChestPrize', { memberId: 1, from: 2, n: 1 });
+    expect(log(1)[0]!.status).toBe('delivered');
+    // подарок обратно хозяину возвращает приз без «держателя»
+    db.insert(s.chestOpened).values({ memberId: 2, n: 2, rarity: 'rare', reward: 'Кино', date: '2026-11-19', status: 'bag' }).run();
+    runAction(db, kid, 'giftChestPrize', { n: 2, to: 1 });
+    runAction(db, dad, 'giftChestPrize', { from: 2, n: 2, to: 2 });
+    expect(db.select().from(s.chestOpened).all().find((r) => r.n === 2)!.holder).toBeNull();
+  });
+  it('цель семьи на месяц: ставит родитель, прогресс из истории, награда отмечается', () => {
+    const view = () => { const { raw, family } = loadFamily(db, NOW); return monthGoalView(raw, family); };
+    expect(view().current).toBeNull();
+    expect(err(() => runAction(db, kid, 'saveMonthGoal', { title: 'Кино', kind: 'points', target: 100 }))?.status).toBe(403);
+    expect(err(() => runAction(db, dad, 'saveMonthGoal', { title: 'Кино', kind: 'weird', target: 100 }))?.status).toBe(400);
+    expect(err(() => runAction(db, dad, 'saveMonthGoal', { title: 'Кино', kind: 'points', target: 0 }))?.status).toBe(400);
+    expect(err(() => runAction(db, dad, 'saveMonthGoal', { month: '2020-01', title: 'Кино', kind: 'points', target: 100 }))?.status).toBe(400);   // прошлый месяц
+    const id = (runAction(db, dad, 'saveMonthGoal', { title: 'Поход в кино', emoji: '🎬', kind: 'points', target: 100, reward: 'Всей семьёй в кино' }) as { id: number }).id;
+    expect(view().current).toMatchObject({ title: 'Поход в кино', progress: 0, done: false, reward: 'Всей семьёй в кино', given: false });
+    runAction(db, kid, 'addWorkout', { minutes: 60 });
+    runAction(db, dad, 'addWorkout', { minutes: 50 });
+    expect(view().current).toMatchObject({ done: true, percent: 100 });
+    expect(view().current!.progress).toBeGreaterThanOrEqual(110);
+    expect(runAction(db, dad, 'saveMonthGoal', { title: 'Поездка', kind: 'deeds', target: 5 })).toEqual({ id });        // тот же месяц обновляет цель
+    expect(view().current).toMatchObject({ title: 'Поездка', kind: 'deeds', done: false });
+    expect(err(() => runAction(db, kid, 'giveMonthGoal', { id }))?.status).toBe(403);
+    runAction(db, dad, 'giveMonthGoal', { id });
+    expect(view().current!.given).toBe(true);
+    runAction(db, dad, 'giveMonthGoal', { id, undo: true });
+    expect(view().current!.given).toBe(false);
+    runAction(db, dad, 'deleteMonthGoal', { id });
+    expect(view().current).toBeNull();
+    expect(view().suggest.points).toBeGreaterThan(0);
+  });
+  it('режим «Малыш»: включает только родитель, виден в сводке героев', () => {
+    const simple = () => { const { raw, family } = loadFamily(db, NOW); return buildState(raw, family, { memberId: 2, parent: false, cfg: { minutes: 30, superMinutes: 60, timezone: 'Asia/Novosibirsk', reminderHour: 19 }, pinSet: true }).members.find((m) => m.id === 2)!.simple; };
+    expect(simple()).toBe(false);
+    expect(err(() => runAction(db, kid, 'setSimple', { on: true }))?.status).toBe(403);
+    runAction(db, dad, 'setSimple', { memberId: 2, on: true });
+    expect(simple()).toBe(true);
+    runAction(db, dad, 'setSimple', { memberId: 2, on: false });
+    expect(simple()).toBe(false);
+  });
+  it('«Я видел»: отметка за день другого героя, свою нельзя, без очков нельзя, повтор снимает', () => {
+    expect(err(() => runAction(db, kid, 'toggleSeen', { targetId: 1 }))?.status).toBe(400);   // у папы пока нет очков
+    runAction(db, dad, 'addWorkout', { minutes: 30 });
+    expect(runAction(db, kid, 'toggleSeen', { targetId: 1 })).toEqual({ on: true });
+    expect(err(() => runAction(db, kid, 'toggleSeen', { targetId: 2 }))?.status).toBe(400);   // свой день
+    const seen = () => { const { raw, family } = loadFamily(db, NOW); return ratingView(raw, family, family.today).rows.find((r) => r.id === 1)!.seen; };
+    expect(seen()).toEqual([2]);
+    runAction(db, dad, 'addWorkout', { memberId: 1, minutes: 1 });
+    expect(runAction(db, kid, 'toggleSeen', { targetId: 1 })).toEqual({ on: false });          // повтор снимает отметку
+    expect(seen()).toEqual([]);
+    expect(err(() => runAction(db, kid, 'toggleSeen', { targetId: 999 }))?.status).toBe(404);
   });
   it('прогулка: минуты считаются по половинной цене с потолком в день', () => {
     const today = () => loadFamily(db, NOW).family.members.get(2)!.days.get(loadFamily(db, NOW).family.today)!;

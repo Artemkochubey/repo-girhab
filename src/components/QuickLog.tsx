@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { speak } from '@/lib/speak';
+import { voiceOn } from './KidHome';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import { WALK } from '@/lib/game/muscles';
 import { CUSTOM_DEED, CUSTOM_NOTE_MAX, DEEDS, DEED_CATEGORIES, deedById, deedStatus } from '@/lib/game/deeds';
@@ -30,13 +32,15 @@ export function QuickLog() {
         <div className="modal sheet" onClick={() => setOpen(false)}>
           <div className="card quick" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Отметить действие">
             <div className="row between"><h3>✍️ Отметить действие <small className="muted">за {dayLabel}</small></h3><button className="btn ghost sm" onClick={() => setOpen(false)}>Закрыть</button></div>
-            <div className="seg" role="tablist">
+            {!s.members.find((m) => m.id === s.me)?.simple && <div className="seg" role="tablist">
               {TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>{t.emoji} {t.name}</button>)}
-            </div>
+            </div>}
+            {s.members.find((m) => m.id === s.me)?.simple ? <KidSheet tab={tab} setTab={setTab} /> : <>
             <p className="muted small">Сегодня очков: <b>{d.day.points}</b>{d.deeds.day.length ? ` · добрых дел: ${d.deeds.day.filter((x) => x.counted).length}` : ''}</p>
             {tab === 'body' && <BodyTab close={() => setOpen(false)} />}
             {tab === 'mind' && <MindTab close={() => setOpen(false)} />}
             {tab === 'kind' && <KindTab close={() => setOpen(false)} />}
+            </>}
           </div>
         </div>
       )}
@@ -134,6 +138,53 @@ function KindTab({ close }: { close: () => void }) {
         <div className="row"><input className="grow" placeholder="Что вы сделали?" value={note} maxLength={CUSTOM_NOTE_MAX} onChange={(e) => setNote(e.target.value)} /><button className="btn" disabled={note.trim().length < 3 || deedStatus(rows, CUSTOM_DEED) !== 'ok'}>+8</button></div>
       </form>
       <Link className="btn ghost" href="/deeds" onClick={close}>💛 Моя доброта: журнал и успехи</Link>
+    </div>
+  );
+}
+
+/** Окно записи для режима «Малыш»: крупные картинки-кнопки, один шаг на действие, похвала голосом. */
+function KidSheet({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  const { s, act, toast } = useGame();
+  const d = s.detail!;
+  const praise = (text: string) => { toast(`🌟 Молодец! ${text}`); try { if (voiceOn()) speak('Молодец!'); } catch { /* голос не обязателен */ } };
+  const run = (action: string, args: Record<string, unknown>, text: string) => act(action, args).then(() => praise(text)).catch(() => {});
+  const warm = d.day.stats.warmups > 0;
+  const rows = d.deeds.day.map((x) => ({ kind: x.kind }));
+  const study = (kind: string, minutes: number) => run('addStudy', { kind, minutes }, `${kind} ${minutes} минут`);
+  const KID_DEEDS = ['tidy', 'dishes', 'table', 'sibling', 'hug', 'share', 'pet', 'plant', 'thanks'];
+  const tabs: { id: Tab; emoji: string; name: string }[] = [{ id: 'body', emoji: '💪', name: 'Тело' }, { id: 'mind', emoji: '🧠', name: 'Ум' }, { id: 'kind', emoji: '💛', name: 'Добро' }];
+  return (
+    <div className="kid-sheet">
+      <div className="kid-tabs">{tabs.map((t) => <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}><span>{t.emoji}</span>{t.name}</button>)}</div>
+      {tab === 'body' && (
+        <div className="kid-pick">
+          <button disabled={warm} className={warm ? 'done' : ''} onClick={() => run('recordWarmup', {}, 'Зарядка!')}><span>🔥</span>{warm ? '✔ Зарядка' : 'Зарядка'}</button>
+          <button onClick={() => run('addWorkout', { exercise: WALK.id, minutes: 30 }, 'Прогулка 30 минут')}><span>🌳</span>Прогулка<small>30 минут</small></button>
+          <button onClick={() => run('addWorkout', { exercise: WALK.id, minutes: 60 }, 'Прогулка час')}><span>🚶</span>Долгая прогулка<small>1 час</small></button>
+          <button onClick={() => run('addWorkout', { minutes: 15 }, 'Побегал 15 минут')}><span>🏃</span>Побегал<small>15 минут</small></button>
+          <button onClick={() => run('addWorkout', { minutes: 30 }, 'Тренировка 30 минут')}><span>💪</span>Тренировка<small>30 минут</small></button>
+        </div>
+      )}
+      {tab === 'mind' && (
+        <div className="kid-pick">
+          <button onClick={() => study('Книги', 15)}><span>📖</span>Читал<small>15 минут</small></button>
+          <button onClick={() => study('Учёба', 15)}><span>🎓</span>Учился<small>15 минут</small></button>
+          <button onClick={() => study('Творчество', 15)}><span>🎨</span>Рисовал, лепил<small>15 минут</small></button>
+          <button onClick={() => study('Мышление', 15)}><span>🧩</span>Головоломки<small>15 минут</small></button>
+          <button onClick={() => study('Языки', 15)}><span>🗣</span>Слова на языке<small>15 минут</small></button>
+          {d.habits.map((h) => <button key={h.id} className={h.checked ? 'done' : ''} onClick={() => act('toggleHabit', { habitId: h.id }).then(() => !h.checked && praise(h.name)).catch(() => {})}><span>{h.checked ? '✅' : '⬜'}</span>{h.name}</button>)}
+        </div>
+      )}
+      {tab === 'kind' && (
+        <div className="kid-pick">
+          {KID_DEEDS.map((id) => {
+            const def = deedById(id)!;
+            const st = deedStatus(rows, id);
+            const done = d.deeds.day.some((j) => j.kind === id && j.counted);
+            return <button key={id} disabled={st !== 'ok'} className={done ? 'done' : ''} onClick={() => run('addDeed', { kind: id }, def.name)}><span>{def.emoji}</span>{def.name}<small>{done ? '✔ сегодня' : st === 'cap' ? 'на сегодня хватит' : `+${def.points}`}</small></button>;
+          })}
+        </div>
+      )}
     </div>
   );
 }

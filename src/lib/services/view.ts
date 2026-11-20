@@ -4,7 +4,9 @@ import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
 import { buildRating, buildWeekRating } from '../game/rating';
+import { MONTH_GOAL_INFO, MONTH_GOAL_KINDS, monthEnd, monthOf, monthStart, resolveMonthGoal, suggestTarget, type MonthGoalKind } from '../game/monthGoal';
 import { weekStart } from '../game/boss';
+import { rankFor } from '../game/ranks';
 import { DEED_DAY_CAP, deedJournal, deedSummary } from '../game/deeds';
 import { parseFace } from '../game/faces';
 import { CLASS_BATTLE, classOnly } from '../game/classBattle';
@@ -22,7 +24,7 @@ const bossView = (b: Family['boss']) => ({ ...b, boss: BOSSES.find((x) => x.id =
 const summary = (raw: Raw, fam: Family) =>
   raw.members.map((m) => {
     const st = fam.members.get(m.id)!;
-    return { id: m.id, name: m.name, emoji: m.emoji, gender: (m.gender === 'f' ? 'f' : m.gender === 'm' ? 'm' : null) as 'm' | 'f' | null, face: parseFace(m.face, m.gender === 'f' ? 'f' : 'm'), color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
+    return { id: m.id, name: m.name, emoji: m.emoji, simple: !!m.simple, gender: (m.gender === 'f' ? 'f' : m.gender === 'm' ? 'm' : null) as 'm' | 'f' | null, face: parseFace(m.face, m.gender === 'f' ? 'f' : 'm'), color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
       badges: st.achievements.filter((a) => a.earnedOn).length, xp: st.xp, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
       damageThisWeek: fam.boss.byMember[m.id] ?? 0,
       // что надето (id предмета по слотам): для фигур героев в боях
@@ -100,9 +102,10 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     })(),
     // «Моя сумка»: все невыданные призы и последние выданные
     chestLog: (() => {
-      const mine = raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => b.n - a.n);
+      // свои сундуки (в том числе подаренные другому) и подарки, которые лежат у меня
+      const mine = raw.chestsOpened.filter((c) => c.memberId === st.id || c.holder === st.id).sort((a, b) => b.n - a.n || a.memberId - b.memberId);
       return [...mine.filter((c) => (c.status ?? 'bag') !== 'delivered'), ...mine.filter((c) => c.status === 'delivered').slice(0, 100)]
-        .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', artifact: c.artifact ?? null, gear: c.gear ?? null, status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
+        .map((c) => ({ from: c.memberId, holder: c.holder ?? c.memberId, n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', artifact: c.artifact ?? null, gear: c.gear ?? null, status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
     })(),
     // личное сражение и снаряжение
     battle: (() => {
@@ -173,7 +176,7 @@ export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRar
       .map((w) => ({ id: w.id, minutes: w.minutes, reps: w.reps ?? null, exercise: w.exercise ?? null, eq: w.eq })),
   }));
   const prizesRequested = raw.chestsOpened.filter((c) => c.status === 'requested').sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
-    .map((c) => ({ memberId: c.memberId, n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '' }));
+    .map((c) => ({ memberId: c.holder ?? c.memberId, from: c.memberId, n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '' }));
   // ручные цели (родитель отмечает выполнение): текущая и прошлая неделя
   const ws = goalWeekStart(fam.today), prev = addDays(ws, -7);
   const manualGoals = raw.weeklyGoals.filter((g) => g.manual && (g.weekStart === ws || g.weekStart === prev))
@@ -203,6 +206,7 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
     members: summary(raw, fam),
     boss: bossView(fam.boss),
     admin: opts.admin ?? null,
+    monthGoal: monthGoalView(raw, fam),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     season: { current: fam.seasons.current, history: fam.seasons.history.slice(0, 6), prizes: SEASON_CHESTS, wins: fam.seasons.wins },
@@ -211,14 +215,54 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
   };
 }
 
-/** Публичная сводка для ТВ: без деталей записей. */
+/** «Книга достижений»: итоги каждого героя для печатной страницы. */
+export function bookView(raw: Raw, fam: Family) {
+  const stat = (st: MemberState, metric: string) => st.achievements.find((a) => a.metric === metric)?.value ?? 0;
+  const members = raw.members.map((m) => {
+    const st = fam.members.get(m.id)!;
+    const rk = rankFor(st.level, st.xp).rank;
+    const first = [...st.days.keys()].sort()[0] ?? fam.today;
+    return {
+      id: m.id, name: m.name, emoji: m.emoji, color: m.color, gender: m.gender === 'f' ? 'f' : m.gender === 'm' ? 'm' : null, face: parseFace(m.face, m.gender === 'f' ? 'f' : 'm'),
+      cls: st.hero.cls, sub: st.hero.sub, level: st.level, xp: Math.round(st.xp), rank: { emoji: rk.emoji, name: rk.name }, since: first,
+      look: Object.fromEntries(st.equipped.map((e) => [e.item.slot, e.item.id])) as Record<string, string>,
+      counts: { bossWins: stat(st, 'bossWins'), dayMvps: stat(st, 'dayMvps'), deeds: stat(st, 'deeds'), books: stat(st, 'books'), chests: stat(st, 'chests'), seasonWins: stat(st, 'seasonWins'), workoutDays: stat(st, 'workoutDays'), streak: stat(st, 'streak') },
+      achievements: st.achievements.filter((a) => a.earnedOn).sort((a, b) => (a.earnedOn! < b.earnedOn! ? 1 : -1)).map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, earnedOn: a.earnedOn! })),
+      achievementsTotal: st.achievements.length,
+    };
+  });
+  const defeated = fam.bossHistory.filter((b) => b.finished && b.defeated).length;
+  return { today: fam.today, members, family: { xp: members.reduce((a, m) => a + m.xp, 0), bossesDefeated: defeated, bossWeeks: fam.bossHistory.filter((b) => b.finished).length, familyQuestsDone: fam.familyQuests.filter((q) => q.done).length, deeds: members.reduce((a, m) => a + m.counts.deeds, 0) } };
+}
+
+/** Цель семьи на месяц: текущая (по сегодняшнему месяцу) и прошлого месяца, пока награда не выдана. */
+export function monthGoalView(raw: Raw, fam: Family) {
+  const build = (g: NonNullable<Raw['monthGoals']>[number]) => {
+    const days = dateRange(monthStart(g.month), monthEnd(g.month)).filter((d) => d <= fam.today).map((date) => ({
+      date, members: raw.members.flatMap((m) => { const d = fam.members.get(m.id)?.days.get(date); return d ? [{ total: d.total, goal: m.goal, deeds: d.stats.deeds }] : []; }),
+    }));
+    const st = resolveMonthGoal(g.kind, g.target, g.month, days, fam.today);
+    return { id: g.id, month: g.month, title: g.title, emoji: g.emoji, kind: g.kind, reward: g.reward, given: g.given, text: MONTH_GOAL_INFO[g.kind].text(g.target), unit: MONTH_GOAL_INFO[g.kind].unit, ...st };
+  };
+  const goals = raw.monthGoals ?? [];
+  const cur = goals.find((g) => g.month === monthOf(fam.today));
+  const prevMonth = monthOf(addDays(monthStart(monthOf(fam.today)), -1));
+  const prev = goals.find((g) => g.month === prevMonth);
+  return {
+    month: monthOf(fam.today),
+    current: cur ? build(cur) : null,
+    previous: prev && !prev.given ? build(prev) : null,
+    suggest: Object.fromEntries(MONTH_GOAL_KINDS.map((k) => [k, suggestTarget(k, raw.members.filter((m) => !m.isParent).map((m) => m.goal).concat(raw.members.filter((m) => m.isParent).map((m) => m.goal)), monthOf(fam.today))])) as Record<MonthGoalKind, number>,
+  };
+}
+
 /** Рейтинг дня: места, очки, процент нормы и из чего набраны очки. Дата любая, до 30 дней назад. */
 export function ratingView(raw: Raw, fam: Family, date: string) {
   const rows = buildRating(raw.members.map((m) => {
     const d = fam.members.get(m.id)?.days.get(date);
     const wm = d?.stats.workoutMinutes ?? 0;
     return { id: m.id, goal: m.goal, superGoal: m.superGoal, total: d?.total ?? 0, bySphere: d?.bySphere ?? {}, questXp: d?.stats.questXp ?? 0, walkShare: d && wm > 0 ? d.stats.walk / wm : 0, exists: !!d };
-  })).map((r) => { const m = raw.members.find((x) => x.id === r.id)!; return { ...r, name: m.name, emoji: m.emoji, color: m.color }; });
+  })).map((r) => { const m = raw.members.find((x) => x.id === r.id)!; return { ...r, name: m.name, emoji: m.emoji, color: m.color, seen: (raw.seen ?? []).filter((x) => x.targetId === r.id && x.date === date).map((x) => x.byId) }; });
   return { date, today: fam.today, isToday: date === fam.today, rows };
 }
 
@@ -231,6 +275,7 @@ export function ratingWeekView(raw: Raw, fam: Family, anyDate: string) {
   return { weekStart: start, weekEnd: end, today: fam.today, isCurrent: start === weekStart(fam.today), dates, rows };
 }
 
+/** Публичная сводка для ТВ: без деталей записей. */
 export function tvState(raw: Raw, fam: Family) {
   const record = (id: number) => {
     const st = fam.members.get(id)!, d = st.days.get(fam.today);
@@ -243,7 +288,7 @@ export function tvState(raw: Raw, fam: Family) {
     };
   };
   return {
-    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, rating: ratingView(raw, fam, fam.today), ratingWeek: ratingWeekView(raw, fam, fam.today),
+    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, rating: ratingView(raw, fam, fam.today), ratingWeek: ratingWeekView(raw, fam, fam.today), monthGoal: monthGoalView(raw, fam),
     season: { id: fam.seasons.current.id, daysLeft: fam.seasons.current.daysLeft, top: fam.seasons.current.rows.slice(0, 4).map((r) => ({ memberId: r.memberId, ratio: r.ratio, points: r.points })) }, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },

@@ -1,4 +1,4 @@
-import type { LiveBattleDto, RatingDto, RatingWeekDto } from './client';
+import type { LiveBattleDto, MonthGoalViewDto, RatingDto, RatingWeekDto } from './client';
 import type { FaceConfig } from './game/faces';
 
 export interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
@@ -9,7 +9,7 @@ export interface TvQuest { t: string; xp: number; manual: boolean; done: boolean
 export interface Tv {
   familyQuests: TvFq[];
   mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
-  today: string; timezone: string; reminderHour: number; rating?: RatingDto; ratingWeek?: RatingWeekDto;
+  today: string; timezone: string; reminderHour: number; rating?: RatingDto; ratingWeek?: RatingWeekDto; monthGoal?: MonthGoalViewDto;
   battles: Record<number, { horde: string; emoji: string; cleared: number; hp: number; maxHp: number; outcome: string; live: LiveBattleDto; active: string[] }>;
   goals: Record<number, { title: string; emoji: string; progress: number; target: number; done: boolean; manual: boolean; tier: string } | null>;
   season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };

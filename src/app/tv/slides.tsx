@@ -4,6 +4,7 @@ import { BossScene } from '@/components/BossScene';
 import { ClimbRoster } from '@/components/ClimbRoster';
 import { HeroFigure } from '@/components/HeroFigure';
 import { MountainClimb } from '@/components/MountainClimb';
+import { MonthGoalCard } from '@/components/MonthGoalCard';
 import { RatingTable } from '@/components/RatingTable';
 import { WeekRatingTable } from '@/components/WeekRatingTable';
 import { STUDY_KINDS } from '@/lib/db/schema';
@@ -56,6 +57,7 @@ export function OverviewSlide({ d }: { d: Tv }) {
           );
         })}
       </section>
+      {d.monthGoal?.current && <MonthGoalCard g={d.monthGoal.current} tv />}
       <MvpRow d={d} />
       {d.familyQuests.length > 0 && (
         <section className="tv-fq">

@@ -12,6 +12,8 @@ export const member = sqliteTable('member', {
   // пол героя ('m' | 'f') и лицо (JSON FaceConfig); пока лицо не выбрано, везде показывается emoji
   gender: text('gender'),
   face: text('face'),
+  // режим «Малыш»: крупные кнопки и картинки, чтение вслух (включает родитель)
+  simple: integer('simple', { mode: 'boolean' }).notNull().default(false),
   color: text('color').notNull().default('#8b5cf6'),
   isParent: integer('is_parent', { mode: 'boolean' }).notNull().default(false),
   goal: integer('goal').notNull().default(60),
@@ -139,6 +141,8 @@ export const chestOpened = sqliteTable('chest_opened', {
   source: text('source', { enum: ['normal', 'boss'] }).notNull().default('normal'),
   // снаряжение (id предмета), найденное в этом сундуке, или null
   gear: text('gear'),
+  // у кого приз лежит сейчас (подарок брату или сестре); null — у того, кто его открыл
+  holder: integer('holder'),
 }, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
 
 export const bossWeek = sqliteTable('boss_week', {
@@ -270,3 +274,25 @@ export const abilityUse = sqliteTable('ability_use', {
   ability: text('ability').notNull(),
   createdAt: createdAt(),
 }, (t) => [unique('ability_use_unique').on(t.memberId, t.date, t.ability)]);
+
+/** «Я видел»: один герой отметил 👍 день другого. Одна отметка на пару героев и день. */
+export const daySeen = sqliteTable('day_seen', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  targetId: integer('target_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  byId: integer('by_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  createdAt: createdAt(),
+}, (t) => [unique('day_seen_unique').on(t.targetId, t.byId, t.date)]);
+
+/** Общая цель семьи на месяц (поход, кино...). Прогресс считается из истории, хранится только цель и отметка «награда получена». */
+export const monthGoal = sqliteTable('month_goal', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  month: text('month').notNull(),                       // 'ГГГГ-ММ'
+  title: text('title').notNull(),
+  emoji: text('emoji').notNull().default('🏕'),
+  kind: text('kind', { enum: ['points', 'deeds', 'normDays'] }).notNull(),
+  target: integer('target').notNull(),
+  reward: text('reward').notNull().default(''),
+  given: integer('given', { mode: 'boolean' }).notNull().default(false),
+  createdAt: createdAt(),
+}, (t) => [unique('month_goal_unique').on(t.month)]);

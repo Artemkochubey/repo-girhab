@@ -5,6 +5,7 @@ import { hourIn } from '@/lib/clock';
 import { TV_AUTO, TV_INTERVALS, TV_SLIDES, dayPhase, isSlide, stepSlide, tvEvents, tvHighlights, type TvEvent, type TvSlideId } from '@/lib/tvLogic';
 import type { Tv } from '@/lib/tvTypes';
 import { BattlesSlide, BossSlide, HeroesSlide, MountainSlide, OverviewSlide, QuestsSlide, RatingSlide, RecordSlide, SeasonSlide, WeekSlide } from './slides';
+import { playSound, setSoundEnabled, soundEnabled } from '@/lib/sound';
 import './tv.css';
 
 const STORE = 'mr_tv';
@@ -35,6 +36,8 @@ export default function TvPage() {
   const [tick, setTick] = useState(0);
   const [cheer, setCheer] = useState<TvEvent | null>(null);
   const [idle, setIdle] = useState(false);
+  const [sound, setSound] = useState(false);
+  useEffect(() => { setSound(soundEnabled()); }, []);
   const prev = useRef<Tv | null>(null);
   const queue = useRef<TvEvent[]>([]);
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,6 +63,7 @@ export default function TvPage() {
     if (cheer || !queue.current.length) return;
     const ev = queue.current.shift()!;
     setCheer(ev);
+    playSound(!ev.big ? 'ok' : ev.emoji === '🏆' || ev.emoji === '🐉' ? 'win' : 'levelup');
     const t = setTimeout(() => setCheer(null), ev.big ? 6000 : 3500);
     return () => clearTimeout(t);
   }, [cheer, tick]);
@@ -187,6 +191,7 @@ export default function TvPage() {
           <button data-tv className="tv-tab sm" onClick={() => save({ interval: TV_INTERVALS[(TV_INTERVALS.indexOf(prefs.interval as (typeof TV_INTERVALS)[number]) + 1) % TV_INTERVALS.length]! })} title="Как часто меняется экран">⏱ {prefs.interval} с</button>
           <button data-tv className="tv-tab sm" onClick={() => save({ scale: SCALES[Math.max(0, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) - 1)]! })} aria-label="Мельче">A−</button>
           <button data-tv className="tv-tab sm" onClick={() => save({ scale: SCALES[Math.min(SCALES.length - 1, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) + 1)]! })} aria-label="Крупнее">A+</button>
+          <button data-tv className="tv-tab sm" onClick={() => { const on = !sound; setSoundEnabled(on); setSound(on); if (on) playSound('levelup', true); }} aria-pressed={sound} aria-label={sound ? 'Выключить звук' : 'Включить звук'}>{sound ? '🔊' : '🔇'}</button>
           <button data-tv className="tv-tab sm" onClick={fullscreen} aria-label="Во весь экран">⛶</button>
         </span>
       </nav>

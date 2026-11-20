@@ -24,6 +24,8 @@ export function loadRaw(db: Db): Raw {
     deeds: db.select().from(s.deedEntry).all(),
     quests: db.select().from(s.questOverride).all(),
     chestsOpened: db.select().from(s.chestOpened).all(),
+    seen: db.select().from(s.daySeen).all(),
+    monthGoals: db.select().from(s.monthGoal).all(),
     familyQuests: db.select().from(s.familyQuest).all(),
     dayMvps: db.select().from(s.dayMvp).all(),
     mvpSince: getConfig(db).mvpSince,

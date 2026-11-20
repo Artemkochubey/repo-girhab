@@ -54,9 +54,14 @@ export type DomainId = 'body' | 'mind' | 'art' | 'will';
 import type { FaceConfig } from './game/faces';
 import type { DeedSummary } from './game/deeds';
 export interface DeedItemDto { id: number | null; date: string; kind: string; note: string | null; counted: boolean; points: number }
+export interface MonthGoalDto {
+  id: number; month: string; title: string; emoji: string; kind: 'points' | 'deeds' | 'normDays'; target: number; reward: string; given: boolean; text: string; unit: string;
+  progress: number; percent: number; done: boolean; doneDate: string | null; daysLeft: number; daysTotal: number; expected: number; onTrack: boolean; need: number;
+}
+export interface MonthGoalViewDto { month: string; current: MonthGoalDto | null; previous: MonthGoalDto | null; suggest: Record<'points' | 'deeds' | 'normDays', number> }
 export interface RatingRowDto {
   id: number; place: number; points: number; goal: number; superGoal: number; percent: number; ratio: number; qualified: boolean; mvp: boolean;
-  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; name: string; emoji: string; color: string; exists: boolean;
+  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; name: string; emoji: string; color: string; exists: boolean; seen: number[];
 }
 export interface RatingWeekRowDto {
   id: number; place: number; points: number; percent: number; ratio: number; normDays: number; days: number; best: { date: string; points: number } | null;
@@ -80,13 +85,14 @@ export const lookOf = (g: { items: { key: string; itemId: string }[]; slots: Rec
   Object.fromEntries(Object.entries(g.slots).map(([sl, k]) => [sl, g.items.find((x) => x.key === k)?.itemId ?? null]));
 
 export interface State {
+  monthGoal: MonthGoalViewDto;
   season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
   familyQuests: FamilyQuestDto[];
   mvp: MvpDto;
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
   config: { minutes: number; superMinutes: number; timezone: string; reminderHour: number };
-  members: { id: number; name: string; emoji: string; gender: 'm' | 'f' | null; face: FaceConfig | null; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number; look: Record<string, string> }[];
+  members: { id: number; name: string; emoji: string; simple: boolean; gender: 'm' | 'f' | null; face: FaceConfig | null; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number; look: Record<string, string> }[];
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
     pending: { memberId: number; date: string; index: number; t: string; xp: number }[];
@@ -94,7 +100,7 @@ export interface State {
     quests: Record<number, { items: QuestDto[]; hasDefault: boolean }>;
     loot: string[]; lootRare: string[]; lootLegend: string[];
     manualGoals: { memberId: number; weekStart: string; title: string; tier: 'easy' | 'mid' | 'hard'; confirmed: boolean; finished: boolean }[];
-    prizesRequested: { memberId: number; n: number; date: string; rarity: string; reward: string }[];
+    prizesRequested: { memberId: number; from: number; n: number; date: string; rarity: string; reward: string }[];
     review: { memberId: number; date: string; points: number; reasons: string[]; entries: { id: number; minutes: number; reps: number | null; exercise: string | null; eq: number }[] }[];
     questSets: { id: string; name: string; emoji: string; items: QuestDto[] }[];
   };
@@ -109,7 +115,7 @@ export interface State {
     goal: { weekStart: string; weekEnd: string; canChoose: boolean; current: GoalStateDto | null; last: GoalStateDto | null; options: GoalOptionDto[] };
     artifacts: ArtifactDto[];
     artifactDates: { shield: string[]; doubler: string[] };
-    chestLog: { n: number; date: string; rarity: string; reward: string; artifact: string | null; gear: string | null; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
+    chestLog: { from: number; holder: number; n: number; date: string; rarity: string; reward: string; artifact: string | null; gear: string | null; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
     radar: { key: string; value: number }[];
     deeds: { cap: number; day: DeedItemDto[]; summary: DeedSummary; recent: DeedItemDto[] };
     achievements: AchievementDto[];

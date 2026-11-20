@@ -49,6 +49,8 @@ export function tvEvents(prev: Tv | null, next: Tv): TvEvent[] {
     const q = next.quests.find((x) => x.memberId === m.id)?.items ?? [], pq = prev.quests.find((x) => x.memberId === m.id)?.items ?? [];
     for (const it of q) if (it.done && pq.find((x) => x.index === it.index && !x.done)) add(`q:${m.id}:${it.index}`, '📜', `${m.emoji} ${m.name}: квест «${it.t}» выполнен`, false);
   }
+  const mg = next.monthGoal?.current, pmg = prev.monthGoal?.current;
+  if (mg?.done && pmg && !pmg.done && pmg.id === mg.id) add(`mg:${mg.id}`, '🏕', `Цель семьи достигнута: ${mg.title}!${mg.reward ? ` Награда: ${mg.reward}` : ''}`);
   if (next.boss.defeated && !prev.boss.defeated) add('boss', '🐉', `${next.boss.boss.emoji} ${next.boss.boss.name} повержен! Вся семья молодцы!`);
   for (const f of next.familyQuests) if (f.done && prev.familyQuests.find((x) => x.id === f.id && !x.done)) add(`fq:${f.id}`, '👨‍👩‍👧‍👦', `Семейный квест «${f.title}» выполнен!`);
   return out;
@@ -81,6 +83,9 @@ export function tvHighlights(d: Tv, hour: number): string[] {
   const topM = top ? d.members.find((m) => m.id === Number(top[0])) : null;
   if (d.boss.defeated) out.push(`🐉 ${d.boss.boss.name} повержен!`);
   else out.push(`🐉 ${d.boss.boss.name}: осталось ${left} из ${d.boss.hp} HP${topM && top![1] > 0 ? `, больше всех бьёт ${topM.emoji} ${topM.name}` : ''}`);
+  const g = d.monthGoal?.current;
+  if (g && !g.done) out.push(`${g.emoji} Цель семьи «${g.title}»: ${g.progress} из ${g.target} ${g.unit} (${g.percent}%)${g.onTrack ? ', идём по плану' : `, нужно ${g.need} ${g.unit} в день`}`);
+  else if (g?.done) out.push(`🎉 Цель семьи «${g.title}» достигнута!${g.reward ? ` Награда: ${g.reward}` : ''}`);
   const lead = d.mvp.leader ? d.members.find((m) => m.id === d.mvp.leader!.memberId) : null;
   if (lead) out.push(`⚡ Сегодня лидирует ${lead.emoji} ${lead.name}: ${Math.round(d.mvp.leader!.ratio * 100)}% от нормы`);
   out.push(`🏆 До конца сезона ${d.season.daysLeft} дн.`);

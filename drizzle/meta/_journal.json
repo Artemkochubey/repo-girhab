@@ -120,6 +120,13 @@
       "when": 1795178707946,
       "tag": "0016_fresh_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795183449862,
+      "tag": "0017_cool_sentinels",
+      "breakpoints": true
     }
   ]
 }

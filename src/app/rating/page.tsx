@@ -14,7 +14,7 @@ const dm = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ru', { d
 
 /** «Рейтинг»: за день и за неделю, кто на каком месте и за счёт чего набраны очки. */
 export default function RatingPage() {
-  const { s } = useGame();
+  const { s, act } = useGame();
   const [mode, setMode] = useState<Mode>(() => { try { return sessionStorage.getItem(MODE_KEY) === 'week' ? 'week' : 'day'; } catch { return 'day'; } });
   const [date, setDate] = useState<string>('');       // день ('' — сегодня)
   const [anyDay, setAnyDay] = useState<string>('');   // любая дата нужной недели ('' — текущая)
@@ -65,7 +65,7 @@ export default function RatingPage() {
       {err && <p className="bk-warn">{err}</p>}
       {mode === 'day' && !day && !err && <p className="muted">Загрузка…</p>}
       {mode === 'week' && !week && !err && <p className="muted">Загрузка…</p>}
-      {mode === 'day' && day && <section className="card"><RatingTable rows={day.rows} me={s.me} /></section>}
+      {mode === 'day' && day && <section className="card"><RatingTable rows={day.rows} me={s.me} onSeen={(id) => act('toggleSeen', { targetId: id, date: day.date }).then(load).catch(() => {})} /></section>}
       {mode === 'week' && week && <section className="card"><WeekRatingTable w={week} me={s.me} /></section>}
       {(mode === 'day' ? day : week) && (
         <section className="card">

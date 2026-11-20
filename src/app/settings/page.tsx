@@ -6,6 +6,7 @@ import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { BackupBlock } from '@/components/BackupBlock';
 import { GoalAdmin } from '@/components/GoalAdmin';
+import { MonthGoalAdmin } from '@/components/MonthGoalAdmin';
 import { QuestSets } from '@/components/QuestSets';
 import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
@@ -32,6 +33,7 @@ function MemberRow({ m }: { m: M }) {
       <input type="color" value={f.color} onChange={(e) => up({ color: e.target.value })} aria-label="Цвет" className="color" />
       <label className="xpl">Цель <input className="num" inputMode="numeric" value={f.goal} onChange={(e) => up({ goal: e.target.value.replace(/\D/g, '') })} /></label>
       <label className="xpl">Супер <input className="num" inputMode="numeric" value={f.superGoal} onChange={(e) => up({ superGoal: e.target.value.replace(/\D/g, '') })} /></label>
+      <label className="xpl kid-toggle" title="Крупные кнопки, звёздочки вместо очков, чтение вслух"><input type="checkbox" checked={m.simple} onChange={(e) => act('setSimple', { memberId: m.id, on: e.target.checked }).then(() => toast(e.target.checked ? '🧸 Режим «Малыш» включён' : 'Режим «Малыш» выключен')).catch(() => {})} /> 🧸 Малыш</label>
       <button className="btn" onClick={() => act('updateMember', { memberId: m.id, ...f, goal: Number(f.goal), superGoal: Number(f.superGoal) }).then(() => toast('Сохранено')).catch(() => {})}>OK</button>
     </div>
   );
@@ -105,8 +107,8 @@ function AdminSettings() {
               const m = nameOf(p.memberId);
               return (
                 <li key={`${p.memberId}-${p.n}`} className="wrapRow">
-                  <span className="grow">{m?.emoji} {m?.name}: <b>{p.reward}</b> <small className="muted">(сундук №{p.n}, {p.date})</small></span>
-                  <button className="btn" onClick={() => act('deliverChestPrize', { memberId: p.memberId, n: p.n }).then(() => toast('Отмечено: выдано')).catch(() => {})}>✔ Выдано</button>
+                  <span className="grow">{m?.emoji} {m?.name}: <b>{p.reward}</b> <small className="muted">(сундук №{p.n}, {p.date}{p.from !== p.memberId ? `, подарок от ${nameOf(p.from)?.name ?? '?'}` : ''})</small></span>
+                  <button className="btn" onClick={() => act('deliverChestPrize', { memberId: p.memberId, from: p.from, n: p.n }).then(() => toast('Отмечено: выдано')).catch(() => {})}>✔ Выдано</button>
                 </li>
               );
             })}
@@ -144,6 +146,7 @@ function AdminSettings() {
       )}
       {tab === 'quests' && (
         <>
+      <MonthGoalAdmin />
       <FamilyQuestAdmin />
 
       <QuestSets />

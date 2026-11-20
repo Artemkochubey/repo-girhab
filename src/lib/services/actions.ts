@@ -3,6 +3,7 @@ import { hashPin, validPin } from '../auth';
 import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
+import { MONTH_GOAL_KINDS, validMonth, type MonthGoalKind } from '../game/monthGoal';
 import { CUSTOM_DEED, CUSTOM_NOTE_MAX, DEED_DAY_CAP, deedById, scoreDeeds } from '../game/deeds';
 import { defaultFace, parseFace, validateFace, type Gender } from '../game/faces';
 import { AVATARS } from '../game/avatars';
@@ -57,6 +58,15 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
     return d;
   };
 
+  // приз по номеру сундука и тому, кто его открыл (from); держать приз должен memberId (подарок мог поменять хозяина)
+  const chestRow = (memberId: number, from: unknown, n: number) => {
+    const opener = typeof from === 'number' ? from : memberId;
+    const row = db.select().from(s.chestOpened).where(and(eq(s.chestOpened.memberId, opener), eq(s.chestOpened.n, n))).get();
+    if (!row) return fail(404, 'Нет такого приза');
+    if ((row.holder ?? row.memberId) !== memberId) fail(404, 'Этот приз сейчас не в вашей сумке');
+    return row;
+  };
+
   switch (action) {
     case 'addWorkout': {
       const memberId = target(), date = dateArg();
@@ -101,6 +111,50 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       db.insert(s.deedEntry).values({ memberId, date, kind: def!.id, note, createdBy: ctx.memberId }).run();
       const after = scoreDeeds([...rows, { kind: def!.id }]);
       return { ok: true, counted: after.counted > before, points: after.counted > before ? def!.points : 0, countedToday: after.counted };
+    }
+    case 'saveMonthGoal': {
+      // цель семьи на месяц: одна на месяц, ставит родитель (текущий или будущий месяц)
+      needParent();
+      const month = a.month === undefined ? today.slice(0, 7) : a.month;
+      if (!validMonth(month)) fail(400, 'Неверный месяц');
+      if ((month as string) < today.slice(0, 7)) fail(400, 'Цель можно поставить на этот месяц или на следующие');
+      const kind = String(a.kind);
+      if (!MONTH_GOAL_KINDS.includes(kind as MonthGoalKind)) fail(400, 'Неизвестный вид цели');
+      const title = str(a.title, 60, 'Название');
+      const reward = a.reward === undefined || a.reward === null || a.reward === '' ? '' : str(a.reward, 80, 'Награда');
+      const target = int(a.target, 1, 100000, 'Цель');
+      const emoji = String(a.emoji ?? '🏕').slice(0, 4) || '🏕';
+      const ex = db.select().from(s.monthGoal).where(eq(s.monthGoal.month, month as string)).get();
+      if (ex) { db.update(s.monthGoal).set({ title, emoji, kind: kind as MonthGoalKind, target, reward }).where(eq(s.monthGoal.id, ex.id)).run(); return { id: ex.id }; }
+      return { id: db.insert(s.monthGoal).values({ month: month as string, title, emoji, kind: kind as MonthGoalKind, target, reward }).returning().get().id };
+    }
+    case 'deleteMonthGoal': {
+      needParent();
+      db.delete(s.monthGoal).where(eq(s.monthGoal.id, int(a.id, 1, 1e9, 'id'))).run();
+      return { ok: true };
+    }
+    case 'giveMonthGoal': {
+      // родитель отметил, что общая награда получена (или вернул отметку)
+      needParent();
+      const id = int(a.id, 1, 1e9, 'id');
+      if (!db.select().from(s.monthGoal).where(eq(s.monthGoal.id, id)).get()) fail(404, 'Нет такой цели');
+      db.update(s.monthGoal).set({ given: a.undo !== true }).where(eq(s.monthGoal.id, id)).run();
+      return { ok: true };
+    }
+    case 'toggleSeen': {
+      // «Я видел»: 👍 за день другого героя. Свою отметку можно снять. Отметить можно день, в котором у героя есть очки.
+      const by = ctx.memberId;
+      if (typeof by !== 'number') return fail(400, 'Не выбран участник');
+      const targetId = int(a.targetId, 1, 1e9, 'Герой');
+      if (targetId === by) fail(400, 'Свой день отмечать нельзя: это отметка для другого героя');
+      if (!db.select().from(s.member).where(eq(s.member.id, targetId)).get()) fail(404, 'Нет такого участника');
+      const date = dateArg();
+      const ex = db.select().from(s.daySeen).where(and(eq(s.daySeen.targetId, targetId), eq(s.daySeen.byId, by), eq(s.daySeen.date, date))).get();
+      if (ex) { db.delete(s.daySeen).where(eq(s.daySeen.id, ex.id)).run(); return { on: false }; }
+      const pts = loadFamily(db, now).family.members.get(targetId)?.days.get(date)?.total ?? 0;
+      if (pts <= 0) fail(400, 'В этот день у героя ещё нет очков: хвалить пока не за что');
+      db.insert(s.daySeen).values({ targetId, byId: by, date }).run();
+      return { on: true };
     }
     case 'toggleWarmup': {
       const memberId = target(), date = dateArg();
@@ -459,12 +513,23 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       ]).run();
       return { ok: true };
     }
+    case 'giftChestPrize': {
+      // подарить приз из сумки другому герою (только пока он лежит в сумке, не запрошен и не выдан)
+      const memberId = target();
+      const n = int(a.n, 1, 1e9, 'Номер сундука');
+      const to = int(a.to, 1, 1e9, 'Кому');
+      const row = chestRow(memberId, a.from, n);
+      if (to === memberId) fail(400, 'Приз уже у вас');
+      if (!db.select().from(s.member).where(eq(s.member.id, to)).get()) fail(404, 'Нет такого участника');
+      if (row.status !== 'bag') fail(409, row.status === 'requested' ? 'Приз уже ждёт выдачи: отмените запрос, чтобы подарить' : 'Приз уже выдан');
+      db.update(s.chestOpened).set({ holder: to === row.memberId ? null : to }).where(eq(s.chestOpened.id, row.id)).run();
+      return { ok: true };
+    }
     case 'useChestPrize': {
       // ребёнок (или родитель) просит выдать приз из сумки; undo возвращает запрос обратно в сумку
       const memberId = target();
       const n = int(a.n, 1, 1e9, 'Номер сундука');
-      const row = db.select().from(s.chestOpened).where(and(eq(s.chestOpened.memberId, memberId), eq(s.chestOpened.n, n))).get();
-      if (!row) return fail(404, 'Нет такого приза');
+      const row = chestRow(memberId, a.from, n);
       if (a.undo === true) {
         if (row.status !== 'requested') fail(409, 'Запрос уже обработан');
         db.update(s.chestOpened).set({ status: 'bag' }).where(eq(s.chestOpened.id, row.id)).run();
@@ -479,8 +544,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       needParent();
       const memberId = target();
       const n = int(a.n, 1, 1e9, 'Номер сундука');
-      const row = db.select().from(s.chestOpened).where(and(eq(s.chestOpened.memberId, memberId), eq(s.chestOpened.n, n))).get();
-      if (!row) return fail(404, 'Нет такого приза');
+      const row = chestRow(memberId, a.from, n);
       if (a.undo === true) db.update(s.chestOpened).set({ status: 'bag', deliveredOn: null }).where(eq(s.chestOpened.id, row.id)).run();
       else db.update(s.chestOpened).set({ status: 'delivered', deliveredOn: today }).where(eq(s.chestOpened.id, row.id)).run();
       return { ok: true };
@@ -488,7 +552,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
     case 'deliverAllChestPrizes': {
       needParent();
       const memberId = target();
-      const open = db.select().from(s.chestOpened).where(eq(s.chestOpened.memberId, memberId)).all().filter((r) => r.status !== 'delivered');
+      const open = db.select().from(s.chestOpened).all().filter((r) => (r.holder ?? r.memberId) === memberId && r.status !== 'delivered');
       for (const r of open) db.update(s.chestOpened).set({ status: 'delivered', deliveredOn: today }).where(eq(s.chestOpened.id, r.id)).run();
       return { delivered: open.length };
     }
@@ -583,6 +647,13 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       }
       if (!Object.keys(patch).length) fail(400, 'Нечего менять');
       db.update(s.member).set(patch).where(eq(s.member.id, memberId)).run();
+      return { ok: true };
+    }
+    case 'setSimple': {
+      // режим «Малыш» включает и выключает родитель
+      needParent();
+      const memberId = target();
+      db.update(s.member).set({ simple: a.on === true }).where(eq(s.member.id, memberId)).run();
       return { ok: true };
     }
     case 'setFace': {

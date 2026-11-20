@@ -16,7 +16,7 @@ export function whyText(r: { points: number; parts: { id: SourceId; points: numb
 }
 
 /** Таблица рейтинга дня: место, герой, очки, % нормы и очки по источникам; под таблицей полоски «из чего набрано». */
-export function RatingTable({ rows, me = null, tv = false }: { rows: RatingRowDto[]; me?: number | null; tv?: boolean }) {
+export function RatingTable({ rows, me = null, tv = false, onSeen }: { rows: RatingRowDto[]; me?: number | null; tv?: boolean; onSeen?: (targetId: number) => void }) {
   const used = SOURCES.filter((s) => rows.some((r) => r.parts.some((p) => p.id === s.id && p.points > 0)));
   const cell = (r: RatingRowDto, id: SourceId) => r.parts.find((p) => p.id === id)?.points ?? 0;
   const colTotal = (id: SourceId) => rows.reduce((a, r) => a + cell(r, id), 0);
@@ -35,7 +35,12 @@ export function RatingTable({ rows, me = null, tv = false }: { rows: RatingRowDt
             {rows.map((r) => (
               <tr key={r.id} className={`${r.mvp ? 'is-mvp' : ''} ${r.id === me ? 'is-me' : ''}`} style={{ borderLeftColor: r.color }}>
                 <td className="c-place"><b>{placeMark(r.place)}</b></td>
-                <th scope="row" className="c-who"><span className="r-emoji">{r.emoji}</span> {r.name}{r.id === me ? <small className="muted"> (вы)</small> : null}{r.mvp ? <small className="gold"> 🏆 MVP</small> : null}</th>
+                <th scope="row" className="c-who"><span className="r-emoji">{r.emoji}</span> {r.name}{r.id === me ? <small className="muted"> (вы)</small> : null}{r.mvp ? <small className="gold"> 🏆 MVP</small> : null}{(() => {
+                  const names = r.seen.map((id) => rows.find((x) => x.id === id)?.name).filter(Boolean).join(', ');
+                  const mine = me !== null && r.seen.includes(me);
+                  if (onSeen && me !== null && r.id !== me && r.points > 0) return <button className={`seen-btn ${mine ? 'on' : ''}`} onClick={() => onSeen(r.id)} aria-pressed={mine} title={names ? `Видели: ${names}` : 'Нажмите, если видели, как он старался'}>👍 {r.seen.length || 'Видел'}</button>;
+                  return r.seen.length ? <span className="seen-btn static" title={`Видели: ${names}`}>👍 {r.seen.length}</span> : null;
+                })()}</th>
                 <td className="c-pts"><b>{r.points}</b><small className="muted"> из {r.goal}</small></td>
                 <td className={`c-pct ${r.qualified ? 'ok' : ''}`}>
                   <b>{r.percent}%</b>

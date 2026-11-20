@@ -4,6 +4,8 @@ import { FamilyQuests } from '@/components/FamilyQuests';
 import { EveningReminder } from '@/components/EveningReminder';
 import { BattleCard } from '@/components/BattleCard';
 import { WeeklyGoal } from '@/components/WeeklyGoal';
+import { KidHome } from '@/components/KidHome';
+import { MonthGoalCard } from '@/components/MonthGoalCard';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
@@ -16,6 +18,7 @@ export default function Today() {
   const { s, date, setDate } = useGame();
   const d = s.detail!;
   const me = s.members.find((m) => m.id === s.me)!;
+  if (me.simple) return <KidHome />;
   const pts = d.day.points;
   const minutes = pts >= me.superGoal ? s.config.superMinutes : pts >= me.goal ? s.config.minutes : 0;
   const next = pts < me.goal ? me.goal : pts < me.superGoal ? me.superGoal : null;
@@ -58,7 +61,8 @@ export default function Today() {
 
       <BattleCard />
 
-      <FoldGroup title="🗓 Семья и неделя" hint="цель недели, MVP, семейные квесты, босс">
+      <FoldGroup title="🗓 Семья и неделя" hint="цель семьи, цель недели, MVP, семейные квесты, босс" open={!!s.monthGoal.current && !s.monthGoal.current.done}>
+        {s.monthGoal.current && <MonthGoalCard g={s.monthGoal.current} />}
         <WeeklyGoal />
         <MvpCard />
         <FamilyQuests />

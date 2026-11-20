@@ -20,7 +20,7 @@ import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } 
 
 export interface Raw {
   timezone: string;
-  members: { id: number; name: string; emoji: string; gender?: string | null; face?: string | null; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
+  members: { id: number; name: string; emoji: string; simple?: boolean; gender?: string | null; face?: string | null; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
   heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
   workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null; reps?: number | null }[];
   warmups: { memberId: number; date: string }[];
@@ -28,9 +28,11 @@ export interface Raw {
   habits: { id: number; memberId: number; name: string }[];
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
+  seen?: { targetId: number; byId: number; date: string }[];
+  monthGoals?: { id: number; month: string; title: string; emoji: string; kind: 'points' | 'deeds' | 'normDays'; target: number; reward: string; given: boolean }[];
   deeds?: { id?: number; memberId: number; date: string; kind: string; note?: string | null }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string; gear?: string | null }[];
+  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string; gear?: string | null; holder?: number | null }[];
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;

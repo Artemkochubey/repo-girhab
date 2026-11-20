@@ -129,3 +129,5 @@
 .rating-tv .c-place { font-size: 1.5rem; } .rating-tv .r-emoji { font-size: 1.6rem; } .rating-tv .c-pts b { font-size: 1.3rem; }
 .rating-tv .week-days .wd b { font-size: 1.15rem; } .rating-tv .week-days .wd small { font-size: .8rem; } .rating-tv p.muted { display: none; }
 .rating-week.rating-tv .rating-legend { display: none; } .rating-week.rating-tv .rating-table th, .rating-week.rating-tv .rating-table td { padding: 4px 8px; }
+.month-goal-tv { background: #1a1230; border: 3px solid #5b4a99; border-radius: 22px; padding: 14px 22px; } .month-goal-tv.ok { border-color: #4cae6a; background: #17301f; } .month-goal-tv h2 { font: 700 1.4rem Georgia, serif; color: #ffd978; margin: 0; }
+.month-goal-tv .bar { height: 2.2rem; } .month-goal-tv .bar span { font-size: 1.1rem; } .month-note { margin: 0; font-size: .7em; color: #e6defc; }

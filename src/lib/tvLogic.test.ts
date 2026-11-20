@@ -89,3 +89,15 @@ describe('ТВ: бегущая строка', () => {
     expect(tip(a)).not.toBe(tip(b));
   });
 });
+
+describe('ТВ: цель семьи', () => {
+  const mg = (done: boolean) => ({ month: '2026-11', previous: null, suggest: { points: 0, deeds: 0, normDays: 0 }, current: { id: 7, month: '2026-11', title: 'Кино', emoji: '🎬', kind: 'points' as const, target: 100, reward: 'Билеты', given: false, text: '', unit: 'оч.', progress: done ? 100 : 40, percent: done ? 100 : 40, done, doneDate: done ? '2026-11-20' : null, daysLeft: 10, daysTotal: 30, expected: 50, onTrack: false, need: 6 } });
+  it('когда цель семьи достигнута, на экране праздник; без изменений тихо', () => {
+    const a = clone(base()); a.monthGoal = mg(false);
+    const b = clone(base()); b.monthGoal = mg(true);
+    const ev = tvEvents(a, b);
+    expect(ev.map((e) => e.id)).toContain('mg:7');
+    expect(ev.find((e) => e.id === 'mg:7')!.text).toContain('Билеты');
+    expect(tvEvents(b, clone(b))).toEqual([]);
+  });
+});
