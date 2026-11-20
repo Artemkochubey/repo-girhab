@@ -11,6 +11,7 @@ import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
 import { Section } from '@/components/ui';
 import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '@/lib/game/loot';
+import { BASE_CHANCE } from '@/lib/game/chests';
 
 type M = ReturnType<typeof useGame>['s']['members'][number];
 
@@ -120,7 +121,7 @@ function AdminSettings() {
           <label className="xpl">За супер-цель, мин <input className="num" value={superMinutes} onChange={(e) => setSuperMinutes(e.target.value.replace(/\D/g, ''))} /></label>
           <label className="xpl">Часовой пояс <input value={tz} onChange={(e) => setTz(e.target.value)} /></label>
         </div>
-        {([['loot', 'Обычные награды (по одной на строку)'], ['lootRare', 'Редкие (25%)'], ['lootLegend', 'Легендарные (5%)']] as const).map(([k, l]) => (
+        {([['loot', 'Обычные награды (по одной на строку)'], ['lootRare', `Редкие (${Math.round(BASE_CHANCE.rare * 100)}%)`], ['lootLegend', `Легендарные (${Math.round(BASE_CHANCE.legend * 100)}%)`]] as const).map(([k, l]) => (
           <div key={k} className="col">
             <label className="col">{l} <small className="muted">· сейчас {lines(loot[k]).length}</small><textarea rows={5} value={loot[k]} onChange={(e) => setLoot({ ...loot, [k]: e.target.value })} /></label>
             <button type="button" className="btn ghost sm" onClick={async () => {

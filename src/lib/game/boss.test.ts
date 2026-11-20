@@ -20,11 +20,12 @@ describe('босс', () => {
 
 describe('сундуки', () => {
   it('редкость', () => {
-    expect(rollRarity(0.04)).toBe('legend');
-    expect(rollRarity(0.05)).toBe('rare');
-    expect(rollRarity(0.29)).toBe('rare');
-    expect(rollRarity(0.3)).toBe('common');
-    expect(rollRarity(0.07, { legend: 0.03 })).toBe('legend');
-    expect(rollRarity(0.5, { rare: 0.3 })).toBe('rare');
+    expect(rollRarity(0.01)).toBe('legend');      // базовые шансы 2% / 18% / 80%
+    expect(rollRarity(0.02)).toBe('rare');
+    expect(rollRarity(0.19)).toBe('rare');
+    expect(rollRarity(0.2)).toBe('common');
+    expect(rollRarity(0.04, { legend: 0.03 })).toBe('legend');
+    expect(rollRarity(0.5, { rare: 0.35 })).toBe('rare');
+    expect(rollRarity(0.55, { rare: 0.35 })).toBe('common');
   });
 });
