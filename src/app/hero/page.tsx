@@ -14,7 +14,7 @@ import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type
 import { TalentTree } from '@/components/TalentTree';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from '@/lib/game/chests';
 import { ARTIFACTS, type ArtifactKind } from '@/lib/game/artifacts';
-import { gearById } from '@/lib/game/gear';
+import { gearById, gearDisplay } from '@/lib/game/gear';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -149,7 +149,7 @@ export default function Hero() {
       <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
         <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
         <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
-        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}{chest.talisman ? ' · 🍀 талисман сработал' : ''}{chest.why === 'boss' ? ' · 🐉 сундук за победу над боссом' : chest.why === 'pityRare' ? ' · ⭐ сработала гарантия редкого' : chest.why === 'pityLegend' ? ' · ⭐ сработала гарантия легендарного' : ''}</small><b>{chest.reward}</b>{chest.gear && gearById(chest.gear) && <span className="gold">🗡 Найдено снаряжение: {gearById(chest.gear)!.emoji} {gearById(chest.gear)!.name}! Оно в разделе «⚔️ Бой».</span>}{chest.artifact && <span className="gold">🔮 Найден артефакт: {ARTIFACTS[chest.artifact as ArtifactKind]?.emoji} {ARTIFACTS[chest.artifact as ArtifactKind]?.name}! Он лежит в «🎒 Сумке».</span>}</div>}
+        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}{chest.talisman ? ' · 🍀 талисман сработал' : ''}{chest.why === 'boss' ? ' · 🐉 сундук за победу над боссом' : chest.why === 'pityRare' ? ' · ⭐ сработала гарантия редкого' : chest.why === 'pityLegend' ? ' · ⭐ сработала гарантия легендарного' : ''}</small><b>{chest.reward}</b>{chest.gear && gearById(chest.gear) && <span className="gold">🗡 Найдено снаряжение: {gearDisplay(gearById(chest.gear)!, h.cls).emoji} {gearDisplay(gearById(chest.gear)!, h.cls).name}! Оно в разделе «⚔️ Бой».</span>}{chest.artifact && <span className="gold">🔮 Найден артефакт: {ARTIFACTS[chest.artifact as ArtifactKind]?.emoji} {ARTIFACTS[chest.artifact as ArtifactKind]?.name}! Он лежит в «🎒 Сумке».</span>}</div>}
         <p className="muted small">Шансы сундука: обычный {Math.round((1 - BASE_CHANCE.rare - BASE_CHANCE.legend) * 100)}%, редкий {Math.round(BASE_CHANCE.rare * 100)}%, легендарный {Math.round(BASE_CHANCE.legend * 100)}% (таланты удачи прибавляют). Гарантии: редкий или лучше не реже чем через {PITY.rare} сундуков (ещё {d.pity.untilRare}), легендарный не реже чем через {PITY.legend} (ещё {d.pity.untilLegend}).{d.pity.bossWaiting > 0 ? ` 🐉 Сундуков за победу над боссом: ${d.pity.bossWaiting}. Они открываются первыми, не ниже редкого и с шансом ${Math.round(BOSS_CHEST_LEGEND * 100)}% на легендарный.` : ''}</p>
         <p className="muted small">Призы из сундуков лежат в <Link href="/bag">🎒 сумке</Link>: там их можно копить, использовать и отмечать выданными.</p>
         <details className="chestlog">

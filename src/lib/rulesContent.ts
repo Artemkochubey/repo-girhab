@@ -5,6 +5,7 @@ import { ARTIFACT_KINDS } from './game/artifacts';
 import { HORDES, HP_FACTOR, LOSS_HP, MAX_HP, REGEN, WAVE_SPLIT, WEAKENED_BELOW, WEAKENED_PENALTY, WEAK_MULT, WEEKDAY_FACTOR, WIN_HP, DROP_CHANCE, victoryXp } from './game/battle';
 import { WEAK_BONUS, BOSSES } from './game/boss';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from './game/chests';
+import { CLASS_BATTLE } from './game/classBattle';
 import { CLASS_FREE_WINDOW_MS, CLASS_INFO, CLASS_NAMES, CLASS_PAUSE_MS, MAIN_BONUS, SUBCLASS_NAMES, subBonus } from './game/classes';
 import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, RARITY_NAMES, SLOT_INFO, SLOTS } from './game/gear';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
@@ -107,6 +108,19 @@ export function buildRules(): Section[] {
       ],
     },
     {
+      id: 'classbattle', emoji: '🗡', title: 'Классы в бою',
+      summary: 'Роли классов в сражениях, как в World of Warcraft: боец, заклинатель, поддержка, защитник.',
+      blocks: [
+        'У каждого класса своя роль и свои способности. Они срабатывают сами, складываются со снаряжением и действуют в личном бою с ордой; часть способностей помогает и в бою с боссом недели. Если класс не выбран, способностей нет.',
+        { table: { head: ['Класс', 'Роль и броня', 'Способности'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], `${CLASS_BATTLE[c].roleEmoji} ${CLASS_BATTLE[c].role}. ${CLASS_BATTLE[c].armor}. ${CLASS_BATTLE[c].summary}`, CLASS_BATTLE[c].abilities.map((a) => `${a.emoji} **${a.name}**: ${a.text}`).join('; ')]) } },
+        { list: [
+          '**Боец (воин)** разгоняется по ходу боя: убитые волны усиливают удар, первая волна слабее. **Заклинатель (маг)** бьёт по слабости сильнее всех, но поражение отнимает больше здоровья. **Поддержка (бард)** лечит и находит больше снаряжения, а в бою с боссом даёт всей семье +3% урона. **Защитник (паладин)** меньше теряет при поражении и бьёт сильнее, когда здоровье ниже половины.',
+          'Снаряжение выглядит и называется по-разному у разных классов: один и тот же предмет у воина латный меч, у мага посох, у барда лира, у паладина булава; доспех у воина латный, у мага мантия, у барда кожаный колет, у паладина латы с золотом. Эффект предмета при этом одинаковый.',
+          'На странице «⚔️ Бой» видны способности класса и таблица характеристик героя (класс + снаряжение).',
+        ] },
+      ],
+    },
+    {
       id: 'talents', emoji: '🌳', title: 'Таланты',
       summary: 'Дерево талантов: очки, ветки и ранги.',
       blocks: [
@@ -203,6 +217,7 @@ export function buildRules(): Section[] {
           '**Оружие:** урон всеми очками или очками одной сферы. **Доспех:** меньше потерь здоровья при поражении или слабее орда. **Шлем:** сильнее удар по слабости или лечение каждый день. **Сапоги:** серия побед усиливает урон или первая волна слабее. **Амулет:** больше шанс снаряжения или лечение за победу.',
           `**Откуда:** победа над ордой (редкость по весам: ${Object.entries(BATTLE_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), победа над боссом (всегда не ниже редкого: ${Object.entries(BOSS_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), сундуки.`,
           'Бонусы действуют в личных боях и (оружие, оружие сферы, слабость) в бою с боссом. На очки дня, опыт и уровень снаряжение не влияет.',
+          'Вид и название предмета зависят от класса героя (см. «Классы в бою»), эффект не зависит.',
         ] },
       ],
     },
@@ -295,6 +310,7 @@ export function buildRules(): Section[] {
           ['Шансы сундуков и гарантии', 'src/lib/game/chests.ts'],
           ['Босс недели', 'src/lib/game/boss.ts'],
           ['Личное сражение, орды, здоровье', 'src/lib/game/battle.ts'],
+          ['Способности классов в бою', 'src/lib/game/classBattle.ts'],
           ['Снаряжение и добыча', 'src/lib/game/gear.ts'],
           ['Артефакты', 'src/lib/game/artifacts.ts'],
           ['Недельные цели', 'src/lib/game/goals.ts'],

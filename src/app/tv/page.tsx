@@ -18,7 +18,7 @@ interface Tv {
   battles: Record<number, { horde: string; emoji: string; cleared: number; hp: number; maxHp: number; outcome: string }>;
   goals: Record<number, { title: string; emoji: string; progress: number; target: number; done: boolean; manual: boolean; tier: string } | null>;
   season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
-  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string> }[];
+  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string>; cls: string | null }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string; weak: readonly string[] } };
   record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
   quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
@@ -86,7 +86,7 @@ export default function TvPage() {
             <span>{hpLeft} / {boss.hp} HP</span>
           </div>
           <BossScene tv boss={boss.boss} hp={boss.hp} damage={boss.damage} defeated={boss.defeated}
-            party={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, damage: boss.byMember[m.id] ?? 0 }))} />
+            party={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: boss.byMember[m.id] ?? 0 }))} />
           {boss.defeated && mvp && <p className="tv-mvp">⭐ MVP недели: {mvp.emoji} {mvp.name}</p>}
         </div>
       </section>

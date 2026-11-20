@@ -41,8 +41,8 @@ export interface LiveBattleDto {
   hp: number; maxHp: number; streak: number; totalHp: number; weakDomains: DomainId[]; winChance: number; xp: number; weekend: boolean;
   fight: { waves: WaveDto[]; cleared: number; damage: number; outcome: 'victory' | 'held' | 'defeat' };
 }
-export interface GearItemDto { id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; name: string; emoji: string; text: string }
-export interface GearBonusDto { dmg: number; dmgDomain: Record<DomainId, number>; guard: number; hordeHp: number; weak: number; heal: number; streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number }
+export interface GearItemDto { effect: { type: string; domain?: DomainId }; id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; name: string; emoji: string; text: string }
+export interface GearBonusDto { rage: number; comeback: number; lossMult: number; dmg: number; dmgDomain: Record<DomainId, number>; guard: number; hordeHp: number; weak: number; heal: number; streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number }
 
 /** Что надето на герое (id предмета по слотам) по данным экрана героя. */
 export const lookOf = (g: { items: { key: string; itemId: string }[]; slots: Record<string, string | null> }): Record<string, string | null> =>
@@ -72,8 +72,8 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
-    battle: { live: LiveBattleDto; hp: number; streak: number; xp: number; recent: { date: string; hordeId: string; cleared: number; win: boolean; hpDelta: number; xp: number; drop: string | null }[] };
-    gear: { items: { key: string; itemId: string; source: 'battle' | 'boss' | 'chest'; date: string; equipped: boolean; item: GearItemDto }[]; slots: Record<string, string | null>; bonus: GearBonusDto };
+    battle: { cls: 'w' | 'm' | 'b' | 'p' | null; classInfo: { role: string; roleEmoji: string; armor: string; summary: string; abilities: { emoji: string; name: string; text: string }[]; boss: { dmg: number; weak: number; party: number } } | null; live: LiveBattleDto; hp: number; streak: number; xp: number; recent: { date: string; hordeId: string; cleared: number; win: boolean; hpDelta: number; xp: number; drop: string | null }[] };
+    gear: { items: { key: string; itemId: string; source: 'battle' | 'boss' | 'chest'; date: string; equipped: boolean; item: GearItemDto }[]; slots: Record<string, string | null>; bonus: GearBonusDto; classBonus: GearBonusDto };
     pity: { untilRare: number; untilLegend: number; bossWaiting: number };
     goal: { weekStart: string; weekEnd: string; canChoose: boolean; current: GoalStateDto | null; last: GoalStateDto | null; options: GoalOptionDto[] };
     artifacts: ArtifactDto[];

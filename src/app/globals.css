@@ -255,3 +255,6 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .rules-table-wrap { overflow-x: auto; } .rules-table { border-collapse: collapse; width: 100%; font-size: .9rem; } .rules-table th, .rules-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; } .rules-table th { background: var(--panel2); }
 .rules-body code { background: var(--panel2); padding: 1px 6px; border-radius: 6px; font-size: .85em; }
 @media print { .top, .toast, nav.rules-toc { display: none; } .rules-sec details { display: block; } .rules-sec details > * { display: block; } }
+.cls-float { animation: cls-float 2.6s ease-in-out infinite; } @keyframes cls-float { 0%, 100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-4px); opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .cls-float { animation: none; } }
+.abil { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; } .abil li { display: flex; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; } .abil .ai { font-size: 1.6rem; } .abil li span:last-child { display: grid; }

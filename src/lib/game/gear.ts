@@ -76,8 +76,11 @@ export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g
 export interface GearBonus {
   dmg: number; dmgDomain: Record<Domain, number>; guard: number; hordeHp: number; weak: number; heal: number;
   streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number;
+  rage: number;       // +урона за каждую уже убитую волну (способность класса)
+  comeback: number;   // +урона, пока здоровье героя ниже половины (способность класса)
+  lossMult: number;   // +к потере здоровья при поражении, например 0,3 значит ×1,3 (слабость класса)
 }
-export const NO_GEAR: GearBonus = { dmg: 0, dmgDomain: { body: 0, mind: 0, art: 0, will: 0 }, guard: 0, hordeHp: 0, weak: 0, heal: 0, streakPer: 0, streakMax: 0, wave1: 0, loot: 0, winHeal: 0 };
+export const NO_GEAR: GearBonus = { dmg: 0, dmgDomain: { body: 0, mind: 0, art: 0, will: 0 }, guard: 0, hordeHp: 0, weak: 0, heal: 0, streakPer: 0, streakMax: 0, wave1: 0, loot: 0, winHeal: 0, rage: 0, comeback: 0, lossMult: 0 };
 
 /** Суммарные бонусы надетых предметов (по одному на слот; лишние в слоте игнорируются). */
 export function gearBonus(items: GearItem[]): GearBonus {
@@ -170,4 +173,31 @@ export function deriveGear(i: {
   for (const c of i.chests) if (c.gear && gearById(c.gear)) out.push({ key: `chest:${c.n}`, itemId: c.gear, source: 'chest', date: c.date });
   const eq = new Set(i.equipped.map((e) => e.key));
   return out.sort((a, b) => (a.date === b.date ? (a.key < b.key ? -1 : 1) : a.date < b.date ? -1 : 1)).map((e) => ({ ...e, equipped: eq.has(e.key) }));
+}
+
+// --- названия по классам: один и тот же предмет у разных классов выглядит и называется по-разному (как типы брони в WoW) ---
+import type { Cls } from './classes';
+type G = 'm' | 'f' | 'n' | 'p';
+const ADJ_BY: Record<G, string[]> = {
+  m: ['Простой', 'Крепкий', 'Эпический', 'Легендарный'], f: ['Простая', 'Крепкая', 'Эпическая', 'Легендарная'],
+  n: ['Простое', 'Крепкое', 'Эпическое', 'Легендарное'], p: ['Простые', 'Крепкие', 'Эпические', 'Легендарные'],
+};
+/** Название предмета по классу героя. Для нового вида (family) и класса: [существительное, род, эмодзи]. */
+const CLASS_NOUN: Record<string, Record<Cls, [string, G, string]>> = {
+  weapon: { w: ['меч', 'm', '🗡'], m: ['посох', 'm', '🪄'], b: ['лира', 'f', '🪕'], p: ['булава', 'f', '🔨'] },
+  armor: { w: ['доспех', 'm', '🦺'], m: ['мантия', 'f', '🥻'], b: ['колет', 'm', '🧥'], p: ['латы', 'p', '🛡'] },
+  shield: { w: ['щит', 'm', '🛡'], m: ['барьер', 'm', '🔮'], b: ['баклер', 'm', '🥁'], p: ['щит веры', 'm', '✝️'] },
+  helm: { w: ['шлем', 'm', '⛑'], m: ['шляпа', 'f', '🎩'], b: ['берет', 'm', '🧢'], p: ['крылатый шлем', 'm', '👼'] },
+  boots: { w: ['сапоги', 'p', '👢'], m: ['туфли', 'p', '🩴'], b: ['ботфорты', 'p', '🥾'], p: ['сабатоны', 'p', '👢'] },
+};
+const DOMAIN_OF_WEAPON: Record<Domain, string> = { body: 'силы', mind: 'мудрости', art: 'вдохновения', will: 'воли' };
+
+export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 'name' | 'emoji'> & { effect: { type: string; domain?: Domain } }, cls: Cls | null): { name: string; emoji: string } {
+  const ri = GEAR_RARITIES.indexOf(item.rarity);
+  if (!cls) return { name: item.name, emoji: item.emoji };
+  const kind = item.slot === 'weapon' ? 'weapon' : item.family === 'armor' ? 'armor' : item.family === 'shield' ? 'shield' : item.family === 'helm' ? 'helm' : item.family === 'boots' ? 'boots' : null;
+  const n = kind ? CLASS_NOUN[kind]?.[cls] : null;
+  if (!n) return { name: item.name, emoji: item.emoji };
+  const suffix = item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
+  return { name: `${ADJ_BY[n[1]][ri]} ${n[0]}${suffix}`, emoji: n[2] };
 }

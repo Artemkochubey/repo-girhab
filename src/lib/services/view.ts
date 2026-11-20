@@ -3,6 +3,7 @@ import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
+import { CLASS_BATTLE, classOnly } from '../game/classBattle';
 import { basePoints } from '../game/points';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
 import { BOSSES } from '../game/boss';
@@ -101,12 +102,13 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     // личное сражение и снаряжение
     battle: (() => {
       const b = st.battle;
-      return { live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
+      return { cls: st.hero.cls, classInfo: st.hero.cls ? CLASS_BATTLE[st.hero.cls] : null, live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
     })(),
     gear: {
       items: st.gear.map((g) => ({ ...g, item: gearById(g.itemId)! })).filter((g) => g.item),
       slots: Object.fromEntries(SLOTS.map((sl) => [sl, st.gear.find((g) => g.equipped && gearById(g.itemId)?.slot === sl)?.key ?? null])),
-      bonus: st.gearBonus,
+      bonus: st.gearBonus,                  // снаряжение + способности класса (то, что реально действует в бою)
+      classBonus: classOnly(st.hero.cls),   // из них от класса
     },
     // недельная цель и артефакты
     goal: goalView(raw, fam, st),

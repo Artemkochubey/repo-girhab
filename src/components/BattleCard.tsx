@@ -18,7 +18,7 @@ export function BattleCard() {
   const verdict = f.outcome === 'victory' ? '🏆 Орда разбита!' : f.outcome === 'held' ? '🛡 Отбились: ещё одна волна' : `⚔️ Волн отбито: ${f.cleared} из 3`;
   return (
     <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<Link className="btn ghost sm" href="/battle">Подробнее</Link>}>
-      <BattleScene look={lookOf(s.detail!.gear)} color={me.color} emoji={me.emoji} name={me.name} live={l} />
+      <BattleScene look={lookOf(s.detail!.gear)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} />
       <div className="waves">
         {f.waves.map((w, i) => (
           <div key={i} className={`wave ${w.cleared ? 'done' : w === nextWave ? 'now' : ''}`}>

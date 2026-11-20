@@ -5,10 +5,10 @@ import type { LiveBattleDto } from '@/lib/client';
 import { Defs, HeroGroup, RARITY_COLOR, type Look } from './HeroFigure';
 import { useHits } from './useHits';
 
-interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto }
+interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto; cls?: string | null }
 
 /** Бой героя с ордой: герой со своим снаряжением слева, три волны врагов справа, у каждой слабость и полоска здоровья. */
-export function BattleScene({ look, color, emoji, name, live }: Props) {
+export function BattleScene({ look, color, emoji, name, live, cls = null }: Props) {
   const uid = useId().replace(/:/g, '');
   const { fight, horde } = live;
   // удары: когда урон волны вырос с прошлого обновления, герой атакует, враги вздрагивают, над ними всплывает число
@@ -35,7 +35,7 @@ export function BattleScene({ look, color, emoji, name, live }: Props) {
 
       {/* герой */}
       <g transform="translate(6 20)"><g className={hit ? 'scene-hero hit' : 'scene-hero'}>
-        <HeroGroup look={look} color={color} emoji={emoji} attack={hit} uid={uid} transform="scale(0.98)" />
+        <HeroGroup look={look} color={color} emoji={emoji} cls={cls} attack={hit} uid={uid} transform="scale(0.98)" />
       </g></g>
       <text x="56" y="14" textAnchor="middle" fontSize="9" fill="#e9e1ff" fontWeight="700">{name}</text>
       <rect x="14" y="170" width="82" height="7" rx="3.5" fill="#120d22" /><rect x="14" y="170" width={82 * hpPct} height="7" rx="3.5" fill={live.weakened ? '#c0392b' : '#d84a6a'} />

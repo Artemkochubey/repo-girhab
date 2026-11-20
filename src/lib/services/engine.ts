@@ -12,6 +12,7 @@ import { buildSeasons, type SeasonsResult } from '../game/seasons';
 import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/artifacts';
 import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
 import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
+import { CLASS_BATTLE, withClass } from '../game/classBattle';
 import { BOSS_DROP, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
@@ -184,7 +185,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     // Личный бой с ордой: итоги закончившихся дней (сохранённые и недостающие), здоровье, серия побед, сегодняшний бой
     const myBattles = raw.battleDays.filter((r) => r.memberId === m.id);
     const myChests = raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, gear: c.gear ?? null }));
-    const gb = gearBonus(raw.gearEquipped.filter((e) => e.memberId === m.id).map((e) => resolveGearKey(e.key, { battles: myBattles, chests: myChests })).filter((x): x is NonNullable<typeof x> => !!x));
+    const gb = withClass(gearBonus(raw.gearEquipped.filter((e) => e.memberId === m.id).map((e) => resolveGearKey(e.key, { battles: myBattles, chests: myChests })).filter((x): x is NonNullable<typeof x> => !!x)), cls);   // снаряжение + способности класса
     const yesterday = addDays(today, -1);
     const bFrom = raw.battleSince && raw.battleSince > createdOf.get(m.id)! ? raw.battleSince : createdOf.get(m.id)!;
     const sim = raw.battleSince && bFrom <= yesterday
@@ -222,6 +223,8 @@ export function buildFamily(raw: Raw, today: string): Family {
   const firstDate = raw.members.map((m) => todayIn(tz, new Date(m.createdAt))).sort()[0] ?? today;
   const bossHistory: BossWeek[] = [];
   const bossChests = new Map<number, number>();
+  // «Боевая песня» барда: бафф урона по боссу всем героям семьи (один раз, сколько бы бардов ни было)
+  const partyAura = Math.max(0, ...[...members.values()].map((x) => (x.hero.cls ? CLASS_BATTLE[x.hero.cls].boss.party : 0)));
   const wonWeekEnds = new Set<string>();   // воскресенья недель, в которых босс побеждён: от них зависит снаряжение за боссов
   const curWeek = weekStart(today);
   for (let w = weekStart(firstDate); w <= curWeek; w = addDays(w, 7)) {
@@ -249,8 +252,9 @@ export function buildFamily(raw: Raw, today: string): Family {
         }
       }
       const bb = bossBonuses(members.get(m.id)?.hero.talents ?? [], members.get(m.id)?.hero.cls ?? null);
-      byMember[m.id] = Math.round(sum * (1 + bb.boss + gx.dmg) + domainExtra); total += byMember[m.id];
-      weakExtra += weakPts * (WEAK_BONUS + bb.weak + gx.weak);
+      const cb = members.get(m.id)?.hero.cls ? CLASS_BATTLE[members.get(m.id)!.hero.cls!].boss : { dmg: 0, weak: 0, party: 0 };   // способности класса в бою с боссом
+      byMember[m.id] = Math.round(sum * (1 + bb.boss + gx.dmg + cb.dmg + partyAura) + domainExtra); total += byMember[m.id];
+      weakExtra += weakPts * (WEAK_BONUS + bb.weak + gx.weak + cb.weak);
     }
     const hp = bossHp(parts.map((m) => m.goal));
     const damage = Math.round(total + weakExtra);

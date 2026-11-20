@@ -4,8 +4,8 @@ import { BattleScene } from '@/components/BattleScene';
 import { BossScene } from '@/components/BossScene';
 import { lookOf } from '@/lib/client';
 import { Bar, Section } from '@/components/ui';
-import { DOMAIN_INFO, RARITY_NAMES, SLOTS, SLOT_INFO, type Slot } from '@/lib/game/gear';
-import { HORDES, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
+import { DOMAIN_INFO, RARITY_NAMES, SLOTS, SLOT_INFO, gearDisplay, type Slot } from '@/lib/game/gear';
+import { DROP_CHANCE, HORDES, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
 
 const hordeName = (id: string) => HORDES.find((h) => h.id === id);
 const SRC = { battle: 'за победу над ордой', boss: 'за босса', chest: 'из сундука' } as const;
@@ -19,13 +19,29 @@ export default function Battle() {
   const ok = (m: string) => () => toast(m);
   const mult = (w: { weak: keyof typeof DOMAIN_INFO }) => (1 + WEAK_MULT + g.bonus.weak) * (1 + g.bonus.dmg + g.bonus.dmgDomain[w.weak]);
   const slotItem = (sl: Slot) => g.items.find((x) => x.key === g.slots[sl]);
+  const cls = b.cls;
+  const nm = (it: (typeof g.items)[number]['item']) => gearDisplay(it, cls);
+  const ci = b.classInfo;
+  const cb = g.classBonus, tb = g.bonus;
+  const fx = (x: number) => (Math.round(x * 100) / 100).toString().replace('.', ',');
+  const rows: [string, string, string][] = [
+    ['⚔️ Урон всеми очками', `+${Math.round(tb.dmg * 100)}%`, cb.dmg ? `класс +${Math.round(cb.dmg * 100)}%` : ''],
+    ['🎯 Удар по слабости', `×${fx(1 + WEAK_MULT + tb.weak)}`, cb.weak ? `класс +${fx(cb.weak)}` : ''],
+    ['😡 Ярость за убитую волну', tb.rage ? `+${Math.round(tb.rage * 100)}% урона` : '—', tb.rage ? 'класс' : ''],
+    ['✨ Возмездие (здоровье < 50)', tb.comeback ? `+${Math.round(tb.comeback * 100)}% урона` : '—', tb.comeback ? 'класс' : ''],
+    ['🛡 Защита от потерь', `−${Math.round(Math.min(0.9, tb.guard) * 100)}%${tb.lossMult ? `, но +${Math.round(tb.lossMult * 100)}% потерь` : ''}`, cb.guard || cb.lossMult ? 'класс' : ''],
+    ['❤️ Лечение в день', `+${REGEN + tb.heal}`, cb.heal ? `класс +${cb.heal}` : ''],
+    ['🏆 Здоровье за победу', `+${WIN_HP + tb.winHeal}`, cb.winHeal ? `класс +${cb.winHeal}` : ''],
+    ['🎁 Шанс снаряжения за победу', `${Math.round((DROP_CHANCE.weekday + tb.loot) * 100)}%`, cb.loot ? `класс +${Math.round(cb.loot * 100)}%` : ''],
+    ['🏃 Первая волна слабее', tb.wave1 ? `−${Math.round(tb.wave1 * 100)}%` : '—', cb.wave1 ? 'класс' : ''],
+  ];
 
   return (
     <>
       <h1 className="title">⚔️ Бой: {me.emoji} {me.name}</h1>
 
       <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
-        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} />
+        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} />
         <p className="muted small">Каждый день приходит новая орда из трёх волн. Урон наносят очки, которые вы и так зарабатываете. Очки слабой сферы волны бьют ×1,5. Убейте все три волны за день, чтобы победить.</p>
         <div className="waves">
           {f.waves.map((w, i) => {
@@ -42,12 +58,26 @@ export default function Battle() {
           })}
         </div>
         <p><b>{f.outcome === 'victory' ? '🏆 Победа!' : f.outcome === 'held' ? '🛡 Отбились (2 волны)' : `⚔️ Убито волн: ${f.cleared} из 3`}</b></p>
-        <p className="muted small">Победа: +{l.xp} опыта, шанс снаряжения {pct(l.winChance)}{l.weekend ? ' (по выходным выше)' : ''}, +{WIN_HP + g.bonus.winHeal} здоровья. Поражение (0–1 волна): −{Math.round(LOSS_HP * (1 - Math.min(0.9, g.bonus.guard)))} здоровья. Итог подводится в конце дня.</p>
+        <p className="muted small">Победа: +{l.xp} опыта, шанс снаряжения {pct(l.winChance)}{l.weekend ? ' (по выходным выше)' : ''}, +{WIN_HP + g.bonus.winHeal} здоровья. Поражение (0–1 волна): −{Math.round(LOSS_HP * (1 - Math.min(0.9, g.bonus.guard)) * (1 + g.bonus.lossMult))} здоровья. Итог подводится в конце дня.</p>
       </Section>
+
+      {ci && (
+        <Section title={`${ci.roleEmoji} Класс в бою: ${ci.role}`} right={<span className="muted">{ci.armor}</span>}>
+          <p>{ci.summary}</p>
+          <ul className="abil">
+            {ci.abilities.map((a) => <li key={a.name}><span className="ai">{a.emoji}</span><span><b>{a.name}</b><small className="muted">{a.text}</small></span></li>)}
+          </ul>
+          <h3>📊 Характеристики героя</h3>
+          <table className="rules-table"><tbody>
+            {rows.map(([k, v, note]) => <tr key={k}><td>{k}</td><td><b>{v}</b></td><td className="muted">{note}</td></tr>)}
+          </tbody></table>
+          <p className="muted small">Характеристики складываются из способностей класса и надетого снаряжения. В бою с боссом класс тоже помогает{ci.boss.party ? ': бард поёт для всей семьи, +3% урона каждому герою.' : ci.boss.weak ? ': сильнее удар по слабому месту.' : ci.boss.dmg ? `: +${Math.round(ci.boss.dmg * 100)}% урона.` : '.'}</p>
+        </Section>
+      )}
 
       <Section title={`${s.boss.boss.emoji} Босс недели: все герои вместе`}>
         <BossScene boss={s.boss.boss} hp={s.boss.hp} damage={s.boss.damage} defeated={s.boss.defeated}
-          party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
+          party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
         <p className="muted small">Снаряжение усиливает удар по боссу: оружие и «слабость» от шлема добавляют урон, молот и подобное усиливают свою сферу. Предмет работает на недели после того дня, когда он получен.</p>
       </Section>
 
@@ -70,7 +100,7 @@ export default function Battle() {
             return (
               <div key={sl} className={`slot ${it ? `gr-${it.item.rarity}` : 'empty'}`}>
                 <small className="muted">{SLOT_INFO[sl].emoji} {SLOT_INFO[sl].name}</small>
-                {it ? <><b>{it.item.emoji} {it.item.name}</b><small>{it.item.text}</small>
+                {it ? <><b>{nm(it.item).emoji} {nm(it.item).name}</b><small>{it.item.text}</small>
                   <button className="btn ghost sm" onClick={() => act('unequipGear', { slot: sl }).then(ok('Снято')).catch(() => {})}>Снять</button></> : <span className="muted">пусто</span>}
               </div>
             );
@@ -81,9 +111,9 @@ export default function Battle() {
         <ul className="gearlist">
           {[...g.items].sort((x, y) => (x.equipped ? 0 : 1) - (y.equipped ? 0 : 1) || (x.date < y.date ? 1 : -1)).map((x) => (
             <li key={x.key} className={`gr-${x.item.rarity} ${x.equipped ? 'on' : ''}`}>
-              <span className="gi">{x.item.emoji}</span>
-              <span className="grow"><b>{x.item.name}</b> <small className="muted">· {SLOT_INFO[x.item.slot].name}, {RARITY_NAMES[x.item.rarity]}, {SRC[x.source]} {x.date}</small><div className="small">{x.item.text}</div></span>
-              {x.equipped ? <small className="gold">✔ надето</small> : <button className="btn sm" onClick={() => act('equipGear', { key: x.key }).then(ok(`Надето: ${x.item.name}`)).catch(() => {})}>Надеть</button>}
+              <span className="gi">{nm(x.item).emoji}</span>
+              <span className="grow"><b>{nm(x.item).name}</b> <small className="muted">· {SLOT_INFO[x.item.slot].name}, {RARITY_NAMES[x.item.rarity]}, {SRC[x.source]} {x.date}</small><div className="small">{x.item.text}</div></span>
+              {x.equipped ? <small className="gold">✔ надето</small> : <button className="btn sm" onClick={() => act('equipGear', { key: x.key }).then(ok(`Надето: ${nm(x.item).name}`)).catch(() => {})}>Надеть</button>}
             </li>
           ))}
         </ul>

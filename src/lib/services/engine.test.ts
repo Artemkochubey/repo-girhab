@@ -192,7 +192,7 @@ describe('движок семьи', () => {
     };
     const off = mk(false), on = mk(true);
     expect(on.before).toBe(off.before);                         // предмет получен 12-го: на ту неделю не действует
-    expect(on.after).toBeCloseTo(off.after * 1.12, 0);          // эпический меч: +12% урона
+    expect(on.after).toBeCloseTo(off.after * (1.17 / 1.05), 0);   // эпический меч +12% к урону (у воина свои +5% от «Боевого клича» есть в обоих случаях)
     expect(on.after).toBeGreaterThan(off.after);
   });
   it('оружие сферы и «слабость» из снаряжения усиливают удар по боссу', () => {
@@ -220,6 +220,21 @@ describe('движок семьи', () => {
     expect(won.next).toBeGreaterThan(noGear.next);              // меч за ту победу усиливает следующую неделю (+8%)
     expect(won.own).toBe(noGear.own);                           // а саму победу не меняет
     expect(lost.next).toBe(mk(false, false).next);              // победы не было: предмета нет и бонуса тоже
+  });
+  it('классы в бою с боссом: воин и паладин бьют сильнее, маг усиливает слабость, «Боевая песня» барда баффает всех', () => {
+    const dmg = (cls1: 'w' | 'm' | 'b' | 'p', cls2: 'w' | 'm' | 'b' | 'p') => {
+      const raw = base(); manualQ(raw);
+      raw.heroes[0]!.cls = cls1; raw.heroes[1]!.cls = cls2;
+      raw.workouts.push({ memberId: 1, date: '2026-11-17', minutes: 100 });
+      return buildFamily(raw, '2026-11-19').bossHistory.find((w) => w.weekStart === '2026-11-16')!.byMember[1]!;
+    };
+    const plain = dmg('b', 'm');                      // у барда своего бонуса нет, но бард баффает всех (включая себя): базой берём этот случай
+    expect(dmg('w', 'm')).toBeGreaterThan(0);
+    const noAura = dmg('m', 'm');                     // без барда в семье
+    expect(plain).toBeGreaterThan(noAura * 0.99);
+    const aura = dmg('m', 'b');                       // второй герой бард: у первого +3% к урону
+    expect(aura).toBeGreaterThan(noAura);
+    expect(dmg('p', 'm')).toBeGreaterThan(noAura);    // «Возмездие»: у паладина +4%
   });
   it('снаряжение за победу над боссом выдаётся по ключу и только после даты старта', () => {
     const mk = (since: string | null) => {

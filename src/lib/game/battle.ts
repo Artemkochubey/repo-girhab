@@ -77,10 +77,13 @@ export interface Fight { waves: WaveResult[]; cleared: number; damage: number; o
  * Каждая волна сначала получает урон от очков своей слабой сферы (×1,5), остаток добивается любыми очками
  * (сначала общими, потом «ненужными» следующим волнам сферами). Очки, потраченные на одну волну, на следующие не идут.
  */
-export function fight(pools: Pools, waves: Wave[], bonus: GearBonus = NO_GEAR, streak = 0): Fight {
+export function fight(pools: Pools, waves: Wave[], bonus: GearBonus = NO_GEAR, streak = 0, hp = MAX_HP): Fight {
   const left: Pools = { ...pools };
   const streakPct = Math.min(streak, bonus.streakMax) * bonus.streakPer;
-  const mult = (d: Domain | 'gen', weak: boolean) => (1 + bonus.dmg + streakPct + (d === 'gen' ? 0 : bonus.dmgDomain[d])) * (weak ? 1 + WEAK_MULT + bonus.weak : 1);
+  // «возмездие» паладина: пока здоровье героя ниже половины, урон выше; «ярость» воина растёт с каждой убитой волной
+  const comeback = hp < MAX_HP / 2 ? bonus.comeback : 0;
+  let rage = 0;
+  const mult = (d: Domain | 'gen', weak: boolean) => (1 + bonus.dmg + streakPct + comeback + rage + (d === 'gen' ? 0 : bonus.dmgDomain[d])) * (weak ? 1 + WEAK_MULT + bonus.weak : 1);
   const results: WaveResult[] = [];
   let dead = false;
   for (const [idx, w] of waves.entries()) {
@@ -98,6 +101,7 @@ export function fight(pools: Pools, waves: Wave[], bonus: GearBonus = NO_GEAR, s
       }
     }
     const cleared = need <= 1e-9 && !dead;
+    if (cleared) rage += bonus.rage;
     if (!cleared) dead = true;   // следующие волны не трогаем, пока предыдущая не убита
     results.push({ ...w, damage: Math.round(dealt * 10) / 10, cleared });
   }
@@ -132,9 +136,9 @@ export function simulate(i: SimInput): SimResult {
       const hd = hordeOfDay(d);
       const { waves, totalHp } = wavesFor(hd, i.goal, i.bonus, hpDay < WEAKENED_BELOW);
       const data = i.day(d) ?? { bySphere: {}, total: 0 };
-      const f = fight(poolsOf(data.bySphere, data.total), waves, i.bonus, streak);
+      const f = fight(poolsOf(data.bySphere, data.total), waves, i.bonus, streak, hpDay);
       const win = f.outcome === 'victory';
-      const hpDelta = win ? WIN_HP + i.bonus.winHeal : f.outcome === 'defeat' ? -Math.round(LOSS_HP * (1 - Math.min(0.9, i.bonus.guard))) : 0;
+      const hpDelta = win ? WIN_HP + i.bonus.winHeal : f.outcome === 'defeat' ? -Math.round(LOSS_HP * (1 - Math.min(0.9, i.bonus.guard)) * (1 + i.bonus.lossMult)) : 0;
       const r = seededRandom(`drop:${i.memberId}:${d}`);
       const chance = (isWeekend(d) ? DROP_CHANCE.weekend : DROP_CHANCE.weekday) + i.bonus.loot;
       const drop = win && r() < chance ? pickGear(BATTLE_DROP, r(), r()).id : null;
@@ -159,7 +163,7 @@ export function liveBattle(i: { date: string; goal: number; hpYesterday: number;
   const weakened = hp < WEAKENED_BELOW;
   const hd = hordeOfDay(i.date);
   const { waves, totalHp } = wavesFor(hd, i.goal, i.bonus, weakened);
-  const f = fight(poolsOf(i.data.bySphere, i.data.total), waves, i.bonus, i.streak);
+  const f = fight(poolsOf(i.data.bySphere, i.data.total), waves, i.bonus, i.streak, hp);
   return {
     date: i.date, horde: hd.horde, factor: hd.factor, weakened, hp, maxHp: MAX_HP, streak: i.streak, totalHp, fight: f,
     weakDomains: hd.weak, winChance: Math.min(1, (isWeekend(i.date) ? DROP_CHANCE.weekend : DROP_CHANCE.weekday) + i.bonus.loot),
