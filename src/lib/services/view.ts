@@ -2,6 +2,7 @@ import { shopDiscount } from '../game/talents';
 import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
+import { gearById, SLOTS } from '../game/gear';
 import { basePoints } from '../game/points';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
 import { BOSSES } from '../game/boss';
@@ -93,8 +94,18 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     chestLog: (() => {
       const mine = raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => b.n - a.n);
       return [...mine.filter((c) => (c.status ?? 'bag') !== 'delivered'), ...mine.filter((c) => c.status === 'delivered').slice(0, 100)]
-        .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', artifact: c.artifact ?? null, status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
+        .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', artifact: c.artifact ?? null, gear: c.gear ?? null, status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
     })(),
+    // личное сражение и снаряжение
+    battle: (() => {
+      const b = st.battle;
+      return { live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
+    })(),
+    gear: {
+      items: st.gear.map((g) => ({ ...g, item: gearById(g.itemId)! })).filter((g) => g.item),
+      slots: Object.fromEntries(SLOTS.map((sl) => [sl, st.gear.find((g) => g.equipped && gearById(g.itemId)?.slot === sl)?.key ?? null])),
+      bonus: st.gearBonus,
+    },
     // недельная цель и артефакты
     goal: goalView(raw, fam, st),
     artifacts: st.artifacts.map((x) => ({ key: x.key, kind: x.kind, source: x.source, date: x.date, status: x.status, activeFor: x.activeFor, usedOn: x.usedOn })),
@@ -203,6 +214,7 @@ export function tvState(raw: Raw, fam: Family) {
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),
+    battles: Object.fromEntries(raw.members.map((m) => { const l = fam.members.get(m.id)!.battle.live; return [m.id, { horde: l.horde.name, emoji: l.horde.emoji, cleared: l.fight.cleared, hp: l.hp, maxHp: l.maxHp, outcome: l.fight.outcome }]; })),
     goals: Object.fromEntries(raw.members.map((m) => { const g = fam.members.get(m.id)!.goals.current; return [m.id, g ? { title: g.title ?? (GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.text(g.target) ?? ''), emoji: GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.emoji ?? '🎯', progress: g.progress, target: g.target, done: g.done, manual: g.manual, tier: g.tier } : null]; })),
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;

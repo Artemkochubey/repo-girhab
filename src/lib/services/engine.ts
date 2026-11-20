@@ -11,6 +11,8 @@ import { allQuestsDone, defaultQuests, questDone, questXpEarned, type QuestItem 
 import { buildSeasons, type SeasonsResult } from '../game/seasons';
 import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/artifacts';
 import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
+import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
+import { BOSS_DROP, deriveGear, gearBonus, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
@@ -25,13 +27,16 @@ export interface Raw {
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string }[];
+  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string; gear?: string | null }[];
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;
   reminderHour: number;
   seasonSince: string | null;
   artifactsSince: string | null;
+  battleSince: string | null;
+  battleDays: (BattleRow & { memberId: number })[];
+  gearEquipped: { memberId: number; slot: string; key: string }[];
   artifactUse: (ArtifactUse & { memberId: number })[];
   weeklyGoals: (GoalRow & { memberId: number })[];
   reviewOk: { memberId: number; date: string; points: number }[];
@@ -58,6 +63,9 @@ export interface MemberState {
   spentPoints: number; spentChests: number; balance: number;
   achievements: AchievementState[];
   artifacts: ArtifactState[];
+  battle: { live: LiveBattle; hp: number; streak: number; rows: BattleRow[]; xp: number };
+  gear: GearOwned[];
+  gearBonus: GearBonus;
   goals: { current: GoalState | null; history: GoalState[]; xp: number; chests: number; hardWeeks: string[] };
 }
 
@@ -74,7 +82,7 @@ export interface MvpInfo {
   wins: Record<number, number>;
   byDate: Record<string, number>;   // дата → победитель (0 — не было)
 }
-export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo; seasons: SeasonsResult }
+export interface Family { today: string; members: Map<number, MemberState>; boss: BossWeek; bossHistory: BossWeek[]; familyQuests: ResolvedFamilyQuest[]; mvp: MvpInfo; seasons: SeasonsResult; pendingBattles: (BattleRow & { memberId: number })[] }
 
 const CLASS_OF: Partial<Record<Sphere, Cls>> = {};
 for (const c of Object.keys(CLASS_SPHERES) as Cls[]) for (const s of CLASS_SPHERES[c]) CLASS_OF[s] ??= c;
@@ -119,6 +127,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     if (r.done && r.doneDate) for (const id of participants) { const mm = famXp.get(id) ?? new Map<string, number>(); mm.set(r.doneDate, (mm.get(r.doneDate) ?? 0) + q.xp); famXp.set(id, mm); }
     return { ...q, ...r, participants };
   });
+  const pendingBattles: (BattleRow & { memberId: number })[] = [];
   const achIn = new Map<number, { dates: string[]; stats: DayStats[]; points: number[]; streak: number[]; questsAllDone: boolean[]; superGoal: number; levelBonus: number[] }>();
 
   for (const m of raw.members) {
@@ -168,9 +177,25 @@ export function buildFamily(raw: Raw, today: string): Family {
       return resolveGoal(row, wk.map((d) => ({ total: b.days.get(d)!.total, stats: b.days.get(d)!.stats, questsAllDone: allDoneByDate.get(d) ?? false })), today, m.goal);
     }).sort((x, y) => (x.weekStart < y.weekStart ? 1 : -1));
     const won = goalStates.filter((g) => g.finished && g.done);
-    const levelBonus = dates.map((d) => won.filter((g) => addDays(weekEnd(g.weekStart), 1) === d).reduce((a, g) => a + g.rewardXp, 0));
-    const goalXp = levelBonus.reduce((a, x) => a + x, 0);
-    const totalXp = b.xp + goalXp;
+    const goalBonus = dates.map((d) => won.filter((g) => addDays(weekEnd(g.weekStart), 1) === d).reduce((a, g) => a + g.rewardXp, 0));
+    const goalXp = goalBonus.reduce((a, x) => a + x, 0);
+
+    // Личный бой с ордой: итоги закончившихся дней (сохранённые и недостающие), здоровье, серия побед, сегодняшний бой
+    const myBattles = raw.battleDays.filter((r) => r.memberId === m.id);
+    const myChests = raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, gear: c.gear ?? null }));
+    const gb = gearBonus(raw.gearEquipped.filter((e) => e.memberId === m.id).map((e) => resolveGearKey(e.key, { battles: myBattles, chests: myChests })).filter((x): x is NonNullable<typeof x> => !!x));
+    const yesterday = addDays(today, -1);
+    const bFrom = raw.battleSince && raw.battleSince > createdOf.get(m.id)! ? raw.battleSince : createdOf.get(m.id)!;
+    const sim = raw.battleSince && bFrom <= yesterday
+      ? simulate({ memberId: m.id, goal: m.goal, from: bFrom, to: yesterday, persisted: myBattles, day: (d) => { const x = b.days.get(d); return x ? { bySphere: x.bySphere, total: x.total } : null; }, bonus: gb })
+      : { rows: [] as BattleRow[], pending: [] as BattleRow[], hp: MAX_HP, streak: 0 };
+    pendingBattles.push(...sim.pending.map((r) => ({ ...r, memberId: m.id })));
+    const td = b.days.get(today);
+    const live = liveBattle({ date: today, goal: m.goal, hpYesterday: sim.hp, streak: sim.streak, bonus: gb, data: { bySphere: td?.bySphere ?? {}, total: td?.total ?? 0 } });
+    const battleBonus = dates.map((d) => sim.rows.filter((r) => addDays(r.date, 1) === d).reduce((a, r) => a + r.xp, 0));
+    const battleXp = battleBonus.reduce((a, x) => a + x, 0);
+    const levelBonus = goalBonus.map((x, k) => x + (battleBonus[k] ?? 0));
+    const totalXp = b.xp + goalXp + battleXp;
     const level = levelFromXp(totalXp);
     const prog = levelProgress(totalXp);
 
@@ -185,7 +210,8 @@ export function buildFamily(raw: Raw, today: string): Family {
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
-      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [],
+      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb,
+      battle: { live, hp: sim.hp, streak: sim.streak, rows: sim.rows, xp: battleXp },
       goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
     });
     achIn.set(m.id, { dates, stats: dates.map((d) => stats.get(d)!), points: dates.map((d) => b.days.get(d)!.total), streak: dates.map((d) => streaks.get(d) ?? 0), questsAllDone, superGoal: m.superGoal, levelBonus });
@@ -287,8 +313,15 @@ export function buildFamily(raw: Raw, today: string): Family {
       goalWeeks: st.goals.hardWeeks,
       uses: raw.artifactUse.filter((u) => u.memberId === st.id),
     });
+    st.gear = deriveGear({
+      since: raw.battleSince,
+      battles: st.battle.rows.map((r) => ({ date: r.date, drop: r.drop })),
+      bossWins: wins.map((w) => addDays(w.weekStart, 6)),
+      chests: raw.chestsOpened.filter((c) => c.memberId === st.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })),
+      equipped: raw.gearEquipped.filter((e) => e.memberId === st.id),
+    });
   }
-  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) }, seasons };
+  return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) }, seasons, pendingBattles };
 }
 
 export { BOSSES };

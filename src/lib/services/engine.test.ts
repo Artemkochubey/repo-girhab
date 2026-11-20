@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], weeklyGoals: [], shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], battleSince: null, battleDays: [], gearEquipped: [], weeklyGoals: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -152,6 +152,43 @@ describe('движок семьи', () => {
     };
     expect(mk(null)).toHaveLength(0);
     expect(mk('2026-11-01')).toHaveLength(1);
+  });
+  it('личный бой: итоги закончившихся дней фиксируются, опыт за победы идёт в уровень, здоровье и серия считаются', () => {
+    const mk = (since: string | null) => {
+      const raw = base(); manualQ(raw); raw.battleSince = since;
+      for (const d of ['2026-11-17', '2026-11-18']) raw.workouts.push({ memberId: 1, date: d, minutes: 200 });
+      return buildFamily(raw, '2026-11-19');
+    };
+    const off = mk(null), on = mk('2026-11-17');
+    expect(off.pendingBattles).toHaveLength(0);
+    expect(on.pendingBattles.filter((r) => r.memberId === 1).map((r) => [r.date, r.win])).toEqual([['2026-11-17', true], ['2026-11-18', true]]);
+    expect(on.members.get(1)!.battle.streak).toBe(2);
+    expect(on.members.get(1)!.battle.hp).toBe(100);
+    expect(on.members.get(1)!.xp - off.members.get(1)!.xp).toBe(50);            // 2 победы × 25 опыта (норма 60)
+    // у второго героя активности нет: поражения отнимают здоровье
+    expect(on.members.get(2)!.battle.rows.every((r) => !r.win)).toBe(true);
+    expect(on.members.get(2)!.battle.hp).toBeLessThan(100);
+    expect(on.members.get(1)!.battle.live.horde.id).toBeTruthy();
+  });
+  it('сохранённый итог дня не меняется от смены снаряжения; снаряжение считается в бонусах', () => {
+    const raw = base(); manualQ(raw); raw.battleSince = '2026-11-17';
+    raw.battleDays.push({ memberId: 1, date: '2026-11-17', hordeId: 'goblins', totalHp: 72, cleared: 0, win: false, regen: 10, hpDelta: -25, xp: 0, drop: 'sword-epic' });
+    raw.workouts.push({ memberId: 1, date: '2026-11-17', minutes: 300 });
+    raw.gearEquipped.push({ memberId: 1, slot: 'weapon', key: 'battle:2026-11-17' });
+    const f = buildFamily(raw, '2026-11-19').members.get(1)!;
+    expect(f.battle.rows[0]).toMatchObject({ win: false, cleared: 0 });          // не пересчитан, хотя очков теперь хватало бы на победу
+    expect(f.gearBonus.dmg).toBeCloseTo(0.12);                                   // «Эпический меч» из добычи того дня надет
+    expect(f.gear.find((g) => g.key === 'battle:2026-11-17')).toMatchObject({ itemId: 'sword-epic', equipped: true });
+  });
+  it('снаряжение за победу над боссом выдаётся по ключу и только после даты старта', () => {
+    const mk = (since: string | null) => {
+      const raw = base(); manualQ(raw); raw.battleSince = since;
+      for (const d of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']) raw.workouts.push({ memberId: 1, date: d, minutes: 200 });
+      return buildFamily(raw, '2026-11-19').members.get(1)!.gear.filter((g) => g.source === 'boss');
+    };
+    expect(mk('2026-11-01')).toHaveLength(1);
+    expect(mk('2026-11-01')[0]!.key).toBe('boss:2026-11-15');
+    expect(mk(null)).toHaveLength(0);
   });
   it('победа над боссом прошлой недели даёт сундуки', () => {
     const raw = base();

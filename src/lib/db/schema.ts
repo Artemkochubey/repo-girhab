@@ -26,6 +26,8 @@ export const config = sqliteTable('config', {
   seasonSince: text('season_since'),
   // с какого дня за победы (босс, сезон, MVP дня) выдаются артефакты; задним числом ничего не начисляется
   artifactsSince: text('artifacts_since'),
+  // с какого дня идут личные сражения с ордой (первый запуск этой версии); боссовое снаряжение тоже только после этой даты
+  battleSince: text('battle_since'),
   minutes: integer('minutes').notNull().default(30),
   superMinutes: integer('super_minutes').notNull().default(60),
   loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),
@@ -124,6 +126,8 @@ export const chestOpened = sqliteTable('chest_opened', {
   artifact: text('artifact'),
   // normal — обычный сундук, boss — сундук за победу над боссом (открывается первым, не ниже редкого)
   source: text('source', { enum: ['normal', 'boss'] }).notNull().default('normal'),
+  // снаряжение (id предмета), найденное в этом сундуке, или null
+  gear: text('gear'),
 }, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
 
 export const bossWeek = sqliteTable('boss_week', {
@@ -223,3 +227,26 @@ export const weeklyGoal = sqliteTable('weekly_goal', {
   createdBy: integer('created_by'),
   createdAt: createdAt(),
 }, (t) => [unique('weekly_goal_unique').on(t.memberId, t.weekStart)]);
+
+// Итог личного боя за закончившийся день (фиксируется один раз, чтобы смена снаряжения не меняла прошлое)
+export const battleDay = sqliteTable('battle_day', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  hordeId: text('horde_id').notNull(),
+  totalHp: integer('total_hp').notNull(),
+  cleared: integer('cleared').notNull(),
+  win: integer('win', { mode: 'boolean' }).notNull(),
+  regen: integer('regen').notNull(),
+  hpDelta: integer('hp_delta').notNull(),
+  xp: integer('xp').notNull(),
+  drop: text('drop'),
+  createdAt: createdAt(),
+}, (t) => [unique('battle_day_unique').on(t.memberId, t.date)]);
+
+// Надетое снаряжение: по одному предмету на слот; key — ключ предмета в инвентаре (battle:дата, boss:дата, chest:N)
+export const gearEquipped = sqliteTable('gear_equipped', {
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  slot: text('slot').notNull(),
+  key: text('key').notNull(),
+}, (t) => [unique('gear_equipped_slot').on(t.memberId, t.slot), unique('gear_equipped_key').on(t.memberId, t.key)]);

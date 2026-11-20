@@ -75,9 +75,9 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'openChest', {}))?.status).toBe(400);
     runAction(db, kid, 'addWorkout', { minutes: 200 });
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
-    expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, talisman: false, boss: false, why: null });
+    expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, gear: null, talisman: false, boss: false, why: null });
     const { raw, family } = loadFamily(db, NOW);
-    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
+    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, gear: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
   });
   it('«Щедрая добыча»: второй приз из сундука', () => {
@@ -247,6 +247,42 @@ describe('действия', () => {
     expect(db.select().from(s.chestOpened).all()[0].source).toBe('boss');
     const after = detail().pity.bossWaiting;
     expect(after).toBe(Math.max(0, f.bossChestsEarned - 1));
+  });
+  it('бой: итоги закончившихся дней сохраняются в базе один раз, добыча попадает в инвентарь', () => {
+    detail();                                                          // первый запуск запоминает дату старта боёв
+    const later = new Date('2026-11-21T05:00:00Z');
+    loadFamily(db, later);
+    const rows = db.select().from(s.battleDay).all();
+    expect(rows.map((r) => [r.memberId, r.date]).sort()).toEqual([[1, '2026-11-19'], [1, '2026-11-20'], [2, '2026-11-19'], [2, '2026-11-20']]);
+    loadFamily(db, later);                                              // повторный расчёт ничего не дублирует
+    expect(db.select().from(s.battleDay).all()).toHaveLength(4);
+    expect(detail(2, later).battle.recent).toHaveLength(2);
+  });
+  it('снаряжение: надеть, заменить в слоте, снять; чужое и несуществующее нельзя', () => {
+    const give = (n: number, gear: string) => db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10', gear }).run();
+    give(1, 'sword-common'); give(2, 'sword-epic'); give(3, 'armor-rare');
+    expect(detail().gear.items.map((g) => g.itemId).sort()).toEqual(['armor-rare', 'sword-common', 'sword-epic']);
+    expect(err(() => runAction(db, kid, 'equipGear', { key: 'chest:99' }))?.status).toBe(404);
+    expect(err(() => runAction(db, kid, 'equipGear', { memberId: 1, key: 'chest:1' }))?.status).toBe(403);
+    runAction(db, kid, 'equipGear', { key: 'chest:1' });
+    expect(detail().gear.slots.weapon).toBe('chest:1');
+    runAction(db, kid, 'equipGear', { key: 'chest:2' });                // заменяет предыдущий меч
+    expect(detail().gear.slots.weapon).toBe('chest:2');
+    expect(detail().gear.bonus.dmg).toBeCloseTo(0.12);
+    runAction(db, kid, 'equipGear', { key: 'chest:3' });
+    expect(detail().gear.slots.armor).toBe('chest:3');
+    expect(detail().gear.bonus.guard).toBeCloseTo(0.35);
+    runAction(db, kid, 'unequipGear', { slot: 'weapon' });
+    expect(detail().gear.slots.weapon).toBeNull();
+    expect(detail().gear.bonus.dmg).toBe(0);
+    expect(err(() => runAction(db, kid, 'unequipGear', { slot: 'nope' }))?.status).toBe(400);
+  });
+  it('из сундука может выпасть снаряжение', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 300 });
+    const r = runAction(db, { ...kid, rand: () => 0 }, 'openChest', {}) as { gear: string | null };
+    expect(r.gear).toBeTruthy();
+    expect(detail().gear.items).toHaveLength(1);
+    expect(detail().chestLog[0]!.gear).toBe(r.gear);
   });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];

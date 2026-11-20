@@ -30,6 +30,9 @@ export function loadRaw(db: Db): Raw {
     seasonSince: getConfig(db).seasonSince,
     reviewOk: db.select().from(s.reviewOk).all(),
     artifactsSince: getConfig(db).artifactsSince,
+    battleSince: getConfig(db).battleSince,
+    battleDays: db.select().from(s.battleDay).all().map((r) => ({ memberId: r.memberId, date: r.date, hordeId: r.hordeId, totalHp: r.totalHp, cleared: r.cleared, win: r.win, regen: r.regen, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })),
+    gearEquipped: db.select().from(s.gearEquipped).all(),
     artifactUse: db.select().from(s.artifactUse).all() as Raw['artifactUse'],
     weeklyGoals: db.select().from(s.weeklyGoal).all().map((g) => ({ memberId: g.memberId, weekStart: g.weekStart, kind: g.kind, tier: g.tier, target: g.target, title: g.title, manual: g.manual, confirmed: g.confirmed })),
     shopItems: db.select().from(s.shopItem).all(),
@@ -46,6 +49,9 @@ export function loadFamily(db: Db, now = new Date()) {
   if (!raw.mvpSince) db.update(s.config).set({ mvpSince: today }).where(eq(s.config.id, 1)).run();
   if (!raw.seasonSince) db.update(s.config).set({ seasonSince: today }).where(eq(s.config.id, 1)).run();
   if (!raw.artifactsSince) db.update(s.config).set({ artifactsSince: today }).where(eq(s.config.id, 1)).run();
+  if (!raw.battleSince) db.update(s.config).set({ battleSince: today }).where(eq(s.config.id, 1)).run();
+  // итоги закончившихся дней личного боя сохраняются один раз, чтобы смена снаряжения не меняла прошлое
+  for (const r of family.pendingBattles) db.insert(s.battleDay).values({ memberId: r.memberId, date: r.date, hordeId: r.hordeId, totalHp: r.totalHp, cleared: r.cleared, win: r.win, regen: r.regen, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop }).onConflictDoNothing().run();
   for (const p of family.mvp.pending) db.insert(s.dayMvp).values({ date: p.date, memberId: p.memberId, points: p.points, ratio: p.ratio }).onConflictDoNothing().run();
   return { raw, family };
 }

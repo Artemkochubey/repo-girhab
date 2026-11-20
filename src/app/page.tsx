@@ -1,6 +1,7 @@
 'use client';
 import { FamilyQuests } from '@/components/FamilyQuests';
 import { EveningReminder } from '@/components/EveningReminder';
+import { BattleCard } from '@/components/BattleCard';
 import { WeeklyGoal } from '@/components/WeeklyGoal';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
@@ -39,6 +40,8 @@ export default function Today() {
       </Section>
 
       <EveningReminder />
+
+      <BattleCard />
 
       <WeeklyGoal />
 

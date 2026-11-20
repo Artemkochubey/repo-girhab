@@ -34,6 +34,16 @@ export interface GoalStateDto {
 export interface GoalOptionDto { kind: string; name: string; emoji: string; unit: string; tiers: { tier: 'easy' | 'mid' | 'hard'; target: number | null; xp: number; chests: number; artifact: boolean }[]; texts: string[] }
 export interface ArtifactDto { key: string; kind: 'shield' | 'doubler' | 'key' | 'luck'; source: 'chest' | 'boss' | 'season' | 'mvp' | 'goal'; date: string; status: 'bag' | 'active' | 'used'; activeFor: string | null; usedOn: string | null }
 
+export type DomainId = 'body' | 'mind' | 'art' | 'will';
+export interface WaveDto { unit: string; weak: DomainId; hp: number; damage: number; cleared: boolean }
+export interface LiveBattleDto {
+  date: string; horde: { id: string; name: string; emoji: string; units: string[] }; factor: number; weakened: boolean;
+  hp: number; maxHp: number; streak: number; totalHp: number; weakDomains: DomainId[]; winChance: number; xp: number; weekend: boolean;
+  fight: { waves: WaveDto[]; cleared: number; damage: number; outcome: 'victory' | 'held' | 'defeat' };
+}
+export interface GearItemDto { id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; name: string; emoji: string; text: string }
+export interface GearBonusDto { dmg: number; dmgDomain: Record<DomainId, number>; guard: number; hordeHp: number; weak: number; heal: number; streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number }
+
 export interface State {
   season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
   familyQuests: FamilyQuestDto[];
@@ -58,11 +68,13 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
+    battle: { live: LiveBattleDto; hp: number; streak: number; xp: number; recent: { date: string; hordeId: string; cleared: number; win: boolean; hpDelta: number; xp: number; drop: string | null }[] };
+    gear: { items: { key: string; itemId: string; source: 'battle' | 'boss' | 'chest'; date: string; equipped: boolean; item: GearItemDto }[]; slots: Record<string, string | null>; bonus: GearBonusDto };
     pity: { untilRare: number; untilLegend: number; bossWaiting: number };
     goal: { weekStart: string; weekEnd: string; canChoose: boolean; current: GoalStateDto | null; last: GoalStateDto | null; options: GoalOptionDto[] };
     artifacts: ArtifactDto[];
     artifactDates: { shield: string[]; doubler: string[] };
-    chestLog: { n: number; date: string; rarity: string; reward: string; artifact: string | null; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
+    chestLog: { n: number; date: string; rarity: string; reward: string; artifact: string | null; gear: string | null; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];

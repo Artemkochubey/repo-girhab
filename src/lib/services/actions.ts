@@ -14,6 +14,7 @@ import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/t
 import { validQuestList, type QuestItem } from '../game/quests';
 import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
 import { rollChestArtifact } from '../game/artifacts';
+import { SLOTS, gearById, rollChestGear } from '../game/gear';
 import { GOAL_KINDS, TIERS, canChooseGoal, goalTarget, goalWeekStart, type GoalKind, type GoalTier } from '../game/goals';
 import { basePoints } from '../game/points';
 import { loadFamily, getConfig } from './load';
@@ -293,8 +294,29 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       let reward = pickReward(rarity, pools, rand());
       if (rand() < doubleChance(st.hero.talents, st.hero.cls)) reward = `${reward} + ${pickReward(rarity, pools, rand())} (двойная добыча!)`;
       const artifact = rollChestArtifact(rarity, rand(), rand());
-      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact, source: boss ? 'boss' : 'normal' }).run();
-      return { rarity, reward, artifact, talisman: !!talisman, boss, why: rolled.why };
+      const gear = rollChestGear(rarity, rand(), rand(), rand());
+      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact, gear: gear?.id ?? null, source: boss ? 'boss' : 'normal' }).run();
+      return { rarity, reward, artifact, gear: gear?.id ?? null, talisman: !!talisman, boss, why: rolled.why };
+    }
+
+    case 'equipGear': {
+      // надеть предмет из инвентаря: в слоте один предмет, прежний снимается
+      const memberId = target();
+      const key = String(a.key ?? '');
+      const st = loadFamily(db, now).family.members.get(memberId)!;
+      const own = st.gear.find((g) => g.key === key);
+      const item = own ? gearById(own.itemId) : undefined;
+      if (!own || !item) return fail(404, 'Нет такого снаряжения');
+      db.delete(s.gearEquipped).where(and(eq(s.gearEquipped.memberId, memberId), eq(s.gearEquipped.slot, item.slot))).run();
+      db.delete(s.gearEquipped).where(and(eq(s.gearEquipped.memberId, memberId), eq(s.gearEquipped.key, key))).run();
+      db.insert(s.gearEquipped).values({ memberId, slot: item.slot, key }).run();
+      return { slot: item.slot };
+    }
+    case 'unequipGear': {
+      const memberId = target();
+      if (!SLOTS.includes(a.slot as never)) fail(400, 'Неизвестный слот');
+      db.delete(s.gearEquipped).where(and(eq(s.gearEquipped.memberId, memberId), eq(s.gearEquipped.slot, String(a.slot)))).run();
+      return { ok: true };
     }
 
     case 'useArtifact': {
