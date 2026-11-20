@@ -4,6 +4,7 @@ import { BossScene } from '@/components/BossScene';
 import { ClimbRoster } from '@/components/ClimbRoster';
 import { HeroFigure } from '@/components/HeroFigure';
 import { MountainClimb } from '@/components/MountainClimb';
+import { RatingTable } from '@/components/RatingTable';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import { DEEDS, DEED_DAY_CAP, deedStatus } from '@/lib/game/deeds';
 import { CLASS_NAMES, type Cls } from '@/lib/game/classes';
@@ -175,6 +176,17 @@ export function MountainSlide({ d }: { d: Tv }) {
     <div className="tv-mtn-slide">
       <section className="tv-mountain"><h2>⛰ Восхождение семьи</h2><div className="tv-mountain-box"><MountainClimb tv climbers={climbers(d)} /></div></section>
       <section className="tv-mountain"><h2>🧭 Кто где</h2><ClimbRoster climbers={climbers(d)} /></section>
+    </div>
+  );
+}
+
+/** Рейтинг дня на ТВ: места и из чего набраны очки. */
+export function RatingSlide({ d }: { d: Tv }) {
+  return (
+    <div className="tv-col">
+      <h1>📊 Рейтинг дня</h1>
+      {d.rating ? <section className="tv-ratingbox"><RatingTable rows={d.rating.rows} tv /></section> : <p className="tv-hint">Нет данных</p>}
+      <p className="tv-hint">Место зависит от выполнения личной нормы: очки ÷ норма (не больше двух норм). Первый, выполнивший норму, получает 🏆 MVP дня.</p>
     </div>
   );
 }

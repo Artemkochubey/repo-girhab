@@ -74,6 +74,13 @@ await check('сундуки: заработать и открыть на вкл�
   await p.goto(base + '/bag'); await p.waitForSelector('text=Открыть сундук'); await dismiss();
   await p.click('button:has-text("Открыть сундук")'); await p.waitForSelector('.reward');
 });
+await check('рейтинг дня: места и источники очков', async () => {
+  await p.goto(base + '/rating'); await p.waitForSelector('.rating-table'); await dismiss();
+  const rows = await p.locator('.rating-table tbody tr').count();
+  ok(rows === 4, `в рейтинге должно быть 4 героя, а их ${rows}`);
+  ok((await p.locator('.rating-table tbody tr').first().innerText()).includes('Младший'), 'у Младшего больше всех очков от нормы, он должен быть первым');
+  ok((await p.locator('.rating-table thead th.c-src').count()) >= 2, 'нет столбцов источников очков');
+});
 await check('лицо героя: создать и сохранить отдельно от смайлика', async () => {
   await p.goto(base + '/hero'); await dismiss(); await p.click('.herolook .btn'); await p.waitForSelector('.facepick');
   await p.click('.seg button:has-text("Девочка")'); await p.click('.face-opt:has-text("Косы")'); await p.click('.btn:has-text("Сохранить лицо")'); await p.waitForTimeout(700);

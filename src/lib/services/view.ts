@@ -3,6 +3,7 @@ import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
+import { buildRating } from '../game/rating';
 import { DEED_DAY_CAP, deedJournal, deedSummary } from '../game/deeds';
 import { parseFace } from '../game/faces';
 import { CLASS_BATTLE, classOnly } from '../game/classBattle';
@@ -122,7 +123,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
       const shield = used('shield'), doubler = used('doubler');
       const days = dateRange(addDays(fam.today, -7), fam.today);
       return {
-        shield: days.filter((d) => d < fam.today && !shield.has(d) && basePoints((st.days.get(d)?.stats) ?? { workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0 }) < m.goal * 0.5),
+        shield: days.filter((d) => d < fam.today && !shield.has(d) && basePoints((st.days.get(d)?.stats) ?? { workoutMinutes: 0, walk: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0 }) < m.goal * 0.5),
         doubler: days.filter((d) => !doubler.has(d)),
       };
     })(),
@@ -210,6 +211,16 @@ export function buildState(raw: Raw, fam: Family, opts: { memberId: number | nul
 }
 
 /** Публичная сводка для ТВ: без деталей записей. */
+/** Рейтинг дня: места, очки, процент нормы и из чего набраны очки. Дата любая, до 30 дней назад. */
+export function ratingView(raw: Raw, fam: Family, date: string) {
+  const rows = buildRating(raw.members.map((m) => {
+    const d = fam.members.get(m.id)?.days.get(date);
+    const wm = d?.stats.workoutMinutes ?? 0;
+    return { id: m.id, goal: m.goal, superGoal: m.superGoal, total: d?.total ?? 0, bySphere: d?.bySphere ?? {}, questXp: d?.stats.questXp ?? 0, walkShare: d && wm > 0 ? d.stats.walk / wm : 0 };
+  })).map((r) => { const m = raw.members.find((x) => x.id === r.id)!; return { ...r, name: m.name, emoji: m.emoji, color: m.color }; });
+  return { date, today: fam.today, isToday: date === fam.today, rows };
+}
+
 export function tvState(raw: Raw, fam: Family) {
   const record = (id: number) => {
     const st = fam.members.get(id)!, d = st.days.get(fam.today);
@@ -222,7 +233,7 @@ export function tvState(raw: Raw, fam: Family) {
     };
   };
   return {
-    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour,
+    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, rating: ratingView(raw, fam, fam.today),
     season: { id: fam.seasons.current.id, daysLeft: fam.seasons.current.daysLeft, top: fam.seasons.current.rows.slice(0, 4).map((r) => ({ memberId: r.memberId, ratio: r.ratio, points: r.points })) }, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },

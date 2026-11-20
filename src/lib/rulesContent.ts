@@ -13,6 +13,7 @@ import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, 
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
 import { xpNeed } from './game/level';
 import { DAY_RATIO_CAP, MVP_CHEST_PER_DAY } from './game/mvp';
+import { SOURCES } from './game/rating';
 import { WALK } from './game/muscles';
 import { POINTS } from './game/points';
 import { QUEST_TEMPLATES } from './game/quests';
@@ -276,6 +277,19 @@ export function buildRules(): Section[] {
         { table: { head: ['Вид цели', 'Что считается', 'Лёгкая / средняя / сложная (норма 60)'], rows: GOAL_KINDS.map((k) => [`${GOAL_INFO[k].emoji} ${GOAL_INFO[k].name}`, GOAL_WHAT[k], goalExample(k, 60)]) } },
         { table: { head: ['Сложность', 'Награда после недели'], rows: TIERS.map((t) => [TIER_NAMES[t], `+${rewardXp(t, 60)} опыта (норма 60)${REWARD[t].chests ? `, ${REWARD[t].chests} сундук` : ''}${REWARD[t].artifact ? ', артефакт' : ''}`]) } },
         'Числа минут и очков масштабируются по норме героя. Награда начисляется в понедельник после закончившейся недели.',
+      ],
+    },
+    {
+      id: 'rating', emoji: '📊', title: 'Рейтинг дня',
+      summary: 'Таблица мест за день и из чего набраны очки.',
+      blocks: [
+        'Страница **«📊 Рейтинг дня»** (вкладка «Ещё», а также слайд «Рейтинг» на ТВ) показывает всех героев за выбранный день: место, очки, долю нормы и очки по источникам. Можно листать назад до 30 дней.',
+        { list: [
+          `**Место** считается от личной нормы: очки ÷ норма героя, не больше ${DAY_RATIO_CAP} норм. Так у младшего и старшего равные шансы, а накрутка одного дня обгона не даёт. При равной доле выше тот, у кого больше очков; одинаковый результат делит место.`,
+          '**🏆 MVP дня** получает первый, если выполнил норму (100% и больше).',
+          'Источники очков: ' + SOURCES.map((s) => `${s.emoji} ${s.name}`).join(', ') + '. Очки по источникам уже включают бонусы класса и талантов. «Бонусы талантов» это надбавки, которые не относятся к одному занятию. Из-за округления сумма столбцов может отличаться от очков дня на 1–2.',
+          'В таблице у каждого героя выделен главный источник; под ней полоски показывают, из чего набраны очки, и подпись, например «больше всего 🏃 тренировка: 45 из 80».',
+        ] },
       ],
     },
     {

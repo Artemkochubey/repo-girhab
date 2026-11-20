@@ -54,6 +54,11 @@ export type DomainId = 'body' | 'mind' | 'art' | 'will';
 import type { FaceConfig } from './game/faces';
 import type { DeedSummary } from './game/deeds';
 export interface DeedItemDto { id: number | null; date: string; kind: string; note: string | null; counted: boolean; points: number }
+export interface RatingRowDto {
+  id: number; place: number; points: number; goal: number; superGoal: number; percent: number; ratio: number; qualified: boolean; mvp: boolean;
+  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; name: string; emoji: string; color: string;
+}
+export interface RatingDto { date: string; today: string; isToday: boolean; rows: RatingRowDto[] }
 export interface WaveDto { unit: string; weak: DomainId; hp: number; damage: number; cleared: boolean }
 export interface LiveBattleDto {
   date: string; horde: { id: string; name: string; emoji: string; units: string[] }; factor: number; weakened: boolean;
@@ -103,7 +108,7 @@ export interface State {
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];
     mvpWins: number;
-    day: { points: number; stats: { workoutMinutes: number; warmups: number; study: Record<string, number>; habits: number; books: number; deeds: number; deedPoints: number; questXp: number };
+    day: { points: number; stats: { workoutMinutes: number; walk: number; warmups: number; study: Record<string, number>; habits: number; books: number; deeds: number; deedPoints: number; questXp: number };
       bySphere: Record<string, number>;
       quests: { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };
     workoutLog: { id: number; date: string; minutes: number; reps: number | null; eq: number; exercise: string | null; muscles: string[] | null }[];

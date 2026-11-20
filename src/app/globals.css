@@ -346,3 +346,27 @@ nav.tabs a { position: relative; } .new-dot { position: absolute; top: 4px; righ
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* рейтинг дня */
+.rating { display: grid; gap: 10px; } .rating-scroll { overflow-x: auto; }
+.rating-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: .92rem; min-width: 420px; }
+.rating-table th, .rating-table td { padding: 8px 8px; text-align: center; vertical-align: middle; white-space: nowrap; }
+.rating-table thead th { color: var(--muted); font-weight: 600; font-size: .78rem; } .rating-table thead th.c-src span { display: block; font-size: 1.2rem; } .rating-table thead th small { display: block; }
+.rating-table tbody tr { background: var(--panel2); } .rating-table tbody td:first-child, .rating-table tbody th:first-child { border-radius: 12px 0 0 12px; border-left: 4px solid transparent; } .rating-table tbody tr { border-left: 4px solid; }
+.rating-table tbody tr td:last-child { border-radius: 0 12px 12px 0; }
+.rating-table .c-who { text-align: left; font-weight: 600; } .rating-table .c-place { font-size: 1.4rem; width: 3.2rem; } .r-emoji { font-size: 1.3rem; }
+.rating-table tr.is-mvp { background: linear-gradient(90deg, #3a2c14, var(--panel2)); } .rating-table tr.is-me .c-who { text-decoration: underline dotted; }
+.c-pts b { font-size: 1.1rem; } .c-pct { min-width: 92px; } .c-pct.ok b { color: #8be3a3; } .r-bar { position: relative; height: 6px; background: #0007; border-radius: 99px; margin: 3px 0; overflow: visible; } .r-bar i { display: block; height: 100%; border-radius: 99px; } .r-bar u { position: absolute; top: -2px; width: 2px; height: 10px; background: #fff9; }
+.c-src.zero { color: var(--muted); opacity: .5; } .c-src.is-top { font-weight: 800; }
+.rating-table tfoot th, .rating-table tfoot td { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); }
+.rating-h { margin: 8px 0 0; } .rating-bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.rb-head { display: flex; justify-content: space-between; gap: 8px; } .rb-bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: #0006; margin: 4px 0 2px; } .rb-bar i { display: grid; place-items: center; font-style: normal; font-size: .75rem; font-weight: 700; color: #111; overflow: hidden; white-space: nowrap; }
+.rating-legend { list-style: none; padding: 0; margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--muted); } .rating-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+
+.m-only { display: none; }
+@media (max-width: 560px) {
+  .d-only { display: none; } .m-only { display: inline; } p.m-only { display: block; }
+  .rating-table { font-size: .85rem; min-width: 0; } .rating-table th, .rating-table td { padding: 6px 4px; }
+  .rating-table .c-place { width: 2rem; font-size: 1.2rem; } .rating-table .r-emoji { display: none; } .rating-table .c-pct { min-width: 64px; } .rating-table .c-pct small { display: none; }
+  .rating-table .c-src { min-width: 44px; }
+}

@@ -5,6 +5,7 @@ export type StudyKind = 'Книги' | 'Языки' | 'Учёба' | 'Навык
 /** Сводка активности участника за один день. */
 export interface DayStats {
   workoutMinutes: number;
+  walk: number;             // сколько из workoutMinutes дала прогулка (в очках до бонусов)
   warmups: number;          // 0 или 1
   study: Partial<Record<StudyKind, number>>;
   habits: number;           // отмеченных привычек (до лимита считается в points)
@@ -23,7 +24,7 @@ export interface HeroBuild {
 }
 
 export const emptyDay = (): DayStats => ({
-  workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0,
+  workoutMinutes: 0, walk: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0,
 });
 
 export type { Cls, Sphere };

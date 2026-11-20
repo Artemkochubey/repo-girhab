@@ -104,7 +104,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     const stats = new Map<string, DayStats>();
     const get = (date: string) => { let s = stats.get(date); if (!s) stats.set(date, (s = emptyDay())); return s; };
     // минуты считаются как есть, повторы — по ставке упражнения с потолками (см. game/reps.ts)
-    for (const w of allocateWorkouts(raw.workouts.filter((x) => x.memberId === m.id).map((x, i) => ({ ...x, id: x.id ?? i })))) get(w.date).workoutMinutes += w.eq;
+    for (const w of allocateWorkouts(raw.workouts.filter((x) => x.memberId === m.id).map((x, i) => ({ ...x, id: x.id ?? i })))) { const d = get(w.date); d.workoutMinutes += w.eq; if (w.exercise === 'stroll') d.walk += w.eq; }
     for (const w of raw.warmups) if (w.memberId === m.id) get(w.date).warmups = 1;
     for (const s of raw.study) if (s.memberId === m.id) { const d = get(s.date); d.study[s.kind] = (d.study[s.kind] ?? 0) + s.minutes; }
     for (const c of raw.habitChecks) if (habitOwner.get(c.habitId) === m.id) get(c.date).habits++;

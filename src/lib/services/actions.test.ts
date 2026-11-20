@@ -6,7 +6,7 @@ import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
 import { tvRecord } from './tvRecord';
-import { adminView, memberDetail, tvState } from './view';
+import { adminView, memberDetail, ratingView, tvState } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -340,6 +340,24 @@ describe('действия', () => {
     expect(row().face).not.toBeNull();
     const { raw, family } = loadFamily(db, NOW);
     expect(tvState(raw, family).members.find((m) => m.id === 2)!.face).toMatchObject({ hair: 'spiky', gender: 'm' });   // лицо доходит до ТВ
+  });
+  it('рейтинг дня: места от личной нормы и разбивка очков по источникам', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 20 });
+    runAction(db, kid, 'addWorkout', { exercise: 'stroll', minutes: 40 });          // 20 очков прогулки
+    runAction(db, kid, 'addDeed', { kind: 'hug' });
+    runAction(db, dad, 'addWorkout', { minutes: 30 });
+    const { raw, family } = loadFamily(db, NOW);
+    const r = ratingView(raw, family, family.today);
+    const kidRow = r.rows.find((x) => x.id === 2)!, dadRow = r.rows.find((x) => x.id === 1)!;
+    const parts = Object.fromEntries(kidRow.parts.map((p) => [p.id, p.points]));
+    expect(parts.walk).toBeGreaterThanOrEqual(20);        // прогулка отделена от тренировки (с бонусом класса может быть больше)
+    expect(parts.deeds).toBe(8);
+    expect(parts.workout).toBeGreaterThanOrEqual(20);
+    expect(kidRow.points).toBeGreaterThan(dadRow.points);
+    expect(r.rows[0]!.id).toBe(2);                        // у ребёнка норма ниже, он выше в рейтинге
+    expect(r.rows[0]!.place).toBe(1);
+    expect(r.rows.map((x) => x.name).sort()).toEqual(raw.members.map((m) => m.name).sort());
+    expect(ratingView(raw, family, '2000-01-01').rows.every((x) => x.points === 0 && x.parts.length === 0)).toBe(true);
   });
   it('прогулка: минуты считаются по половинной цене с потолком в день', () => {
     const today = () => loadFamily(db, NOW).family.members.get(2)!.days.get(loadFamily(db, NOW).family.today)!;

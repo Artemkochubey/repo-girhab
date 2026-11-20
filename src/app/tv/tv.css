@@ -119,3 +119,8 @@
 .tv-mtn-slide .tv-mountain .mountain { height: 60vh; width: auto; max-width: 100%; }
 .tv-quests .tv-q { min-height: 0; padding: 10px 16px; font-size: .78em; gap: 12px; } .tv-quests .tv-mark { font-size: 1.5rem; width: 2rem; }
 .tv-battle .scene { max-height: 24vh; } .tv-battle { padding: 8px 10px; gap: 4px; }
+.tv-ratingbox { background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 1.2vw; }
+.rating-tv .rating-table { font-size: 1.05rem; min-width: 0; } .rating-tv .rating-table tbody tr { background: #241b42; } .rating-tv .c-place { font-size: 2rem; } .rating-tv .r-emoji { font-size: 2rem; } .rating-tv .c-pts b { font-size: 1.6rem; }
+.rating-tv .rating-table th, .rating-tv .rating-table td { padding: 10px 10px; } .rating-tv .rb-bar { height: 34px; } .rating-tv .rb-bar i { font-size: 1rem; }
+.rating-tv .rating-bars, .rating-tv .rating-h { display: none; } .rating-tv .rating-legend { font-size: 1rem; color: #cbbff0; }
+.rating-tv .m-only { display: none !important; }
