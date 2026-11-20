@@ -259,6 +259,36 @@ describe('действия', () => {
     expect(db.select().from(s.battleDay).all()).toHaveLength(4);
     expect(detail(2, later).battle.recent).toHaveLength(2);
   });
+  it('слияние: три одинаковых предмета дают один следующей редкости, съеденные исчезают и снимаются', () => {
+    const give = (n: number, gear: string) => db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10', gear }).run();
+    give(1, 'sword-common'); give(2, 'sword-common'); give(3, 'sword-common'); give(4, 'sword-common'); give(5, 'armor-rare'); give(6, 'sword-legend');
+    runAction(db, kid, 'equipGear', { key: 'chest:1' });
+    expect(err(() => runAction(db, kid, 'mergeGear', { keys: ['chest:1', 'chest:2'] }))?.status).toBe(400);                  // не три
+    expect(err(() => runAction(db, kid, 'mergeGear', { keys: ['chest:1', 'chest:2', 'chest:5'] }))?.status).toBe(400);       // разные
+    expect(err(() => runAction(db, kid, 'mergeGear', { keys: ['chest:1', 'chest:2', 'chest:99'] }))?.status).toBe(404);
+    expect(err(() => runAction(db, kid, 'mergeGear', { keys: ['chest:6', 'chest:6', 'chest:6'] }))?.status).toBe(400);       // один и тот же
+    expect(err(() => runAction(db, kid, 'mergeGear', { memberId: 1, keys: ['chest:1', 'chest:2', 'chest:3'] }))?.status).toBe(403);   // чужой инвентарь
+  });
+  it('слияние: результат в инвентаре, легендарные не сливаются, надетое снимается', () => {
+    const give = (n: number, gear: string) => db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10', gear }).run();
+    give(1, 'sword-common'); give(2, 'sword-common'); give(3, 'sword-common'); give(4, 'sword-common');
+    runAction(db, kid, 'equipGear', { key: 'chest:1' });
+    const r = runAction(db, kid, 'mergeGear', { keys: ['chest:1', 'chest:2', 'chest:3'] }) as { key: string; itemId: string };
+    expect(r.itemId).toBe('sword-rare');
+    const items = () => detail().gear.items;
+    expect(items().map((g) => g.itemId).sort()).toEqual(['sword-common', 'sword-rare']);   // осталась одна обычная и новая редкая
+    expect(items().find((g) => g.key === r.key)).toMatchObject({ source: 'merge', itemId: 'sword-rare' });
+    expect(detail().gear.slots.weapon).toBeNull();                                           // слитый меч был надет, теперь снят
+    expect(err(() => runAction(db, kid, 'mergeGear', { keys: ['chest:1', 'chest:2', 'chest:3'] }))?.status).toBe(404);   // уже слиты
+    runAction(db, kid, 'equipGear', { key: r.key });                                         // слитый предмет можно надеть и он действует
+    expect(detail().gear.bonus.dmg).toBeCloseTo(0.08);
+    // слияние слитого: три редких → эпический
+    give(5, 'sword-rare'); give(6, 'sword-rare');
+    const r2 = runAction(db, kid, 'mergeGear', { keys: [r.key, 'chest:5', 'chest:6'] }) as { itemId: string };
+    expect(r2.itemId).toBe('sword-epic');
+    expect(detail().gear.slots.weapon).toBeNull();
+    expect(items().map((g) => g.itemId).sort()).toEqual(['sword-common', 'sword-epic']);
+  });
   it('снаряжение: надеть, заменить в слоте, снять; чужое и несуществующее нельзя', () => {
     const give = (n: number, gear: string) => db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10', gear }).run();
     give(1, 'sword-common'); give(2, 'sword-epic'); give(3, 'armor-rare');
@@ -432,6 +462,34 @@ describe('действия', () => {
     expect(simple()).toBe(true);
     runAction(db, dad, 'setSimple', { memberId: 2, on: false });
     expect(simple()).toBe(false);
+  });
+  it('способность усиливает урон по боссу в день применения', () => {
+    runAction(db, kid, 'setClass', { cls: 'w', confirm: true });
+    runAction(db, kid, 'addWorkout', { minutes: 100 });
+    const dmg = () => loadFamily(db, NOW).family.boss.byMember[2] ?? 0;
+    const before = dmg();
+    runAction(db, kid, 'useAbility', { id: 'w-whirl' });                  // +25% урона сегодня
+    const after = dmg();
+    expect(after).toBeGreaterThan(before);
+    expect(after - before).toBeGreaterThan(before * 0.15);                // заметная прибавка (около четверти)
+  });
+  it('специализация: с 8 уровня, сначала класс, ветка открывает свою способность', () => {
+    expect(err(() => runAction(db, kid, 'setSpec', { spec: 'a' }))?.status).toBe(400);   // нет класса
+    runAction(db, kid, 'setClass', { cls: 'w', confirm: true });
+    expect(err(() => runAction(db, kid, 'setSpec', { spec: 'a' }))?.status).toBe(400);   // уровень низкий
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'w-bloodlust' }))?.status).toBe(400);   // без специализации нельзя
+    for (let i = 0; i < 4; i++) runAction(db, kid, 'addWorkout', { minutes: 600 });
+    expect(loadFamily(db, NOW).family.members.get(2)!.level).toBeGreaterThanOrEqual(8);
+    expect(err(() => runAction(db, kid, 'setSpec', { spec: 'x' }))?.status).toBe(400);
+    runAction(db, kid, 'setSpec', { spec: 'a' });
+    expect(loadFamily(db, NOW).family.members.get(2)!.hero.spec).toBe('a');
+    const ab = () => loadFamily(db, NOW).family.members.get(2)!.battle.abilities;
+    expect(ab().list.map((x) => x.id)).toContain('w-bloodlust');
+    runAction(db, kid, 'useAbility', { id: 'w-bloodlust' });
+    expect(ab().activeToday).toEqual(['w-bloodlust']);
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'w-wall' }))?.status).toBe(400);      // способность чужой ветки
+    runAction(db, kid, 'setSpec', { spec: null });
+    expect(loadFamily(db, NOW).family.members.get(2)!.hero.spec).toBeNull();
   });
   it('«Я видел»: отметка за день другого героя, свою нельзя, без очков нельзя, повтор снимает', () => {
     expect(err(() => runAction(db, kid, 'toggleSeen', { targetId: 1 }))?.status).toBe(400);   // у папы пока нет очков

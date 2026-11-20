@@ -132,6 +132,29 @@ export default function Hero() {
             </div>
           </div>
         )}
+        {h.cls && (
+          <>
+            <h3>Специализация</h3>
+            <p className="muted small">С {d.battle.specLevel} уровня класс делится на две ветки: каждая даёт свой бонус и ещё одну способность. Выбор можно сменить.</p>
+            {d.level < d.battle.specLevel
+              ? <p className="gold small">🔒 Откроется на {d.battle.specLevel} уровне: сейчас уровень {d.level}.</p>
+              : (
+                <div className="grid">
+                  {d.battle.specs.map((sp) => {
+                    const chosen = h.spec === sp.id;
+                    return (
+                      <button key={sp.id} className={`card pick ${chosen ? 'sel' : ''}`} aria-pressed={chosen} onClick={() => act('setSpec', { spec: chosen ? null : sp.id }).then(() => toast(chosen ? 'Специализация снята' : `🌟 Специализация: ${sp.name}`)).catch(() => {})}>
+                        {chosen && <span className="sub-badge">✔ Ваша ветка</span>}
+                        <b>{sp.emoji} {sp.name}</b>
+                        <span className="muted">{sp.text}</span>
+                        <small className="gold">{sp.ability.emoji} {sp.ability.name}: {sp.ability.text}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+          </>
+        )}
         <details>
           <summary>Все подклассы всех классов</summary>
           <table className="subtable">

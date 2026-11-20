@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fight, simulate, MAX_HP } from './battle';
-import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, abilityBlocked, abilityById, abilityView, classOnly, withAbilities, withClass } from './classBattle';
+import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, SPECS, SPEC_LEVEL, abilityBlocked, abilityById, abilityPower, abilityView, bossAbilityBonus, classOnly, specBossBonus, specOf, withAbilities, withClass } from './classBattle';
 import { GEAR, GEAR_RARITIES, NO_GEAR, TIER_NAMES, gearBonus, gearById, gearDisplay, type Domain } from './gear';
 import type { Cls } from './classes';
 
@@ -60,8 +60,8 @@ describe('вид и названия снаряжения по классам', 
     expect(gearDisplay(gearById('hammer-legend')!, 'm').name).toBe('Посох архимага силы');
     expect(gearDisplay(gearById('armor-rare')!, 'm').name).toBe('Ряса с поясом');
     expect(gearDisplay(gearById('armor-rare')!, 'p').name).toBe('Кираса');
-    expect(gearDisplay(gearById('helm-common')!, 'p').name).toBe('Простой крылатый шлем');
-    expect(gearDisplay(gearById('boots-epic')!, 'b').name).toBe('Эпические ботфорты');
+    expect(gearDisplay(gearById('helm-common')!, 'p').name).toBe('Кольчужный капюшон');
+    expect(gearDisplay(gearById('boots-epic')!, 'b').name).toBe('Ботфорты менестреля');
     expect(gearDisplay(sword, null).name).toBe(sword.name);
     expect(gearDisplay(gearById('amulet-rare')!, 'm').name).toBe(gearById('amulet-rare')!.name);   // амулеты общие
   });
@@ -147,5 +147,49 @@ describe('активные способности', () => {
     const buffed = simulate({ ...base, bonusFor: () => withAbilities(withClass(NO_GEAR, 'w'), ['w-whirl', 'w-charge']) }).rows[0]!;
     expect(buffed.cleared).toBeGreaterThanOrEqual(none.cleared);
     expect(buffed.totalHp).toBeLessThan(none.totalHp);            // «Рывок» делает первую волну слабее
+  });
+});
+
+describe('специализации и сила способностей', () => {
+  it('у каждого класса две специализации со своими способностями, id не повторяются', () => {
+    const ids = CLASSES.flatMap((c) => SPECS[c].map((s) => s.ability.id));
+    expect(ids).toHaveLength(8); expect(new Set(ids).size).toBe(8);
+    for (const c of CLASSES) { expect(SPECS[c].map((s) => s.id)).toEqual(['a', 'b']); expect(SPECS[c][0].name).not.toBe(SPECS[c][1].name); }
+    expect(SPEC_LEVEL).toBe(8);
+    expect(specOf('w', 'a')!.name).toBe('Берсерк'); expect(specOf('w', null)).toBeNull(); expect(specOf(null, 'a')).toBeNull();
+  });
+  it('бонус специализации добавляется к классу, без неё всё как раньше', () => {
+    const base = withClass(NO_GEAR, 'w', null);
+    const berserk = withClass(NO_GEAR, 'w', 'a');
+    expect(berserk.dmg).toBeCloseTo(base.dmg + 0.08);
+    expect(berserk.lossMult).toBeCloseTo(base.lossMult + 0.15);
+    expect(base).toEqual(withClass(NO_GEAR, 'w'));
+    expect(withClass(NO_GEAR, 'p', 'b').guard).toBeCloseTo(0.35 + 0.2);
+  });
+  it('способность специализации видна и доступна только с ней', () => {
+    expect(abilityView('m', [], '2026-11-20', null).list).toHaveLength(3);
+    const v = abilityView('m', [], '2026-11-20', 'a');
+    expect(v.list).toHaveLength(4);
+    expect(v.list.at(-1)!.id).toBe('m-comet');
+    expect(abilityBlocked('m', 'm-comet', [], '2026-11-20', null)).toMatch(/специализац/);
+    expect(abilityBlocked('m', 'm-comet', [], '2026-11-20', 'a')).toBeNull();
+    expect(abilityBlocked('m', 'm-frost', [], '2026-11-20', 'a')).toMatch(/специализац/);      // чужая ветка
+  });
+  it('сила способностей растёт с уровнем: +4% за уровень, предел +60%', () => {
+    expect(abilityPower(1)).toBe(1);
+    expect(abilityPower(11)).toBeCloseTo(1.4);
+    expect(abilityPower(100)).toBe(1.6);
+    expect(abilityView('w', [], '2026-11-20', null, 6).power).toBeCloseTo(1.2);
+    const plain = withAbilities(NO_GEAR, ['w-whirl']);
+    const strong = withAbilities(NO_GEAR, ['w-whirl'], 1.4);
+    expect(plain.dmg).toBeCloseTo(0.25); expect(strong.dmg).toBeCloseTo(0.35);
+  });
+  it('в бою с боссом способности усиливают урон и вдвое мягче слабость', () => {
+    expect(bossAbilityBonus(['w-whirl'])).toEqual({ dmg: 0.25, weak: 0 });
+    expect(bossAbilityBonus(['m-pyro'])).toEqual({ dmg: 0, weak: 0.375 });
+    expect(bossAbilityBonus(['m-arcane', 'нет-такой'], 2).dmg).toBeCloseTo(0.8);
+    expect(bossAbilityBonus([])).toEqual({ dmg: 0, weak: 0 });
+    expect(specBossBonus('m', 'a')).toEqual({ dmg: 0.05, weak: 0.075 });
+    expect(specBossBonus('b', null)).toEqual({ dmg: 0, weak: 0 });
   });
 });

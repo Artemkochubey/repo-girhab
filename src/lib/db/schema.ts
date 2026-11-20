@@ -113,6 +113,8 @@ export const hero = sqliteTable('hero', {
   clsChangedAt: text('cls_changed_at').notNull().$defaultFn(() => new Date().toISOString()),
   sub: text('sub', { enum: ['w', 'm', 'b', 'p'] }),
   talents: text('talents', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(() => []),
+  // специализация класса ('a' | 'b'), доступна с 8 уровня
+  spec: text('spec', { enum: ['a', 'b'] }),
 });
 
 export type { QuestItem };
@@ -265,6 +267,17 @@ export const gearEquipped = sqliteTable('gear_equipped', {
   slot: text('slot').notNull(),
   key: text('key').notNull(),
 }, (t) => [unique('gear_equipped_slot').on(t.memberId, t.slot), unique('gear_equipped_key').on(t.memberId, t.key)]);
+
+// Слияние снаряжения: три одинаковых предмета превращаются в один следующей редкости. Сами предметы выводятся из истории,
+// поэтому «съеденные» ключи хранятся здесь и убираются из инвентаря.
+export const gearMerge = sqliteTable('gear_merge', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  consumed: text('consumed', { mode: 'json' }).$type<string[]>().notNull(),
+  itemId: text('item_id').notNull(),
+  date: text('date').notNull(),
+  createdAt: createdAt(),
+});
 
 // Применённые способности класса: одна запись на способность в день (перезарядка считается по датам)
 export const abilityUse = sqliteTable('ability_use', {

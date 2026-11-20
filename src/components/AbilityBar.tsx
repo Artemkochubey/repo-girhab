@@ -11,6 +11,7 @@ export function AbilityBar({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`abilities ${compact ? 'compact' : ''}`}>
       <div className="row between"><b>⚡ Способности</b><span className="focus" title="Энергия на сегодня">{Array.from({ length: ab.focusMax }, (_, i) => <i key={i} className={i < ab.focusLeft ? 'on' : ''}>⚡</i>)}</span></div>
+      {ab.power > 1.001 && <small className="muted">Сила способностей растёт с уровнем: ×{ab.power.toFixed(2).replace('.', ',')}</small>}
       <div className="abil-grid">
         {ab.list.map((a) => {
           const state = a.usedToday ? '✔ применена' : a.readyIn > 0 ? `🕒 ещё ${a.readyIn} дн.` : a.ready ? 'применить' : 'мало энергии';

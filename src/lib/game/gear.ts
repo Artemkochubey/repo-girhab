@@ -82,7 +82,49 @@ export interface GearBonus {
 }
 export const NO_GEAR: GearBonus = { dmg: 0, dmgDomain: { body: 0, mind: 0, art: 0, will: 0 }, guard: 0, hordeHp: 0, weak: 0, heal: 0, streakPer: 0, streakMax: 0, wave1: 0, loot: 0, winHeal: 0, rage: 0, comeback: 0, lossMult: 0 };
 
-/** Суммарные бонусы надетых предметов (по одному на слот; лишние в слоте игнорируются). */
+/**
+ * Комплекты: несколько надетых предметов одной редкости дают дополнительный бонус.
+ * 3 предмета одной редкости: бонус «из трёх», 5 предметов (все слоты): к нему добавляется бонус «из пяти».
+ */
+export const SET_NAMES: Record<GearRarity, string> = { common: 'Путник', rare: 'Страж', epic: 'Герой', legend: 'Легенда' };
+export const SET_BONUS: Record<GearRarity, { three: Partial<GearBonus>; five: Partial<GearBonus> }> = {
+  common: { three: { dmg: 0.02 }, five: { heal: 3, guard: 0.05 } },
+  rare: { three: { dmg: 0.04 }, five: { heal: 5, weak: 0.05 } },
+  epic: { three: { dmg: 0.06 }, five: { weak: 0.1, guard: 0.1, heal: 6 } },
+  legend: { three: { dmg: 0.08 }, five: { dmg: 0.07, weak: 0.15, guard: 0.15, heal: 10 } },
+};
+export const SET_PIECES = { three: 3, five: 5 } as const;
+
+const addBonus = (b: GearBonus, patch: Partial<GearBonus>) => { for (const [k, v] of Object.entries(patch)) { if (typeof v === 'number') (b[k as keyof GearBonus] as number) += v; } };
+
+/** Короткое описание бонуса словами: «+4% урона, +5 здоровья в день». */
+export function bonusText(p: Partial<GearBonus>): string {
+  const pc = (x: number) => `${Math.round(x * 100)}%`;
+  const out: string[] = [];
+  if (p.dmg) out.push(`+${pc(p.dmg)} урона`);
+  if (p.weak) out.push(`удар по слабости +${p.weak.toString().replace('.', ',')}`);
+  if (p.guard) out.push(`потери при поражении −${pc(p.guard)}`);
+  if (p.heal) out.push(`+${p.heal} здоровья в день`);
+  if (p.winHeal) out.push(`+${p.winHeal} здоровья за победу`);
+  if (p.hordeHp) out.push(`орда слабее на ${pc(p.hordeHp)}`);
+  if (p.loot) out.push(`+${pc(p.loot)} к шансу снаряжения`);
+  return out.join(', ');
+}
+
+export interface SetState { rarity: GearRarity; name: string; pieces: number; threeOn: boolean; fiveOn: boolean }
+/** Комплекты надетого снаряжения: по каждой редкости, где есть хотя бы 2 предмета. */
+export function activeSets(items: Pick<GearItem, 'slot' | 'rarity'>[]): SetState[] {
+  const seen = new Set<Slot>();
+  const count = new Map<GearRarity, number>();
+  for (const it of items) { if (seen.has(it.slot)) continue; seen.add(it.slot); count.set(it.rarity, (count.get(it.rarity) ?? 0) + 1); }
+  return GEAR_RARITIES.filter((r) => (count.get(r) ?? 0) >= 2).map((r) => ({ rarity: r, name: SET_NAMES[r], pieces: count.get(r)!, threeOn: count.get(r)! >= SET_PIECES.three, fiveOn: count.get(r)! >= SET_PIECES.five }));
+}
+
+/** Эффекты брони и здоровья в бою с боссом: небольшая прибавка к урону (защита, лечение, слабость орды дают силу и там). Не больше +20%. */
+export const BOSS_ARMOR_CAP = 0.2;
+export const bossArmor = (b: GearBonus): number => Math.min(BOSS_ARMOR_CAP, b.guard * 0.1 + b.hordeHp * 0.5 + b.heal * 0.003 + b.winHeal * 0.002);
+
+/** Суммарные бонусы надетых предметов (по одному на слот; лишние в слоте игнорируются) и бонусы комплектов. */
 export function gearBonus(items: GearItem[]): GearBonus {
   const b: GearBonus = { ...NO_GEAR, dmgDomain: { ...NO_GEAR.dmgDomain } };
   const seen = new Set<Slot>();
@@ -103,6 +145,7 @@ export function gearBonus(items: GearItem[]): GearBonus {
       case 'winHeal': b.winHeal += e.hp; break;
     }
   }
+  for (const s of activeSets(items)) { if (s.threeOn) addBonus(b, SET_BONUS[s.rarity].three); if (s.fiveOn) addBonus(b, SET_BONUS[s.rarity].five); }
   return b;
 }
 
@@ -135,8 +178,11 @@ export function rollChestGear(chest: 'common' | 'rare' | 'legend', r1: number, r
 }
 
 /** Предмет по ключу инвентаря (нужен до того, как собран весь инвентарь): battle:дата, boss:дата, chest:N. */
-export function resolveGearKey(key: string, ctx: { battles: { date: string; drop: string | null }[]; chests: { n: number; gear: string | null }[] }): GearItem | null {
+export interface MergeRow { id: number; consumed: string[]; itemId: string; date: string }
+
+export function resolveGearKey(key: string, ctx: { battles: { date: string; drop: string | null }[]; chests: { n: number; gear: string | null }[]; merges?: MergeRow[] }): GearItem | null {
   const [kind, id = ''] = key.split(':');
+  if (kind === 'merge') { const m = ctx.merges?.find((x) => String(x.id) === id); return m ? gearById(m.itemId) ?? null : null; }
   if (kind === 'battle') { const d = ctx.battles.find((b) => b.date === id)?.drop; return d ? gearById(d) ?? null : null; }
   if (kind === 'boss') return gearFromKey(key, BOSS_DROP);
   if (kind === 'chest') { const g = ctx.chests.find((c) => String(c.n) === id)?.gear; return g ? gearById(g) ?? null : null; }
@@ -144,19 +190,20 @@ export function resolveGearKey(key: string, ctx: { battles: { date: string; drop
 }
 
 /** Надетый предмет с датой получения (для боссов: бонус действует только на дни после неё). */
-export function resolveEquipped(equipped: { key: string }[], ctx: { battles: { date: string; drop: string | null }[]; chests: { n: number; date: string; gear: string | null }[] }): { key: string; item: GearItem; source: 'battle' | 'boss' | 'chest'; date: string }[] {
-  const out: { key: string; item: GearItem; source: 'battle' | 'boss' | 'chest'; date: string }[] = [];
+export function resolveEquipped(equipped: { key: string }[], ctx: { battles: { date: string; drop: string | null }[]; chests: { n: number; date: string; gear: string | null }[]; merges?: MergeRow[] }): { key: string; item: GearItem; source: GearSource; date: string }[] {
+  const out: { key: string; item: GearItem; source: GearSource; date: string }[] = [];
   for (const e of equipped) {
     const item = resolveGearKey(e.key, ctx);
     if (!item) continue;
     const [kind = '', id = ''] = e.key.split(':');
-    const date = kind === 'chest' ? ctx.chests.find((c) => String(c.n) === id)?.date ?? '' : id;
-    out.push({ key: e.key, item, source: kind as 'battle' | 'boss' | 'chest', date });
+    const date = kind === 'chest' ? ctx.chests.find((c) => String(c.n) === id)?.date ?? '' : kind === 'merge' ? ctx.merges?.find((m) => String(m.id) === id)?.date ?? '' : id;
+    out.push({ key: e.key, item, source: kind as GearSource, date });
   }
   return out;
 }
 
-export interface GearEntry { key: string; itemId: string; source: 'battle' | 'boss' | 'chest'; date: string }
+export type GearSource = 'battle' | 'boss' | 'chest' | 'merge';
+export interface GearEntry { key: string; itemId: string; source: GearSource; date: string }
 export interface GearOwned extends GearEntry { equipped: boolean }
 
 /** Инвентарь из истории: добыча боя (сохранена), боссы (по ключу), сундуки (сохранено). */
@@ -166,13 +213,34 @@ export function deriveGear(i: {
   bossWins: string[];
   chests: { n: number; date: string; gear: string | null }[];
   equipped: { slot: string; key: string }[];
+  merges?: MergeRow[];
 }): GearOwned[] {
   const out: GearEntry[] = [];
   for (const b of i.battles) if (b.drop && gearById(b.drop)) out.push({ key: `battle:${b.date}`, itemId: b.drop, source: 'battle', date: b.date });
   for (const d of i.bossWins) if (i.since && d >= i.since) out.push({ key: `boss:${d}`, itemId: gearFromKey(`boss:${d}`, BOSS_DROP).id, source: 'boss', date: d });
   for (const c of i.chests) if (c.gear && gearById(c.gear)) out.push({ key: `chest:${c.n}`, itemId: c.gear, source: 'chest', date: c.date });
+  // слияния: «съеденные» предметы уходят из инвентаря, результат появляется под ключом merge:id
+  const eaten = new Set((i.merges ?? []).flatMap((m) => m.consumed));
+  const kept = out.filter((e) => !eaten.has(e.key));
+  for (const m of i.merges ?? []) if (gearById(m.itemId) && !eaten.has(`merge:${m.id}`)) kept.push({ key: `merge:${m.id}`, itemId: m.itemId, source: 'merge', date: m.date });
   const eq = new Set(i.equipped.map((e) => e.key));
-  return out.sort((a, b) => (a.date === b.date ? (a.key < b.key ? -1 : 1) : a.date < b.date ? -1 : 1)).map((e) => ({ ...e, equipped: eq.has(e.key) }));
+  return kept.sort((a, b) => (a.date === b.date ? (a.key < b.key ? -1 : 1) : a.date < b.date ? -1 : 1)).map((e) => ({ ...e, equipped: eq.has(e.key) }));
+}
+
+// --- слияние: три одинаковых предмета в один следующей редкости ---
+export const nextRarity = (r: GearRarity): GearRarity | null => GEAR_RARITIES[GEAR_RARITIES.indexOf(r) + 1] ?? null;
+export const MERGE_COUNT = 3;
+
+/** Проверка слияния: ровно три разных предмета одного вида и одной редкости, не легендарных. Возвращает id результата или текст ошибки. */
+export function mergeCheck(items: { key: string; itemId: string }[]): { ok: true; resultId: string } | { ok: false; error: string } {
+  if (items.length !== MERGE_COUNT) return { ok: false, error: `Нужно ровно ${MERGE_COUNT} предмета` };
+  if (new Set(items.map((x) => x.key)).size !== MERGE_COUNT) return { ok: false, error: 'Предметы должны быть разными' };
+  const first = gearById(items[0]!.itemId);
+  if (!first) return { ok: false, error: 'Неизвестный предмет' };
+  if (items.some((x) => x.itemId !== first.id)) return { ok: false, error: 'Сливать можно только одинаковые предметы' };
+  const next = nextRarity(first.rarity);
+  if (!next) return { ok: false, error: 'Легендарные предметы не сливаются: выше уже некуда' };
+  return { ok: true, resultId: `${first.family}-${next}` };
 }
 
 // --- названия по классам: один и тот же предмет у разных классов выглядит и называется по-разному (как типы брони в WoW) ---
@@ -191,7 +259,7 @@ const CLASS_NOUN: Record<string, Record<Cls, [string, G, string]>> = {
   boots: { w: ['сапоги', 'p', '👢'], m: ['туфли', 'p', '🩴'], b: ['ботфорты', 'p', '🥾'], p: ['сабатоны', 'p', '👢'] },
 };
 /** Названия оружия и доспеха по классу и редкости: у каждого свой вид (меч, палаш, фламберг, клеймор и т.д.). */
-export const TIER_NAMES: Record<'weapon' | 'armor', Record<Cls, [string, string, string, string]>> = {
+export const TIER_NAMES: Record<'weapon' | 'armor' | 'helm' | 'boots' | 'shield', Record<Cls, [string, string, string, string]>> = {
   weapon: {
     w: ['Короткий меч', 'Палаш', 'Фламберг', 'Клеймор'],
     m: ['Деревянный посох', 'Посох с кристаллом', 'Посох звёздного кольца', 'Посох архимага'],
@@ -204,6 +272,24 @@ export const TIER_NAMES: Record<'weapon' | 'armor', Record<Cls, [string, string,
     b: ['Жилет', 'Колет со шнуровкой', 'Камзол менестреля', 'Парадный камзол'],
     p: ['Табард', 'Кираса', 'Латы с крыльями', 'Сияющие латы'],
   },
+  helm: {
+    w: ['Шлем-шапка', 'Шлем с наносником', 'Рогатый шлем', 'Шлем с плюмажем'],
+    m: ['Остроконечная шляпа', 'Шляпа с лентой', 'Звёздная шляпа', 'Шляпа архимага'],
+    b: ['Простой берет', 'Берет с пером', 'Шляпа менестреля', 'Парадная шляпа'],
+    p: ['Кольчужный капюшон', 'Шлем с крестом', 'Крылатый шлем', 'Нимб света'],
+  },
+  boots: {
+    w: ['Кожаные сапоги', 'Сапоги с отворотами', 'Окованные сапоги', 'Сапоги героя'],
+    m: ['Мягкие туфли', 'Туфли с загнутыми носами', 'Звёздные туфли', 'Туфли архимага'],
+    b: ['Простые ботфорты', 'Ботфорты с пряжками', 'Ботфорты менестреля', 'Золотые ботфорты'],
+    p: ['Простые сабатоны', 'Сабатоны с крестом', 'Крылатые сабатоны', 'Сияющие сабатоны'],
+  },
+  shield: {
+    w: ['Деревянный щит', 'Окантованный щит', 'Щит с умбоном', 'Щит героя'],
+    m: ['Слабый барьер', 'Руническое поле', 'Звёздный барьер', 'Купол архимага'],
+    b: ['Малый баклер', 'Баклер с барабанной кожей', 'Резонирующий баклер', 'Золотой баклер'],
+    p: ['Простой щит веры', 'Щит с крестом', 'Крылатый щит', 'Щит рассвета'],
+  },
 };
 const DOMAIN_OF_WEAPON: Record<Domain, string> = { body: 'силы', mind: 'мудрости', art: 'вдохновения', will: 'воли' };
 
@@ -213,7 +299,7 @@ export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 
   const kind = item.slot === 'weapon' ? 'weapon' : item.family === 'armor' ? 'armor' : item.family === 'shield' ? 'shield' : item.family === 'helm' ? 'helm' : item.family === 'boots' ? 'boots' : null;
   const n = kind ? CLASS_NOUN[kind]?.[cls] : null;
   if (!n) return { name: item.name, emoji: item.emoji };
-  if (kind === 'weapon' || kind === 'armor') {
+  if (kind === 'weapon' || kind === 'armor' || kind === 'helm' || kind === 'boots' || kind === 'shield') {
     const base = TIER_NAMES[kind][cls][ri] as string;
     const suffix = kind === 'weapon' && item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
     return { name: `${base}${suffix}`, emoji: n[2] };

@@ -131,6 +131,19 @@ await check('цель семьи и режим «Малыш»: родитель 
   ok((await p.locator('.kid-pick button.done').count()) >= 1, 'доброе дело не отметилось');
   await rpc('setSimple', { memberId: me, on: false });
 });
+await check('специализация: с 8 уровня герой выбирает ветку класса', async () => {
+  const me = (await state()).me;
+  await rpc('setClass', { cls: 'p', confirm: true });
+  for (let i = 0; i < 4; i++) await rpc('addWorkout', { minutes: 600 });
+  await p.goto(base + '/hero'); await dismiss();
+  await p.click('summary:has-text("Класс и подкласс")').catch(() => {});
+  await p.waitForSelector('h3:has-text("Специализация")');
+  await p.click('.card.pick:has-text("Воитель света")'); await p.waitForTimeout(700);
+  const st = await state();
+  ok(st.detail.hero.spec === 'a', 'специализация не сохранилась');
+  ok(st.detail.battle.abilities.list.some((x) => x.id === 'p-smite'), 'способность ветки должна появиться в списке');
+  void me;
+});
 await check('нет связи: полоса предупреждения появляется и исчезает', async () => {
   await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();
   await ctx.setOffline(true);

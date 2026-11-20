@@ -12,16 +12,16 @@ import { buildSeasons, type SeasonsResult } from '../game/seasons';
 import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/artifacts';
 import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
 import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
-import { CLASS_BATTLE, abilityView, withAbilities, withClass, type AbilityView } from '../game/classBattle';
+import { CLASS_BATTLE, abilityPower, abilityView, bossAbilityBonus, specBossBonus, withAbilities, withClass, type AbilityView, type Spec } from '../game/classBattle';
 import { scoreDeeds } from '../game/deeds';
-import { BOSS_DROP, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
+import { BOSS_DROP, bossArmor, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
 export interface Raw {
   timezone: string;
   members: { id: number; name: string; emoji: string; simple?: boolean; gender?: string | null; face?: string | null; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
-  heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
+  heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; spec?: Spec | null; clsChangedAt: string; talents: string[] }[];
   workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null; reps?: number | null }[];
   warmups: { memberId: number; date: string }[];
   study: { memberId: number; date: string; kind: StudyKind; minutes: number }[];
@@ -42,6 +42,7 @@ export interface Raw {
   battleSince: string | null;
   battleDays: (BattleRow & { memberId: number })[];
   gearEquipped: { memberId: number; slot: string; key: string }[];
+  gearMerges?: { id: number; memberId: number; consumed: string[]; itemId: string; date: string }[];
   abilityUses: { memberId: number; date: string; ability: string }[];
   artifactUse: (ArtifactUse & { memberId: number })[];
   weeklyGoals: (GoalRow & { memberId: number })[];
@@ -57,7 +58,7 @@ export interface DayCalc { stats: DayStats; total: number; bySphere: Partial<Rec
 
 export interface MemberState {
   id: number;
-  hero: { cls: Cls | null; sub: Cls | null; clsChangedAt: string; talents: string[] };
+  hero: { cls: Cls | null; sub: Cls | null; spec: Spec | null; clsChangedAt: string; talents: string[] };
   xp: number; level: number; into: number; span: number;
   streak: number;
   talentPointsFree: number;
@@ -101,7 +102,7 @@ export function buildFamily(raw: Raw, today: string): Family {
 
   const prep = new Map<number, { hero: (typeof raw.heroes)[number]; cls: Cls | null; stats: Map<string, DayStats>; dates: string[] }>();
   for (const m of raw.members) {
-    const hero = raw.heroes.find((h) => h.memberId === m.id) ?? { memberId: m.id, cls: 'w' as Cls, clsChosen: false, sub: null, clsChangedAt: m.createdAt, talents: [] };
+    const hero = raw.heroes.find((h) => h.memberId === m.id) ?? { memberId: m.id, cls: 'w' as Cls, clsChosen: false, sub: null, spec: null, clsChangedAt: m.createdAt, talents: [] };
     const cls: Cls | null = hero.clsChosen ? hero.cls : null;
     const stats = new Map<string, DayStats>();
     const get = (date: string) => { let s = stats.get(date); if (!s) stats.set(date, (s = emptyDay())); return s; };
@@ -193,18 +194,22 @@ export function buildFamily(raw: Raw, today: string): Family {
 
     // Личный бой с ордой: итоги закончившихся дней (сохранённые и недостающие), здоровье, серия побед, сегодняшний бой
     const myBattles = raw.battleDays.filter((r) => r.memberId === m.id);
+    const myMerges = (raw.gearMerges ?? []).filter((x) => x.memberId === m.id);
     const myChests = raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, gear: c.gear ?? null }));
-    const gb = withClass(gearBonus(raw.gearEquipped.filter((e) => e.memberId === m.id).map((e) => resolveGearKey(e.key, { battles: myBattles, chests: myChests })).filter((x): x is NonNullable<typeof x> => !!x)), cls);   // снаряжение + способности класса
+    const spec: Spec | null = cls ? hero.spec ?? null : null;
+    const powerLevel = levelFromXp(b.xp + goalXp);          // уровень для силы способностей (без опыта боёв, чтобы не было круга)
+    const power = abilityPower(powerLevel);
+    const gb = withClass(gearBonus(raw.gearEquipped.filter((e) => e.memberId === m.id)  .map((e) => resolveGearKey(e.key, { battles: myBattles, chests: myChests, merges: myMerges })).filter((x): x is NonNullable<typeof x> => !!x)), cls, spec);   // снаряжение + способности класса и специализации
     const myUses = raw.abilityUses.filter((u) => u.memberId === m.id);
     const usesOn = (d: string) => myUses.filter((u) => u.date === d).map((u) => u.ability);
     const yesterday = addDays(today, -1);
     const bFrom = raw.battleSince && raw.battleSince > createdOf.get(m.id)! ? raw.battleSince : createdOf.get(m.id)!;
     const sim = raw.battleSince && bFrom <= yesterday
-      ? simulate({ memberId: m.id, goal: m.goal, from: bFrom, to: yesterday, persisted: myBattles, day: (d) => { const x = b.days.get(d); return x ? { bySphere: x.bySphere, total: x.total } : null; }, bonus: gb, bonusFor: (d) => withAbilities(gb, usesOn(d)) })
+      ? simulate({ memberId: m.id, goal: m.goal, from: bFrom, to: yesterday, persisted: myBattles, day: (d) => { const x = b.days.get(d); return x ? { bySphere: x.bySphere, total: x.total } : null; }, bonus: gb, bonusFor: (d) => withAbilities(gb, usesOn(d), power) })
       : { rows: [] as BattleRow[], pending: [] as BattleRow[], hp: MAX_HP, streak: 0 };
     pendingBattles.push(...sim.pending.map((r) => ({ ...r, memberId: m.id })));
     const td = b.days.get(today);
-    const live = liveBattle({ date: today, goal: m.goal, hpYesterday: sim.hp, streak: sim.streak, bonus: withAbilities(gb, usesOn(today)), data: { bySphere: td?.bySphere ?? {}, total: td?.total ?? 0 } });
+    const live = liveBattle({ date: today, goal: m.goal, hpYesterday: sim.hp, streak: sim.streak, bonus: withAbilities(gb, usesOn(today), power), data: { bySphere: td?.bySphere ?? {}, total: td?.total ?? 0 } });
     const battleBonus = dates.map((d) => sim.rows.filter((r) => addDays(r.date, 1) === d).reduce((a, r) => a + r.xp, 0));
     const battleXp = battleBonus.reduce((a, x) => a + x, 0);
     const levelBonus = goalBonus.map((x, k) => x + (battleBonus[k] ?? 0));
@@ -216,15 +221,15 @@ export function buildFamily(raw: Raw, today: string): Family {
     for (const dc of b.days.values()) for (const [s, v] of Object.entries(dc.bySphere)) { const c = CLASS_OF[s as Sphere]; if (c) clsPoints[c] += v ?? 0; }
 
     members.set(m.id, {
-      id: m.id, hero: { cls, sub: hero.sub, clsChangedAt: hero.clsChangedAt, talents: hero.talents },
+      id: m.id, hero: { cls, sub: hero.sub, spec, clsChangedAt: hero.clsChangedAt, talents: hero.talents },
       xp: totalXp, level, into: prog.into, span: prog.span,
       streak: streaks.get(today) ?? 0,
       talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, cls),
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
-      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb, equipped: resolveEquipped(raw.gearEquipped.filter((e) => e.memberId === m.id), { battles: myBattles, chests: raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })) }),
-      battle: { live, hp: sim.hp, streak: sim.streak, rows: sim.rows, xp: battleXp, abilities: abilityView(cls, myUses, today) },
+      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb, equipped: resolveEquipped(raw.gearEquipped.filter((e) => e.memberId === m.id), { merges: myMerges, battles: myBattles, chests: raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })) }),
+      battle: { live, hp: sim.hp, streak: sim.streak, rows: sim.rows, xp: battleXp, abilities: abilityView(cls, myUses, today, spec, powerLevel) },
       goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
     });
     achIn.set(m.id, { dates, stats: dates.map((d) => stats.get(d)!), points: dates.map((d) => b.days.get(d)!.total), streak: dates.map((d) => streaks.get(d) ?? 0), questsAllDone, superGoal: m.superGoal, levelBonus });
@@ -246,7 +251,10 @@ export function buildFamily(raw: Raw, today: string): Family {
     const byMember: Record<number, number> = {};
     let total = 0, weakExtra = 0;
     for (const m of parts) {
-      let sum = 0, weakPts = 0, domainExtra = 0;
+      let sum = 0, weakPts = 0, domainExtra = 0, abilExtra = 0, abilWeak = 0;
+      const mm = members.get(m.id);
+      const mUses = raw.abilityUses.filter((u) => u.memberId === m.id);
+      const mPower = abilityPower(mm?.level ?? 1);
       // снаряжение: оружие и бонусы к урону действуют на дни недели, если предмет получен раньше этой недели
       // (предметы за боссов считаются, только если та победа настоящая): так бонус не зависит от собственной победы
       const gx = gearBonus((members.get(m.id)?.equipped ?? [])
@@ -256,16 +264,20 @@ export function buildFamily(raw: Raw, today: string): Family {
         const dc = members.get(m.id)?.days.get(d);
         if (!dc) continue;
         sum += dc.total;
+        // способности, нажатые в этот день, усиливают урон по боссу в этот день
+        const ab = bossAbilityBonus(mUses.filter((u) => u.date === d).map((u) => u.ability), mPower);
+        abilExtra += dc.total * ab.dmg;
         for (const [s, v] of Object.entries(dc.bySphere)) {
-          if (weak.has(s)) weakPts += v ?? 0;
+          if (weak.has(s)) { weakPts += v ?? 0; abilWeak += (v ?? 0) * ab.weak; }
           const dom = domainOf(s);
           if (dom) domainExtra += (v ?? 0) * gx.dmgDomain[dom];
         }
       }
       const bb = bossBonuses(members.get(m.id)?.hero.talents ?? [], members.get(m.id)?.hero.cls ?? null);
       const cb = members.get(m.id)?.hero.cls ? CLASS_BATTLE[members.get(m.id)!.hero.cls!].boss : { dmg: 0, weak: 0, party: 0 };   // способности класса в бою с боссом
-      byMember[m.id] = Math.round(sum * (1 + bb.boss + gx.dmg + cb.dmg + partyAura) + domainExtra); total += byMember[m.id];
-      weakExtra += weakPts * (WEAK_BONUS + bb.weak + gx.weak + cb.weak);
+      const sb = specBossBonus(mm?.hero.cls ?? null, mm?.hero.spec ?? null);   // специализация
+      byMember[m.id] = Math.round(sum * (1 + bb.boss + gx.dmg + cb.dmg + sb.dmg + bossArmor(gx) + partyAura) + domainExtra + abilExtra); total += byMember[m.id];
+      weakExtra += weakPts * (WEAK_BONUS + bb.weak + gx.weak + cb.weak + sb.weak) + abilWeak;
     }
     const hp = bossHp(parts.map((m) => m.goal));
     const damage = Math.round(total + weakExtra);
@@ -345,6 +357,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       bossWins: wins.map((w) => addDays(w.weekStart, 6)),
       chests: raw.chestsOpened.filter((c) => c.memberId === st.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })),
       equipped: raw.gearEquipped.filter((e) => e.memberId === st.id),
+      merges: (raw.gearMerges ?? []).filter((x) => x.memberId === st.id),
     });
   }
   return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) }, seasons, pendingBattles };

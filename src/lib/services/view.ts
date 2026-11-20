@@ -9,7 +9,7 @@ import { weekStart } from '../game/boss';
 import { rankFor } from '../game/ranks';
 import { DEED_DAY_CAP, deedJournal, deedSummary } from '../game/deeds';
 import { parseFace } from '../game/faces';
-import { CLASS_BATTLE, classOnly } from '../game/classBattle';
+import { CLASS_BATTLE, SPECS, SPEC_LEVEL, classOnly } from '../game/classBattle';
 import { basePoints } from '../game/points';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
 import { BOSSES } from '../game/boss';
@@ -110,13 +110,13 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     // личное сражение и снаряжение
     battle: (() => {
       const b = st.battle;
-      return { abilities: b.abilities, cls: st.hero.cls, classInfo: st.hero.cls ? CLASS_BATTLE[st.hero.cls] : null, live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
+      return { abilities: b.abilities, cls: st.hero.cls, classInfo: st.hero.cls ? CLASS_BATTLE[st.hero.cls] : null, specs: st.hero.cls ? SPECS[st.hero.cls].map((x) => ({ id: x.id, emoji: x.emoji, name: x.name, text: x.text, ability: { emoji: x.ability.emoji, name: x.ability.name, text: x.ability.text } })) : [], specLevel: SPEC_LEVEL, live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
     })(),
     gear: {
       items: st.gear.map((g) => ({ ...g, item: gearById(g.itemId)! })).filter((g) => g.item),
       slots: Object.fromEntries(SLOTS.map((sl) => [sl, st.gear.find((g) => g.equipped && gearById(g.itemId)?.slot === sl)?.key ?? null])),
       bonus: st.gearBonus,                  // снаряжение + способности класса (то, что реально действует в бою)
-      classBonus: classOnly(st.hero.cls),   // из них от класса
+      classBonus: classOnly(st.hero.cls, st.hero.spec),   // из них от класса
     },
     // недельная цель и артефакты
     goal: goalView(raw, fam, st),

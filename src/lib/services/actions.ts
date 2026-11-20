@@ -17,8 +17,8 @@ import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/t
 import { validQuestList, type QuestItem } from '../game/quests';
 import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
 import { rollChestArtifact } from '../game/artifacts';
-import { SLOTS, gearById, rollChestGear } from '../game/gear';
-import { abilityBlocked, abilityById } from '../game/classBattle';
+import { SLOTS, gearById, mergeCheck, rollChestGear } from '../game/gear';
+import { SPEC_LEVEL, abilityBlocked, abilityById, validSpec, type Spec } from '../game/classBattle';
 import { GOAL_KINDS, TIERS, canChooseGoal, goalTarget, goalWeekStart, type GoalKind, type GoalTier } from '../game/goals';
 import { basePoints } from '../game/points';
 import { loadFamily, getConfig } from './load';
@@ -380,12 +380,39 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const st = family.members.get(memberId)!;
       const uses = db.select().from(s.abilityUse).where(eq(s.abilityUse.memberId, memberId)).all().map((u) => ({ ability: u.ability, date: u.date }));
       if (!abilityById(id)) fail(404, 'Нет такой способности');
-      const why = abilityBlocked(st.hero.cls, id, uses, today);
+      const why = abilityBlocked(st.hero.cls, id, uses, today, st.hero.spec);
       if (why) fail(400, why);
       db.insert(s.abilityUse).values({ memberId, date: today, ability: id }).run();
       return { ok: true };
     }
 
+    case 'setSpec': {
+      // специализация класса: с 8 уровня, можно сменить или снять (null)
+      const memberId = target();
+      const { family } = loadFamily(db, now);
+      const st = family.members.get(memberId)!;
+      if (!st.hero.cls) fail(400, 'Сначала выберите класс');
+      if (a.spec === null) { db.update(s.hero).set({ spec: null }).where(eq(s.hero.memberId, memberId)).run(); return { ok: true }; }
+      if (!validSpec(a.spec)) fail(400, 'Неверная специализация');
+      if (st.level < SPEC_LEVEL) fail(400, `Специализация открывается на ${SPEC_LEVEL} уровне`);
+      db.update(s.hero).set({ spec: a.spec as Spec }).where(eq(s.hero.memberId, memberId)).run();
+      return { ok: true };
+    }
+
+    case 'mergeGear': {
+      // слияние: три одинаковых предмета из инвентаря превращаются в один следующей редкости (того же вида)
+      const memberId = target();
+      const keys = a.keys;
+      if (!Array.isArray(keys) || !keys.every((k) => typeof k === 'string')) fail(400, 'Выберите три предмета');
+      const st = loadFamily(db, now).family.members.get(memberId)!;
+      const picked = (keys as string[]).map((k) => st.gear.find((g) => g.key === k));
+      if (picked.some((p) => !p)) fail(404, 'Нет такого снаряжения');
+      const chk = mergeCheck(picked.map((p) => ({ key: p!.key, itemId: p!.itemId })));
+      if (!chk.ok) return fail(400, chk.error);
+      const id = db.insert(s.gearMerge).values({ memberId, consumed: keys as string[], itemId: chk.resultId, date: today }).returning().get().id;
+      for (const k of keys as string[]) db.delete(s.gearEquipped).where(and(eq(s.gearEquipped.memberId, memberId), eq(s.gearEquipped.key, k))).run();   // слитое не может быть надето
+      return { id, key: `merge:${id}`, itemId: chk.resultId };
+    }
     case 'equipGear': {
       // надеть предмет из инвентаря: в слоте один предмет, прежний снимается
       const memberId = target();

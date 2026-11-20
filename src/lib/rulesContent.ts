@@ -4,12 +4,12 @@ import { DEEDS, DEED_CATEGORIES, DEED_DAY_CAP, KIND_RANKS } from './game/deeds';
 import { ACHIEVEMENTS } from './game/achievements';
 import { ARTIFACTS, CHEST_CHANCE, MVP_CHANCE, SOURCE_NAMES } from './game/artifacts';
 import { ARTIFACT_KINDS } from './game/artifacts';
-import { HORDES, HP_FACTOR, LOSS_HP, MAX_HP, REGEN, WAVE_SPLIT, WEAKENED_BELOW, WEAKENED_PENALTY, WEAK_MULT, WEEKDAY_FACTOR, WIN_HP, DROP_CHANCE, victoryXp } from './game/battle';
+import { ELITE_FACTOR, ELITE_HORDES, EVENTS, XP_MULT, HORDES, HP_FACTOR, LOSS_HP, MAX_HP, REGEN, WAVE_SPLIT, WEAKENED_BELOW, WEAKENED_PENALTY, WEAK_MULT, WEEKDAY_FACTOR, WIN_HP, DROP_CHANCE, victoryXp } from './game/battle';
 import { WEAK_BONUS, BOSSES } from './game/boss';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from './game/chests';
-import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY } from './game/classBattle';
+import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, SPECS } from './game/classBattle';
 import { CLASS_FREE_WINDOW_MS, CLASS_INFO, CLASS_NAMES, CLASS_PAUSE_MS, MAIN_BONUS, SUBCLASS_NAMES, subBonus } from './game/classes';
-import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, RARITY_NAMES, SLOT_INFO, SLOTS, TIER_NAMES as GEAR_TIER_NAMES } from './game/gear';
+import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, GEAR_RARITIES, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOT_INFO, SLOTS, TIER_NAMES as GEAR_TIER_NAMES, bonusText } from './game/gear';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
 import { xpNeed } from './game/level';
 import { DAY_RATIO_CAP, MVP_CHEST_PER_DAY } from './game/mvp';
@@ -155,12 +155,14 @@ export function buildRules(): Section[] {
           'Снаряжение выглядит и называется по-разному у разных классов: один и тот же предмет у воина латный меч, у мага посох, у барда лира, у паладина булава; доспех у воина латный, у мага мантия, у барда кожаный колет, у паладина латы с золотом. Эффект предмета при этом одинаковый.',
           'На странице «⚔️ Бой» видны способности класса и таблица характеристик героя (класс + снаряжение).',
         ] },
+        '**Специализации.** С 8 уровня герой выбирает одну из двух веток своего класса (страница «🛡 Герой» → «Класс и подкласс»). Ветка даёт постоянный бонус и ещё одну активную способность: '+ (['w', 'm', 'b', 'p'] as const).map((c) => `${CLASS_NAMES[c]}: ${SPECS[c].map((x) => `${x.emoji} ${x.name}`).join(' или ')}`).join('; ') + '. Выбор можно сменить или снять. Бонус специализации в бою с боссом учитывается: урон и слабость.',
         '**Активные способности.** Помимо постоянных у каждого класса есть три способности, которые герой нажимает сам (кнопки на «Сегодня» и на странице «Бой»). Каждая усиливает сегодняшний бой с ордой.',
         { list: [
           `У героя ${FOCUS_PER_DAY} единицы энергии (⚡) на день: обычная способность стоит 1, мощная 2. Энергия восстанавливается каждый день.`,
           'Обычные способности можно применять раз в день, мощная перезаряжается 3 дня (или 2 у «Ледяной глыбы»). Каждую способность нельзя применить дважды за день.',
           'Эффект действует до конца этого дня: усиливает урон, ослабляет первую волну, лечит, уменьшает потери или повышает шанс добычи. Использованная способность учитывается в итоге дня, когда он фиксируется.',
-          'Способности работают только в личных боях с ордой, в бою с боссом их эффект не действует. Родитель может применить способность за ребёнка.',
+          'Способности действуют и в бою с боссом: нажатая способность усиливает урон по боссу в этот день (прибавка к урону полностью, слабость босса вдвое мягче, чем у орды). Лечение, добыча и защита влияют только на личный бой.',
+          `**Сила способностей растёт с уровнем героя:** +4% за каждый уровень после первого, не больше +60% (на 16 уровне и выше). Это касается всех эффектов способностей.`,
         ] },
         { table: { head: ['Класс', 'Способность', 'Цена и перезарядка', 'Эффект'], rows: (['w', 'm', 'b', 'p'] as const).flatMap((c) => ACTIVE_ABILITIES[c].map((a) => [CLASS_NAMES[c], `${a.emoji} ${a.name}`, `${'⚡'.repeat(a.cost)}, раз в ${a.cd === 1 ? 'день' : `${a.cd} дн.`}`, a.text])) } },
       ],
@@ -243,12 +245,13 @@ export function buildRules(): Section[] {
           'Итог: убиты 3 волны — **победа**; 2 волны — «отбились» (без последствий); 0–1 — **поражение**.',
         ] },
         { table: { head: ['Исход', 'Что происходит'], rows: [
-          ['Победа', `+${victoryXp(60)} опыта при норме 60 (около 40% нормы), +${WIN_HP} здоровья, шанс снаряжения ${pc(DROP_CHANCE.weekday)} (по выходным ${pc(DROP_CHANCE.weekend)}), серия побед растёт`],
+          ['Победа', `+${victoryXp(60)} опыта при норме 60 (около 40% нормы), +${WIN_HP} здоровья, шанс снаряжения ${pc(DROP_CHANCE.weekday)} (на элитной орде ${pc(DROP_CHANCE.elite)}, на праздничной ${pc(DROP_CHANCE.event)}), серия побед растёт`],
           ['Отбились (2 волны)', 'ничего не теряется и не даётся, серия побед обрывается'],
           ['Поражение (0–1 волна)', `−${LOSS_HP} здоровья героя, серия обрывается`],
         ] } },
         { list: [
           `**Здоровье героя** до ${MAX_HP}, каждый день восстанавливается на ${REGEN}. Если оно ниже ${WEAKENED_BELOW}, орда на ${Math.round((WEAKENED_PENALTY - 1) * 100)}% крепче. Здоровье не ниже нуля и не влияет на очки, опыт и уровень.`,
+          `**Элитные орды** приходят по выходным (суббота и воскресенье с одной ордой: ${ELITE_HORDES.map((h) => `${h.emoji} ${h.name}`).join(', ')}): здоровье +${Math.round((ELITE_FACTOR - 1) * 100)}%, опыт за победу ×${XP_MULT.elite}, шанс снаряжения ${pc(DROP_CHANCE.elite)}, добыча не ниже редкого. **Праздничные орды** заменяют обычные в праздничные периоды (${EVENTS.map((e) => `${e.emoji} ${e.name}`).join(', ')}): опыт ×${XP_MULT.event}, шанс снаряжения ${pc(DROP_CHANCE.event)}.`,
           'Итог дня подводится один раз после его конца и больше не меняется (даже если сменить снаряжение). Бои идут с даты первого запуска версии с боями.',
         ] },
       ],
@@ -261,10 +264,12 @@ export function buildRules(): Section[] {
           `${SLOTS.length} слотов: ${SLOTS.map((s) => `${SLOT_INFO[s].emoji} ${SLOT_INFO[s].name}`).join(', ')}. В слоте один предмет, надевается на странице «⚔️ Бой». Всего ${GEAR.length} предметов четырёх редкостей: ${Object.values(RARITY_NAMES).join(', ')}. Чем реже, тем сильнее эффект.`,
           '**Оружие:** урон всеми очками или очками одной сферы. **Доспех:** меньше потерь здоровья при поражении или слабее орда. **Шлем:** сильнее удар по слабости или лечение каждый день. **Сапоги:** серия побед усиливает урон или первая волна слабее. **Амулет:** больше шанс снаряжения или лечение за победу.',
           `**Откуда:** победа над ордой (редкость по весам: ${Object.entries(BATTLE_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), победа над боссом (всегда не ниже редкого: ${Object.entries(BOSS_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), сундуки.`,
-          'Бонусы действуют в личных боях и (оружие, оружие сферы, слабость) в бою с боссом. На очки дня, опыт и уровень снаряжение не влияет.',
+          'Бонусы действуют в личных боях и в бою с боссом: оружие, оружие сферы и слабость как раньше, а защита, слабость орды и лечение (броня, щит, шлем, амулет) дают в бою с боссом небольшую прибавку к урону: от защиты 10% её значения, от слабости орды 50%, от лечения 0,3% за единицу, но не больше +20% всего. На очки дня, опыт и уровень снаряжение не влияет.',
+          `**Комплекты.** Если надето 3 предмета одной редкости, включается бонус комплекта, если 5 (все слоты) добавляется ещё один. ${GEAR_RARITIES.map((r) => `«${SET_NAMES[r]}» (${RARITY_NAMES[r].toLowerCase()}): 3 предмета: ${bonusText(SET_BONUS[r].three)}; 5 предметов: ${bonusText(SET_BONUS[r].five)}`).join('. ')}.`,
+          '**Слияние.** Три одинаковых предмета (один вид и одна редкость, кроме легендарных) на странице «⚔️ Бой» превращаются в один предмет следующей редкости. Лишняя добыча не пропадает зря. Слитые предметы снимаются, результат можно надеть как обычный.',
           'Вид и название предмета зависят от класса героя (см. «Классы в бою») и от редкости, эффект не зависит. Все предметы можно посмотреть на странице «🗡 Арсенал» (вкладка «Ещё»): выберите класс и тип предмета, у каждого предмета видно рисунок, редкость и бонус, а то, что уже есть у героя, отмечено.',
         ] },
-        { table: { head: ['Класс', 'Оружие (обычное → легендарное)', 'Доспех (обычный → легендарный)'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], GEAR_TIER_NAMES.weapon[c].join(' → '), GEAR_TIER_NAMES.armor[c].join(' → ')]) } },
+        { table: { head: ['Класс', 'Оружие (обычное → легендарное)', 'Доспех (обычный → легендарный)', 'Шлем', 'Сапоги', 'Щит'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], GEAR_TIER_NAMES.weapon[c].join(' → '), GEAR_TIER_NAMES.armor[c].join(' → '), GEAR_TIER_NAMES.helm[c].join(' → '), GEAR_TIER_NAMES.boots[c].join(' → '), GEAR_TIER_NAMES.shield[c].join(' → ')]) } },
       ],
     },
     {

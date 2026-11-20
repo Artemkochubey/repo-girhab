@@ -127,6 +127,20 @@
       "when": 1795183449862,
       "tag": "0017_cool_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1795184754835,
+      "tag": "0018_ordinary_wither",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1795184914009,
+      "tag": "0019_freezing_xorn",
+      "breakpoints": true
     }
   ]
 }

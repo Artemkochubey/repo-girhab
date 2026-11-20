@@ -7,11 +7,11 @@ import { AbilityBar } from '@/components/AbilityBar';
 import { BossScene } from '@/components/BossScene';
 import { lookOf } from '@/lib/client';
 import { Bar, Section, Fold } from '@/components/ui';
-import { DOMAIN_INFO, RARITY_NAMES, SLOTS, SLOT_INFO, gearDisplay, type Slot } from '@/lib/game/gear';
-import { DROP_CHANCE, HORDES, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
+import { DOMAIN_INFO, GEAR_RARITIES, MERGE_COUNT, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOTS, SLOT_INFO, activeSets, bonusText, gearById, gearDisplay, nextRarity, type Slot } from '@/lib/game/gear';
+import { hordeById, DROP_CHANCE, EVENTS, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
 
-const hordeName = (id: string) => HORDES.find((h) => h.id === id);
-const SRC = { battle: 'за победу над ордой', boss: 'за босса', chest: 'из сундука' } as const;
+const hordeName = (id: string) => hordeById(id);
+const SRC = { battle: 'за победу над ордой', boss: 'за босса', chest: 'из сундука', merge: 'слияние' } as const;
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 export default function Battle() {
@@ -44,7 +44,7 @@ export default function Battle() {
       <h1 className="title">⚔️ Бой: {me.emoji} {me.name}</h1>
       <Hint id="battle" more="/rules">Каждый день приходит новая орда из трёх волн. Бьют ваши дневные очки, а очки слабой сферы волны бьют в 1,5 раза сильнее. Победа даёт опыт и снаряжение. Босс недели общий: бьёт вся семья.</Hint>
 
-      <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
+      <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className={l.elite || l.event ? 'gold' : 'muted'}>{l.event ? `${EVENTS.find((e) => e.id === l.event)?.emoji ?? '🎉'} ${EVENTS.find((e) => e.id === l.event)?.name ?? 'праздник'}` : l.elite ? '⭐ элитная орда' : l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
         <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} face={me.face} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />
         <AbilityBar />
         <p className="muted small">Каждый день приходит новая орда из трёх волн. Урон наносят очки, которые вы и так зарабатываете. Очки слабой сферы волны бьют ×1,5. Убейте все три волны за день, чтобы победить.</p>
@@ -63,7 +63,7 @@ export default function Battle() {
           })}
         </div>
         <p><b>{f.outcome === 'victory' ? '🏆 Победа!' : f.outcome === 'held' ? '🛡 Отбились (2 волны)' : `⚔️ Убито волн: ${f.cleared} из 3`}</b></p>
-        <p className="muted small">Победа: +{l.xp} опыта, шанс снаряжения {pct(l.winChance)}{l.weekend ? ' (по выходным выше)' : ''}, +{WIN_HP + g.bonus.winHeal} здоровья. Поражение (0–1 волна): −{Math.round(LOSS_HP * (1 - Math.min(0.9, g.bonus.guard)) * (1 + g.bonus.lossMult))} здоровья. Итог подводится в конце дня.</p>
+        <p className="muted small">Победа: +{l.xp} опыта, шанс снаряжения {pct(l.winChance)}{l.elite ? ' (элитная орда: добыча не ниже редкой, опыт ×1,5)' : l.event ? ' (праздничная орда: опыт ×1,25)' : l.weekend ? ' (по выходным выше)' : ''}, +{WIN_HP + g.bonus.winHeal} здоровья. Поражение (0–1 волна): −{Math.round(LOSS_HP * (1 - Math.min(0.9, g.bonus.guard)) * (1 + g.bonus.lossMult))} здоровья. Итог подводится в конце дня.</p>
       </Section>
 
       {ci && (
@@ -111,6 +111,47 @@ export default function Battle() {
             );
           })}
         </div>
+        {(() => {
+          const equippedItems = SLOTS.map((sl) => slotItem(sl)?.item).filter((x): x is NonNullable<typeof x> => !!x);
+          const sets = activeSets(equippedItems);
+          return (
+            <div className="setbox">
+              <h3>🧩 Комплекты</h3>
+              {sets.length === 0 && <p className="muted small">Наденьте 3 предмета одной редкости: это даёт бонус комплекта, 5 предметов дают ещё больший. Комплекты: {GEAR_RARITIES.map((r) => `«${SET_NAMES[r]}» (${RARITY_NAMES[r].toLowerCase()})`).join(', ')}.</p>}
+              {sets.map((st) => (
+                <div key={st.rarity} className={`set gr-${st.rarity}`}>
+                  <b>«{SET_NAMES[st.rarity]}»: {st.pieces} из 5 ({RARITY_NAMES[st.rarity].toLowerCase()})</b>
+                  <small className={st.threeOn ? 'gold' : 'muted'}>{st.threeOn ? '✔' : '○'} 3 предмета: {bonusText(SET_BONUS[st.rarity].three)}</small>
+                  <small className={st.fiveOn ? 'gold' : 'muted'}>{st.fiveOn ? '✔' : '○'} 5 предметов: {bonusText(SET_BONUS[st.rarity].five)}</small>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        {(() => {
+          // слияние: три одинаковых предмета (не легендарных) в один следующей редкости
+          const groups = new Map<string, typeof g.items>();
+          for (const x of g.items) groups.set(x.itemId, [...(groups.get(x.itemId) ?? []), x]);
+          const mergeable = [...groups.values()].filter((list) => list.length >= MERGE_COUNT && nextRarity(list[0]!.item.rarity));
+          if (!mergeable.length) return null;
+          return (
+            <div className="setbox">
+              <h3>🔨 Слияние</h3>
+              <p className="muted small">Три одинаковых предмета превращаются в один следующей редкости. Лишнюю добычу не жалко.</p>
+              {mergeable.map((list) => {
+                const first = list[0]!;
+                const next = nextRarity(first.item.rarity)!;
+                const keys = [...list].sort((a, b) => (a.equipped ? 1 : 0) - (b.equipped ? 1 : 0)).slice(0, MERGE_COUNT).map((x) => x.key);   // сначала ненадетые
+                return (
+                  <div key={first.itemId} className="mergerow">
+                    <span className="grow">{nm(first.item).emoji} <b>{nm(first.item).name}</b> ×{list.length} → <b>{RARITY_NAMES[next].toLowerCase()}</b></span>
+                    <button className="btn sm" onClick={() => act('mergeGear', { keys }).then(ok(`Слито: ${nm(gearById(`${first.item.family}-${next}`)!).name}`)).catch(() => {})}>Слить три</button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
         <h3>Все предметы ({g.items.length})</h3>
         {g.items.length === 0 && <p className="muted">Снаряжения пока нет. Оно выпадает за победы над ордой (по выходным чаще), над боссом (всегда) и иногда из сундуков.</p>}
         <ul className="gearlist">

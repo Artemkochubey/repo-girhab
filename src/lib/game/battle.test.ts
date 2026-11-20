@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MAX_HP, REGEN, WEAKENED_BELOW, fight, hordeOfDay, liveBattle, poolsOf, simulate, wavesFor, hpAfter, victoryXp, type BattleRow } from './battle';
+import { isWeekend, ELITE_HORDES, ELITE_DROP, EVENTS, XP_MULT, eventOf, hordeById, rewardsOfDay, MAX_HP, REGEN, WEAKENED_BELOW, fight, hordeOfDay, liveBattle, poolsOf, simulate, wavesFor, hpAfter, victoryXp, type BattleRow } from './battle';
 import { GEAR, NO_GEAR, deriveGear, gearBonus, gearById, gearFromKey, pickGear, rollChestGear, BOSS_DROP, BATTLE_DROP, type Domain } from './gear';
 
 const waves = (weak: Domain[], hp = [20, 20, 20]) => weak.map((w, i) => ({ unit: 'u' + i, weak: w, hp: hp[i] as number }));
@@ -11,8 +11,8 @@ describe('орда дня', () => {
     expect(hordeOfDay('2026-11-20')).toEqual(a);
     expect(new Set(a.weak).size).toBe(3);
     expect(hordeOfDay('2026-11-21').horde.id).not.toBe(a.horde.id);        // каждый день новая орда
-    const seen = new Set(Array.from({ length: 10 }, (_, i) => hordeOfDay(`2026-12-${String(i + 1).padStart(2, '0')}`).horde.id));
-    expect(seen.size).toBe(10);
+    const weekdays = Array.from({ length: 19 }, (_, i) => `2026-12-${String(i + 1).padStart(2, '0')}`).filter((d) => !isWeekend(d));
+    expect(new Set(weekdays.map((d) => hordeOfDay(d).horde.id)).size).toBeGreaterThanOrEqual(8);   // в будни орды разные
   });
   it('здоровье орды по личной норме: у младшего меньше, по выходным больше, броня и низкое здоровье героя меняют', () => {
     const day = { ...hordeOfDay('2026-11-17'), factor: 1 };        // вторник
@@ -155,5 +155,56 @@ describe('снаряжение', () => {
     expect(g.map((x) => x.key)).toEqual(['battle:2026-11-05', 'chest:3', 'boss:2026-11-08']);
     expect(g[0]).toMatchObject({ itemId: 'sword-rare', equipped: true });
     expect(g[1]!.equipped).toBe(false);
+  });
+});
+
+import { HORDES } from './battle';
+const HORDES_IDS = HORDES.map((h) => h.id);
+describe('элитные и праздничные орды', () => {
+  it('по выходным приходит элитная орда, суббота и воскресенье одной недели с одной ордой', () => {
+    const sat = hordeOfDay('2026-11-21'), sun = hordeOfDay('2026-11-22'), mon = hordeOfDay('2026-11-23');
+    expect(sat.elite).toBe(true); expect(sun.elite).toBe(true); expect(mon.elite).toBe(false);
+    expect(ELITE_HORDES.map((h) => h.id)).toContain(sat.horde.id);
+    expect(sat.horde.id).toBe(sun.horde.id);
+    expect(sat.factor).toBeCloseTo(1.2 * 1.15);
+    expect(HORDES_IDS.includes(mon.horde.id)).toBe(true);
+  });
+  it('праздники: даты переходят через Новый год, на праздник приходит тематическая орда', () => {
+    expect(eventOf('2026-12-19')).toBeNull();
+    expect(eventOf('2026-12-20')!.id).toBe('winter');
+    expect(eventOf('2027-01-05')!.id).toBe('winter');
+    expect(eventOf('2027-01-11')).toBeNull();
+    expect(eventOf('2026-10-31')!.id).toBe('night');
+    const d = hordeOfDay('2026-12-24');                       // четверг
+    expect(d.event).toBe('winter'); expect(d.elite).toBe(false);
+    expect(EVENTS[0]!.hordes.map((h) => h.id)).toContain(d.horde.id);
+    const sat = hordeOfDay('2026-12-26');                     // суббота внутри праздника: праздник важнее элитной
+    expect(sat.event).toBe('winter'); expect(sat.elite).toBe(false);
+  });
+  it('любую орду можно найти по id (в том числе из старых записей)', () => {
+    expect(hordeById('goblins')!.name).toBe('Орда гоблинов');
+    expect(hordeById('e-dragons')!.emoji).toBe('🐲');
+    expect(hordeById('w-snowmen')!.units).toHaveLength(3);
+    expect(hordeById('нет')).toBeUndefined();
+  });
+  it('награды: элитная лучше праздничной, праздничная лучше обычной', () => {
+    const elite = rewardsOfDay({ elite: true, event: null }, '2026-11-21'), ev = rewardsOfDay({ elite: false, event: 'winter' }, '2026-12-24'), plain = rewardsOfDay({ elite: false, event: null }, '2026-11-24');
+    expect(elite.chance).toBeGreaterThan(ev.chance); expect(ev.chance).toBeGreaterThan(plain.chance);
+    expect(elite.xpMult).toBe(XP_MULT.elite); expect(ev.xpMult).toBe(XP_MULT.event); expect(plain.xpMult).toBe(1);
+    expect(elite.weights).toBe(ELITE_DROP);
+    expect(ELITE_DROP.common).toBeUndefined();
+  });
+  it('в симуляции за победу на элитной орде опыт ×1,5 и добыча не ниже редкой', () => {
+    const goal = 60;
+    const day = () => ({ bySphere: {}, total: 5000 });         // победа гарантирована
+    const sim = simulate({ memberId: 9, goal, from: '2026-11-21', to: '2026-11-21', persisted: [], day, bonus: NO_GEAR });
+    const row = sim.rows[0]!;
+    expect(row.win).toBe(true);
+    expect(row.xp).toBe(Math.round(victoryXp(goal) * XP_MULT.elite));
+    for (let m = 1; m <= 40; m++) {
+      const r = simulate({ memberId: m, goal, from: '2026-11-21', to: '2026-11-21', persisted: [], day, bonus: { ...NO_GEAR, loot: 1 } }).rows[0]!;
+      expect(r.drop).not.toBeNull();
+      expect(r.drop!.endsWith('-common')).toBe(false);
+    }
   });
 });
