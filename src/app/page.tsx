@@ -13,6 +13,9 @@ import { useGame } from '@/components/Shell';
 import { Bar, FoldGroup, Section } from '@/components/ui';
 import { openQuickLog } from '@/components/QuickLog';
 import { FirstSteps } from '@/components/Hints';
+import { HeroRing } from '@/components/HeroRing';
+import { CLASS_NAMES } from '@/lib/game/classes';
+import { rankFor } from '@/lib/game/ranks';
 import { addDays } from '@/lib/date';
 
 export default function Today() {
@@ -25,26 +28,59 @@ export default function Today() {
   const next = pts < me.goal ? me.goal : pts < me.superGoal ? me.superGoal : null;
   const minDate = s.parent ? '2000-01-01' : addDays(s.today, -7);
   const b = s.boss;
+  const hour = new Date().getHours();
+  const hello = hour < 5 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
 
   return (
     <>
+      <div className="greet">
+        <div><small>{hello}</small><h1 className="title">{me.name}</h1></div>
+        <span className="pill fire" title="Дней подряд с нормой">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z" fill="#ffb14a" /></svg>
+          <b>{d.streak}</b> <small>дн.</small>
+        </span>
+      </div>
       <div className="row between">
-        <h1 className="title">{me.emoji} {me.name}</h1>
+        <span className="muted small">{date === s.today ? 'Сегодня' : date}</span>
         <div className="row">
-          <button className="btn ghost" disabled={date <= minDate} onClick={() => setDate(addDays(date, -1))}>←</button>
-          <b>{date === s.today ? 'Сегодня' : date}</b>
-          <button className="btn ghost" disabled={date >= s.today} onClick={() => setDate(addDays(date, 1))}>→</button>
+          <button className="btn ghost" aria-label="Предыдущий день" disabled={date <= minDate} onClick={() => setDate(addDays(date, -1))}>←</button>
+          <button className="btn ghost" aria-label="Следующий день" disabled={date >= s.today} onClick={() => setDate(addDays(date, 1))}>→</button>
         </div>
       </div>
 
-      <Section title="Очки дня" right={<span className="muted">🔥 серия {d.streak}</span>}>
-        <Bar value={pts} max={me.superGoal} label={`${pts} / ${me.superGoal}`} />
-        <p className="muted">
-          {minutes ? `🎮 Награда: ${minutes} мин развлечений` : 'Награды пока нет'}
-          {next ? ` · до следующей цели ещё ${next - pts}` : ' · максимум достигнут!'}
-        </p>
-        <p className="muted small">Цели: {me.goal} баллов → {s.config.minutes} мин, {me.superGoal} → {s.config.superMinutes} мин</p>
-      </Section>
+      <section className="card today-hero">
+        <HeroRing emoji={me.emoji} face={me.face} level={d.level} percent={d.span ? (d.into / d.span) * 100 : 0} />
+        <div className="grow">
+          <div className="rankname">{rankFor(d.level, d.xp).rank.name}</div>
+          <div className="row wrapRow">
+            {d.hero.cls && <span className="pill">✦ {CLASS_NAMES[d.hero.cls]}</span>}
+            <span className="pill" style={{ background: 'rgba(255,255,255,.1)', color: '#d6cdf5' }}>до {d.level + 1} уровня: {Math.max(0, d.span - d.into)} оп.</span>
+          </div>
+          <Link className="muted small" href="/hero">Герой, таланты и снаряжение →</Link>
+        </div>
+      </section>
+
+      <section className="card crystal">
+        <div className="row between" style={{ alignItems: 'flex-end' }}>
+          <div>
+            <div className="label">Очки дня</div>
+            <div><span className="num">{pts}</span><span className="of">из {me.superGoal}</span></div>
+          </div>
+          <div className="small" style={{ textAlign: 'right', color: '#d6cdf5' }}>
+            {pts >= me.goal ? 'Норма выполнена' : `до нормы ${me.goal - pts}`}<br />
+            <b style={{ color: 'var(--teal)' }}>{minutes ? `+${minutes} минут игр` : 'награды пока нет'}</b>
+          </div>
+        </div>
+        <div className="track" role="progressbar" aria-valuenow={pts} aria-valuemax={me.superGoal} aria-label="Очки дня">
+          <div className="fill" style={{ width: `${Math.min(100, (pts / me.superGoal) * 100)}%` }} />
+          <div className="notch" aria-hidden="true" style={{ left: `${(me.goal / me.superGoal) * 100}%` }} />
+        </div>
+        <div className="scale" aria-hidden="true">
+          <span style={{ left: `${(me.goal / me.superGoal) * 100}%` }}>норма {me.goal}</span>
+          <span style={{ left: '100%', transform: 'translateX(-100%)' }}>{me.superGoal}</span>
+        </div>
+        <p className="muted small">{minutes ? '' : `${me.goal} очков → ${s.config.minutes} мин игр, ${me.superGoal} → ${s.config.superMinutes} мин.`}{next && minutes ? ` До следующей награды ещё ${next - pts}.` : ''}</p>
+      </section>
 
       <FirstSteps />
 

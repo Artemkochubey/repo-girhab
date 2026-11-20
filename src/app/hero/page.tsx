@@ -7,6 +7,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { xpNeed } from '@/lib/game/level';
+import { HeroRing } from '@/components/HeroRing';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { FacePicker } from '@/components/FacePicker';
 import { HeroFigure } from '@/components/HeroFigure';
@@ -50,8 +51,8 @@ export default function Hero() {
       {pickAvatar && <AvatarPicker memberId={me.id} onClose={() => setPickAvatar(false)} />}
       {pickFace && <FacePicker memberId={me.id} onClose={() => setPickFace(false)} />}
       <section className="card hero" style={{ borderColor: me.color }}>
-        <button className="big avatar-btn" onClick={() => setPickAvatar(true)} aria-label="Сменить аватар" title="Сменить аватар">
-          {me.emoji}<span className="edit">✏️</span>
+        <button className="avatar-btn" onClick={() => setPickAvatar(true)} aria-label="Сменить аватар" title="Сменить аватар">
+          <HeroRing emoji={me.emoji} face={null} level={d.level} percent={d.span ? (d.into / d.span) * 100 : 0} size={104} /><span className="edit">✏️</span>
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level} <small className="gold">🏅 {d.achievements.filter((a) => a.earnedOn).length}</small></h1>
