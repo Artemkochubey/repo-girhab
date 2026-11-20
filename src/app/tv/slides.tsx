@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '@/components/Face';
 import { BattleScene } from '@/components/BattleScene';
 import { BossScene } from '@/components/BossScene';
 import { ClimbRoster } from '@/components/ClimbRoster';
@@ -10,8 +11,8 @@ import { rankFor } from '@/lib/game/ranks';
 import { seasonName } from '@/lib/game/seasons';
 import type { Tv, TvMember } from '@/lib/tvTypes';
 
-const climbers = (d: Tv) => d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }));
-const party = (d: Tv) => d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: d.boss.byMember[m.id] ?? 0 }));
+const climbers = (d: Tv) => d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, level: m.level, xp: m.xp }));
+const party = (d: Tv) => d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, look: m.look, cls: m.cls, damage: d.boss.byMember[m.id] ?? 0 }));
 const mName = (d: Tv, id: number | undefined) => d.members.find((m) => m.id === id);
 /** Сколько колонок для карточек героев: 1–2 героя в ряд, 3–4 по два, больше по три. */
 const cols = (n: number) => (n <= 2 ? Math.max(1, n) : n <= 4 ? 2 : 3);
@@ -39,7 +40,7 @@ export function OverviewSlide({ d }: { d: Tv }) {
           const bt = d.battles[m.id];
           return (
             <div key={m.id} className="tv-hero" style={{ borderColor: m.color }}>
-              <div className="tv-hero-top"><span className="tv-av">{m.emoji}</span><div><b>{m.name}</b><small>уровень {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name} · 🏅 {m.badges}</small></div></div>
+              <div className="tv-hero-top"><span className="tv-av"><Avatar m={m} size={64} /></span><div><b>{m.name}</b><small>уровень {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name} · 🏅 {m.badges}</small></div></div>
               <div className="tv-pts"><div style={{ width: `${pct}%`, background: m.color }} /></div>
               <div className="tv-pts-label">{m.pointsToday} / {m.superGoal}{m.pointsToday >= m.goal ? ' ✓' : ''}</div>
               {bt && (
@@ -98,7 +99,7 @@ export function HeroesSlide({ d }: { d: Tv }) {
           const done = m.pointsToday >= m.goal;
           return (
             <div key={m.id} className="tv-portrait" style={{ borderColor: m.color }}>
-              <div className="tv-fig"><HeroFigure look={m.look} color={m.color} emoji={m.emoji} cls={m.cls} size={190} /></div>
+              <div className="tv-fig"><HeroFigure look={m.look} color={m.color} emoji={m.emoji} face={m.face} cls={m.cls} size={190} /></div>
               <b className="tv-pname">{m.name}</b>
               <small>{m.cls ? CLASS_NAMES[m.cls as Cls] : 'класс не выбран'} · уровень {m.level}</small>
               <small>{r.rank.emoji} {r.rank.name}</small>
@@ -137,7 +138,7 @@ export function BossSlide({ d }: { d: Tv }) {
           const v = boss.byMember[m.id] ?? 0;
           return (
             <div key={m.id} className="tv-dmgrow">
-              <span>{i === 0 && v > 0 ? '👑' : m.emoji}</span><b>{m.name}</b>
+              <span>{i === 0 && v > 0 ? '👑' : <Avatar m={m} size={34} />}</span><b>{m.name}</b>
               <div className="tv-pts"><div style={{ width: `${(v / max) * 100}%`, background: m.color }} /></div><em>{v}</em>
             </div>
           );
@@ -159,7 +160,7 @@ export function BattlesSlide({ d }: { d: Tv }) {
           if (!b) return null;
           return (
             <div key={m.id} className="tv-battle" style={{ borderColor: m.color }}>
-              <BattleScene look={m.look} color={m.color} emoji={m.emoji} name={m.name} live={b.live} cls={m.cls} active={b.active} />
+              <BattleScene look={m.look} color={m.color} emoji={m.emoji} face={m.face} name={m.name} live={b.live} cls={m.cls} active={b.active} />
               <div className="tv-battle-info"><b>{m.emoji} {m.name}</b><span>{b.emoji} {b.horde}: волн {b.cleared} из 3{b.outcome === 'victory' ? ' 🏆' : ''}</span><span>❤️ {b.hp}/{b.maxHp}{b.live.streak ? ` · 🔥 ${b.live.streak}` : ''}</span></div>
             </div>
           );
@@ -192,7 +193,7 @@ export function SeasonSlide({ d }: { d: Tv }) {
             if (!m) return null;
             return (
               <div key={r.memberId} className="tv-boardrow" style={{ borderColor: m.color }}>
-                <span className="tv-medal">{MEDALS[i]}</span><span className="tv-av">{m.emoji}</span><b>{m.name}</b>
+                <span className="tv-medal">{MEDALS[i]}</span><span className="tv-av"><Avatar m={m} size={52} /></span><b>{m.name}</b>
                 <div className="tv-pts"><div style={{ width: `${Math.min(100, r.ratio * 100)}%`, background: m.color }} /></div><em>{Math.round(r.ratio * 100)}%</em>
               </div>
             );
@@ -214,7 +215,7 @@ export function QuestsSlide({ d, mark }: { d: Tv; mark: (memberId: number, index
         const q = d.quests.find((x) => x.memberId === m.id)?.items ?? [];
         return (
           <div key={m.id} className="tv-qcol">
-            <h2 style={{ color: m.color }}>{m.emoji} {m.name}</h2>
+            <h2 style={{ color: m.color }} className="tv-qh"><Avatar m={m} size={40} /> {m.name}</h2>
             {q.map((it) => (
               <button key={it.index} data-tv className={`tv-q ${it.done ? 'done' : it.pending ? 'wait' : ''}`} disabled={!it.manual || it.done} onClick={() => mark(m.id, it.index)}>
                 <span className="tv-mark">{it.done ? '✔' : it.pending ? '⏳' : it.manual ? '○' : '⚙'}</span>
@@ -237,7 +238,7 @@ export function RecordSlide({ d, who, setWho, note, record }: { d: Tv; who: numb
       <div className="tv-rec-who">
         {d.members.map((m) => (
           <button key={m.id} data-tv className={`tv-who ${who === m.id ? 'on' : ''}`} style={{ borderColor: m.color }} onClick={() => setWho(who === m.id ? null : m.id)}>
-            <span>{m.emoji}</span><b>{m.name}</b>
+            <Avatar m={m} size={48} /><b>{m.name}</b>
           </button>
         ))}
       </div>

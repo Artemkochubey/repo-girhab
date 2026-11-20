@@ -1,10 +1,11 @@
 'use client';
+import type { FaceConfig } from '@/lib/game/faces';
 import { useId } from 'react';
 import { DOMAIN_INFO, domainOf } from '@/lib/game/gear';
 import { Defs, HeroGroup, type Look } from './HeroFigure';
 import { useHits } from './useHits';
 
-export interface PartyMember { id: number; name: string; emoji: string; color: string; look: Look; damage: number; cls?: string | null }
+export interface PartyMember { id: number; name: string; emoji: string; face?: FaceConfig | null; color: string; look: Look; damage: number; cls?: string | null }
 interface Props {
   boss: { name: string; emoji: string; weak: readonly string[] };
   hp: number; damage: number; defeated: boolean; party: PartyMember[]; tv?: boolean; meId?: number | null;
@@ -58,7 +59,7 @@ export function BossScene({ boss, hp, damage, defeated, party, tv = false, meId 
         return (
           <g key={p.id}>
             {attack && p.damage > 0 && <line x1={cx} y1="170" x2="180" y2="132" stroke={hitIds.has(`p${p.id}`) ? '#fff6c8' : '#ffb74d'} strokeWidth={hitIds.has(`p${p.id}`) ? w + 2 : w} strokeOpacity={hitIds.has(`p${p.id}`) ? 0.95 : 0.55} strokeLinecap="round" strokeDasharray="6 6" className="beam" />}
-            <g transform={`translate(${cx - 57.5 * sc} ${232 - 146 * sc})`}><g className={hitIds.has(`p${p.id}`) ? 'lunge-up' : ''}><HeroGroup look={p.look} color={p.color} emoji={p.emoji} cls={p.cls} attack={hitIds.has(`p${p.id}`)} uid={uid} transform={`scale(${sc})`} /></g></g>
+            <g transform={`translate(${cx - 57.5 * sc} ${232 - 146 * sc})`}><g className={hitIds.has(`p${p.id}`) ? 'lunge-up' : ''}><HeroGroup look={p.look} color={p.color} emoji={p.emoji} face={p.face} cls={p.cls} attack={hitIds.has(`p${p.id}`)} uid={uid} transform={`scale(${sc})`} /></g></g>
             <text x={cx} y="246" textAnchor="middle" fontSize="9" fontWeight="700" fill={p.id === meId ? '#ffd24a' : '#e9e1ff'}>{p.name}{p.id === meId ? ' ★' : ''}</text>
             <text x={cx} y="259" textAnchor="middle" fontSize="9.5" fill="#ff9d7a">⚔ {p.damage}</text>
           </g>

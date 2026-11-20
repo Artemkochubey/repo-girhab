@@ -1,4 +1,6 @@
 'use client';
+import { FaceArt } from './Face';
+import type { FaceConfig } from '@/lib/game/faces';
 import { memo, useId } from 'react';
 import { RANKS, rankFor } from '@/lib/game/ranks';
 
@@ -19,7 +21,7 @@ const TREES = Array.from({ length: 16 }, (_, i) => 6 + i * 22 + (i % 2) * 6);
 /** Путь по точкам (плавные дуги между этапами). */
 const trail = (pts: [number, number][]) => pts.map(([x, y], i) => (i === 0 ? `M${x} ${y}` : `Q${(pts[i - 1][0] + x) / 2 + (i % 2 ? 16 : -16)} ${(pts[i - 1][1] + y) / 2} ${x} ${y}`)).join(' ');
 
-export interface Climber { id: number; emoji: string; color: string; level: number; xp?: number; me?: boolean; name: string }
+export interface Climber { id: number; emoji: string; face?: FaceConfig | null; color: string; level: number; xp?: number; me?: boolean; name: string }
 
 /** Позиция героя на тропе: между текущим этапом и следующим по прогрессу опыта. */
 function position(level: number, xp?: number): [number, number] {
@@ -120,7 +122,9 @@ export const MountainClimb = memo(function MountainClimb({ climbers, tv = false 
             {c.me && <circle cx={x} cy={y} r="9" fill={c.color} opacity="0.35" className="brain-pulse" />}
             <circle cx={x} cy={y} r="4.6" fill={c.color} stroke="#fff" strokeWidth="1.6" />
             <rect x={tx} y={ty - H / 2} width={W} height={H} rx={H / 2} fill="#120d22" stroke={c.color} strokeWidth={c.me ? 2.6 : 1.8} />
-            <text x={tx + H / 2} y={ty} textAnchor="middle" dominantBaseline="central" fontSize={H * 0.62}>{c.emoji}</text>
+            {c.face
+              ? <g transform={`translate(${tx + H / 2 - H * 0.46} ${ty - H * 0.5 + 1}) scale(${(H * 0.92) / 100})`}><circle cx="50" cy="50" r="50" fill="#2a2147" /><g transform="translate(0 4)"><FaceArt face={c.face} /></g></g>
+              : <text x={tx + H / 2} y={ty} textAnchor="middle" dominantBaseline="central" fontSize={H * 0.62}>{c.emoji}</text>}
             <text x={tx + H - 1} y={ty - 3} dominantBaseline="central" className="m-name" fill="#fff">{short}{c.me ? ' ★' : ''}</text>
             <text x={tx + H - 1} y={ty + (tv ? 7 : 6)} dominantBaseline="central" className="m-nlvl">ур. {c.level}</text>
           </g>

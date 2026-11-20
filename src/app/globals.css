@@ -304,3 +304,14 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .arsenal-art { display: grid; place-items: center; min-height: 100px; }
 .arsenal-cell.gr-rare { box-shadow: inset 0 0 0 1px #5f9dff55; } .arsenal-cell.gr-epic { box-shadow: inset 0 0 12px #b46bff44; } .arsenal-cell.gr-legend { box-shadow: inset 0 0 14px #ffd24a55; }
 .arsenal-art svg { overflow: hidden; }
+
+/* лица героев */
+.face-badge { display: block; flex: none; } .avatar-emoji { display: inline-block; }
+.facepick { display: grid; gap: 8px; } .face-preview { display: grid; justify-items: center; gap: 8px; padding: 8px; border-radius: 14px; background: var(--panel2); position: sticky; top: 0; z-index: 2; }
+.face-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.face-opt { display: grid; justify-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; background: var(--panel2); border: 2px solid var(--line); color: var(--text); font: inherit; cursor: pointer; } .face-opt.on { border-color: var(--accent); background: linear-gradient(135deg, #2b2142, #3a2c14); } .face-opt small { font-size: .72rem; text-align: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; }
+.avatar-btn { display: inline-grid; place-items: center; justify-self: center; cursor: pointer; } .avatar-btn .edit { right: 4px; bottom: 2px; }
+.face-preview .face-badge { width: 120px; height: 120px; }
+h1.title.row { display: flex; align-items: center; gap: 10px; }
+.r-av { overflow: hidden; }

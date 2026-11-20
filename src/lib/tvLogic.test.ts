@@ -11,8 +11,8 @@ const base = (): Tv => ({
   goals: { 1: { title: 'Бег', emoji: '🏃', progress: 1, target: 3, done: false, manual: false, tier: 'easy' }, 2: null },
   season: { id: '2026-11', daysLeft: 10, top: [] },
   members: [
-    { id: 1, name: 'Старший', emoji: '🧑', color: '#fff', goal: 60, superGoal: 100, badges: 0, xp: 40, level: 2, pointsToday: 20, look: {}, cls: 'w' },
-    { id: 2, name: 'Младший', emoji: '👦', color: '#fff', goal: 40, superGoal: 70, badges: 0, xp: 5, level: 1, pointsToday: 50, look: {}, cls: null },
+    { id: 1, name: 'Старший', emoji: '🧑', face: null, color: '#fff', goal: 60, superGoal: 100, badges: 0, xp: 40, level: 2, pointsToday: 20, look: {}, cls: 'w' },
+    { id: 2, name: 'Младший', emoji: '👦', face: null, color: '#fff', goal: 40, superGoal: 70, badges: 0, xp: 5, level: 1, pointsToday: 50, look: {}, cls: null },
   ],
   boss: { hp: 1000, damage: 300, defeated: false, byMember: { 1: 200, 2: 100 }, mvp: null, boss: { name: 'Лич', emoji: '💀', weak: [] } },
   record: {},

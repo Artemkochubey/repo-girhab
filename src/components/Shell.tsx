@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from './Face';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -90,7 +91,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {s.members.map((m) => (
             <button key={m.id} className="card pick" style={{ borderColor: m.color }}
               onClick={async () => { await post('/api/session', { memberId: m.id }); reload(); }}>
-              <span className="big">{m.emoji}</span><b>{m.name}</b><span className="muted">ур. {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name}</span>
+              <Avatar m={m} size={64} /><b>{m.name}</b><span className="muted">ур. {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name}</span>
             </button>
           ))}
         </div>
@@ -105,7 +106,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
         <nav className="tabs" aria-label="Разделы">{TABS.map((t) => <Link key={t.id} href={t.href} className={activeTab(path) === t.id ? 'on' : ''} aria-current={activeTab(path) === t.id ? 'page' : undefined}><span className="em">{t.emoji}</span><span className="lb">{t.label}</span></Link>)}</nav>
         <div className="who">
-          <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
+          <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}><Avatar m={me} size={22} /> {me.name} ⇄</button>
           {s.parent
             ? <button className="chip gold" onClick={async () => { await post('/api/pin', {}, 'DELETE'); reload(); }}>🔓 Родитель</button>
             : <button className="chip" onClick={() => setPinOpen(true)}>🔒 PIN</button>}

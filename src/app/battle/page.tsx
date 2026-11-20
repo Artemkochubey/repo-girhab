@@ -45,7 +45,7 @@ export default function Battle() {
       <Hint id="battle" more="/rules">Каждый день приходит новая орда из трёх волн. Бьют ваши дневные очки, а очки слабой сферы волны бьют в 1,5 раза сильнее. Победа даёт опыт и снаряжение. Босс недели общий: бьёт вся семья.</Hint>
 
       <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
-        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />
+        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} face={me.face} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />
         <AbilityBar />
         <p className="muted small">Каждый день приходит новая орда из трёх волн. Урон наносят очки, которые вы и так зарабатываете. Очки слабой сферы волны бьют ×1,5. Убейте все три волны за день, чтобы победить.</p>
         <div className="waves">
@@ -82,7 +82,7 @@ export default function Battle() {
 
       <Section title={`${s.boss.boss.emoji} Босс недели: все герои вместе`}>
         <BossScene boss={s.boss.boss} hp={s.boss.hp} damage={s.boss.damage} defeated={s.boss.defeated}
-          party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
+          party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, look: m.look, cls: m.cls, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
         <p className="muted small">Снаряжение усиливает удар по боссу: оружие и «слабость» от шлема добавляют урон, молот и подобное усиливают свою сферу. Предмет работает на недели после того дня, когда он получен.</p>
       </Section>
 

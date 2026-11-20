@@ -3,6 +3,7 @@ import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
+import { parseFace } from '../game/faces';
 import { CLASS_BATTLE, classOnly } from '../game/classBattle';
 import { basePoints } from '../game/points';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
@@ -18,7 +19,7 @@ const bossView = (b: Family['boss']) => ({ ...b, boss: BOSSES.find((x) => x.id =
 const summary = (raw: Raw, fam: Family) =>
   raw.members.map((m) => {
     const st = fam.members.get(m.id)!;
-    return { id: m.id, name: m.name, emoji: m.emoji, color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
+    return { id: m.id, name: m.name, emoji: m.emoji, gender: (m.gender === 'f' ? 'f' : m.gender === 'm' ? 'm' : null) as 'm' | 'f' | null, face: parseFace(m.face, m.gender === 'f' ? 'f' : 'm'), color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
       badges: st.achievements.filter((a) => a.earnedOn).length, xp: st.xp, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
       damageThisWeek: fam.boss.byMember[m.id] ?? 0,
       // что надето (id предмета по слотам): для фигур героев в боях

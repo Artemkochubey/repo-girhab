@@ -1,7 +1,8 @@
 import type { LiveBattleDto } from './client';
+import type { FaceConfig } from './game/faces';
 
 export interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
-export interface TvMember { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string>; cls: string | null }
+export interface TvMember { id: number; name: string; emoji: string; face: FaceConfig | null; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string>; cls: string | null }
 export interface TvQuest { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }
 
 /** Всё, что отдаёт `/api/tv`. */

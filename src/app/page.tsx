@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '@/components/Face';
 import Link from 'next/link';
 import { FamilyQuests } from '@/components/FamilyQuests';
 import { EveningReminder } from '@/components/EveningReminder';
@@ -24,7 +25,7 @@ export default function Today() {
   return (
     <>
       <div className="row between">
-        <h1 className="title">{me.emoji} {me.name}</h1>
+        <h1 className="title row"><Avatar m={me} size={40} /> {me.name}</h1>
         <div className="row">
           <button className="btn ghost" disabled={date <= minDate} onClick={() => setDate(addDays(date, -1))}>←</button>
           <b>{date === s.today ? 'Сегодня' : date}</b>

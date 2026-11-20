@@ -19,7 +19,7 @@ import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } 
 
 export interface Raw {
   timezone: string;
-  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
+  members: { id: number; name: string; emoji: string; gender?: string | null; face?: string | null; color: string; isParent: boolean; goal: number; superGoal: number; createdAt: string }[];
   heroes: { memberId: number; cls: Cls; clsChosen: boolean; sub: Cls | null; clsChangedAt: string; talents: string[] }[];
   workouts: { id?: number; memberId: number; date: string; minutes: number; exercise?: string | null; muscles?: string[] | null; reps?: number | null }[];
   warmups: { memberId: number; date: string }[];

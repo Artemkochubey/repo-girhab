@@ -49,7 +49,7 @@ export default function Arsenal() {
               const nm = gearDisplay(g, cls);
               return (
                 <div key={g.id} className={`arsenal-cell gr-${g.rarity} ${owned.has(g.id) ? 'have' : ''}`}>
-                  <div className="arsenal-art"><HeroFigure look={{ [slot]: g.id }} color={me.color} emoji={me.emoji} cls={cls} focus={slot} size={slot === 'weapon' ? 80 : 104} /></div>
+                  <div className="arsenal-art"><HeroFigure look={{ [slot]: g.id }} color={me.color} emoji={me.emoji} face={me.face} cls={cls} focus={slot} size={slot === 'weapon' ? 80 : 104} /></div>
                   <small style={{ color: RARITY_COLOR[g.rarity] }}>{RARITY_NAMES[g.rarity]}</small>
                   <b>{nm.name}</b>
                   <small className="muted">{g.text}</small>

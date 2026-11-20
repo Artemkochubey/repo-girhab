@@ -35,6 +35,7 @@ export interface GoalOptionDto { kind: string; name: string; emoji: string; unit
 export interface ArtifactDto { key: string; kind: 'shield' | 'doubler' | 'key' | 'luck'; source: 'chest' | 'boss' | 'season' | 'mvp' | 'goal'; date: string; status: 'bag' | 'active' | 'used'; activeFor: string | null; usedOn: string | null }
 
 export type DomainId = 'body' | 'mind' | 'art' | 'will';
+import type { FaceConfig } from './game/faces';
 export interface WaveDto { unit: string; weak: DomainId; hp: number; damage: number; cleared: boolean }
 export interface LiveBattleDto {
   date: string; horde: { id: string; name: string; emoji: string; units: string[] }; factor: number; weakened: boolean;
@@ -55,7 +56,7 @@ export interface State {
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
   config: { minutes: number; superMinutes: number; timezone: string; reminderHour: number };
-  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number; look: Record<string, string> }[];
+  members: { id: number; name: string; emoji: string; gender: 'm' | 'f' | null; face: FaceConfig | null; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number; look: Record<string, string> }[];
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
     pending: { memberId: number; date: string; index: number; t: string; xp: number }[];

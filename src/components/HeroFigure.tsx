@@ -2,6 +2,8 @@
 import { memo, useId } from 'react';
 import { GEAR_RARITIES, gearById, type Domain, type GearItem, type GearRarity, type Slot } from '@/lib/game/gear';
 import { ArmorArt, WeaponArt } from './gearArt';
+import { FaceArt } from './Face';
+import type { FaceConfig } from '@/lib/game/faces';
 import type { Cls } from '@/lib/game/classes';
 
 /** Что надето: id предмета по слотам (null — пусто). */
@@ -20,14 +22,14 @@ const dark = (hex: string, k: number) => {
   return `rgb(${c.join(',')})`;
 };
 
-interface Props { look: Look; color: string; emoji: string; attack?: boolean; uid: string; cls?: ClsKey }
+interface Props { look: Look; color: string; emoji: string; face?: FaceConfig | null; attack?: boolean; uid: string; cls?: ClsKey }
 const isCls = (c: ClsKey): c is Cls => c === 'w' || c === 'm' || c === 'b' || c === 'p';
 
 /**
  * Герой в полный рост (0..100 × 0..150). Класс меняет силуэт и вид снаряжения, как типы брони в WoW:
  * воин в латах и с мечом, маг в мантии с посохом, бард в кожаном колете с лютней, паладин в латах с золотом, булавой и нимбом.
  */
-function Body({ look, color, emoji, attack, uid, cls }: Props) {
+function Body({ look, color, emoji, face, attack, uid, cls }: Props) {
   const c: Cls | null = isCls(cls) ? cls : null;
   const it = (s: Slot): GearItem | null => { const id = look[s]; return id ? gearById(id) ?? null : null; };
   const weapon = it('weapon'), armor = it('armor'), helm = it('helm'), boots = it('boots'), amulet = it('amulet');
@@ -133,8 +135,14 @@ function Body({ look, color, emoji, attack, uid, cls }: Props) {
       </g>
 
       {/* голова */}
-      <circle cx="50" cy="38" r="17" fill={SKIN} stroke={ink} strokeWidth="0.8" />
-      <text x="50" y="46" textAnchor="middle" fontSize="24">{emoji}</text>
+      {face ? (
+        <g transform="translate(22.5 8.3) scale(0.55)"><FaceArt face={face} /></g>
+      ) : (
+        <>
+          <circle cx="50" cy="38" r="17" fill={SKIN} stroke={ink} strokeWidth="0.8" />
+          <text x="50" y="46" textAnchor="middle" fontSize="24">{emoji}</text>
+        </>
+      )}
 
       {/* шлем и головные уборы по классам */}
       {helm?.family === 'helm' && (() => {
@@ -200,14 +208,14 @@ export const FOCUS_BOX: Record<'full' | Slot, string> = {
 };
 
 /** Одиночная фигура героя (для карточек и списков). */
-export const HeroFigure = memo(function HeroFigure({ look, color, emoji, cls = null, size = 120, attack = false, className = '', focus = 'full' }: { look: Look; color: string; emoji: string; cls?: ClsKey; size?: number; attack?: boolean; className?: string; focus?: 'full' | Slot }) {
+export const HeroFigure = memo(function HeroFigure({ look, color, emoji, face = null, cls = null, size = 120, attack = false, className = '', focus = 'full' }: { look: Look; color: string; emoji: string; face?: FaceConfig | null; cls?: ClsKey; size?: number; attack?: boolean; className?: string; focus?: 'full' | Slot }) {
   const uid = useId().replace(/:/g, '');
   const box = FOCUS_BOX[focus];
   const [, , w, h] = box.split(' ').map(Number) as [number, number, number, number];
   return (
     <svg viewBox={box} width={size} height={size * (h / w)} className={`hero-fig ${className}`} role="img" aria-label="Герой">
       <Defs uid={uid} />
-      <Body look={look} color={color} emoji={emoji} attack={attack} uid={uid} cls={cls} />
+      <Body look={look} color={color} emoji={emoji} face={face} attack={attack} uid={uid} cls={cls} />
     </svg>
   );
 });

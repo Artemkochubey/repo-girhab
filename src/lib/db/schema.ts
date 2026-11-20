@@ -9,6 +9,9 @@ export const member = sqliteTable('member', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   emoji: text('emoji').notNull().default('🙂'),
+  // пол героя ('m' | 'f') и лицо (JSON FaceConfig); пока лицо не выбрано, везде показывается emoji
+  gender: text('gender'),
+  face: text('face'),
   color: text('color').notNull().default('#8b5cf6'),
   isParent: integer('is_parent', { mode: 'boolean' }).notNull().default(false),
   goal: integer('goal').notNull().default(60),

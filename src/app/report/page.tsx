@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '@/components/Face';
 import { useCallback, useEffect, useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { Bar, Section } from '@/components/ui';
@@ -34,7 +35,7 @@ function MemberCard({ m }: { m: ReportMember }) {
   return (
     <section className="card rep-member" style={{ borderColor: m.color }}>
       <div className="row between wrapRow">
-        <h2 style={{ color: m.color }}>{m.emoji} {m.name}</h2>
+        <h2 style={{ color: m.color }} className="row"><Avatar m={m} size={28} /> {m.name}</h2>
         <div className="row"><b className="big-n">{Math.round(m.points)}</b><span className="muted">очков</span><Delta v={m.deltaPct} /></div>
       </div>
       <DailyChart m={m} />

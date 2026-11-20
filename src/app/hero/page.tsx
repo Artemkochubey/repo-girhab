@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '@/components/Face';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useGame } from '@/components/Shell';
@@ -46,10 +47,11 @@ export default function Hero() {
       {pickAvatar && <AvatarPicker memberId={me.id} onClose={() => setPickAvatar(false)} />}
       <section className="card hero" style={{ borderColor: me.color }}>
         <button className="big avatar-btn" onClick={() => setPickAvatar(true)} aria-label="Сменить аватар" title="Сменить аватар">
-          {me.emoji}<span className="edit">✏️</span>
+          <Avatar m={me} size={84} /><span className="edit">✏️</span>
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level} <small className="gold">🏅 {d.achievements.filter((a) => a.earnedOn).length}</small></h1>
+          {!me.face && <p><button className="btn ghost sm" onClick={() => setPickAvatar(true)}>🎭 Создать лицо героя</button></p>}
           <p className="rank">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</p>
           <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}{!h.cls && <> <button className="btn" onClick={askClass}>Выбрать класс</button></>}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
@@ -132,7 +134,7 @@ export default function Hero() {
 
       <Fold title="⛰ Восхождение" right={<span className="muted">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</span>}>
         {(() => {
-          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
+          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
           return <><MountainClimb climbers={climbers} /><ClimbRoster climbers={climbers} /></>;
         })()}
         {(() => {

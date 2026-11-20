@@ -6,11 +6,12 @@ import { Defs, HeroGroup, RARITY_COLOR, type Look } from './HeroFigure';
 import { useHits } from './useHits';
 import { abilityById } from '@/lib/game/classBattle';
 import { useEffect, useRef, useState } from 'react';
+import type { FaceConfig } from '@/lib/game/faces';
 
-interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto; cls?: string | null; active?: string[] }
+interface Props { look: Look; color: string; emoji: string; face?: FaceConfig | null; name: string; live: LiveBattleDto; cls?: string | null; active?: string[] }
 
 /** Бой героя с ордой: герой со своим снаряжением слева, три волны врагов справа, у каждой слабость и полоска здоровья. */
-export function BattleScene({ look, color, emoji, name, live, cls = null, active = [] }: Props) {
+export function BattleScene({ look, color, emoji, face = null, name, live, cls = null, active = [] }: Props) {
   const uid = useId().replace(/:/g, '');
   const { fight, horde } = live;
   // удары: когда урон волны вырос с прошлого обновления, герой атакует, враги вздрагивают, над ними всплывает число
@@ -52,7 +53,7 @@ export function BattleScene({ look, color, emoji, name, live, cls = null, active
 
       {/* герой */}
       <g transform="translate(6 20)"><g className={hit ? 'scene-hero hit' : 'scene-hero'}>
-        <HeroGroup look={look} color={color} emoji={emoji} cls={cls} attack={hit} uid={uid} transform="scale(0.98)" />
+        <HeroGroup look={look} color={color} emoji={emoji} face={face} cls={cls} attack={hit} uid={uid} transform="scale(0.98)" />
       </g></g>
       <text x="56" y="14" textAnchor="middle" fontSize="9" fill="#e9e1ff" fontWeight="700">{name}</text>
       <g>{active.map((id, i) => <text key={id} x={14 + i * 14} y="28" fontSize="11">{abilityById(id)?.ability.emoji}</text>)}</g>

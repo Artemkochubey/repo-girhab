@@ -3,6 +3,7 @@ import { hashPin, validPin } from '../auth';
 import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
+import { defaultFace, genderEmoji, parseFace, validateFace, type Gender } from '../game/faces';
 import { AVATARS } from '../game/avatars';
 import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '../game/loot';
 import { weekStart } from '../game/boss';
@@ -558,6 +559,17 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       if (a.emoji !== undefined) {
         if (!AVATARS.includes(a.emoji as string)) fail(400, 'Такого аватара нет в списке');
         patch.emoji = a.emoji as string;
+        patch.face = null;                 // выбран смайлик: лицо снимается
+      }
+      if (a.face !== undefined || a.gender !== undefined) {
+        const cur = db.select().from(s.member).where(eq(s.member.id, memberId)).get();
+        const gender = (a.gender ?? cur?.gender ?? 'm') as string;
+        if (gender !== 'm' && gender !== 'f') fail(400, 'Неверный пол');
+        const face = validateFace(a.face ?? parseFace(cur?.face, gender as Gender) ?? defaultFace(gender as Gender), gender as Gender);
+        if (typeof face === 'string') fail(400, face);
+        patch.gender = gender;
+        patch.face = JSON.stringify(face);
+        patch.emoji = genderEmoji(gender as Gender);
       }
       if (a.color !== undefined) {
         if (!/^#[0-9a-f]{6}$/i.test(String(a.color))) fail(400, 'Неверный цвет');
