@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
+import { BackupBlock } from '@/components/BackupBlock';
 import { QuestSets } from '@/components/QuestSets';
 import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
@@ -152,6 +153,8 @@ function AdminSettings() {
         </div>
         {qm !== null && <QuestEditor key={qm} memberId={qm} />}
       </Section>
+
+      <BackupBlock />
 
       <Section title="🔑 PIN родителей">
         <form className="row" onSubmit={(e) => { e.preventDefault(); act('changePin', { pin }).then(() => { setPin(''); toast('PIN изменён'); }).catch(() => {}); }}>

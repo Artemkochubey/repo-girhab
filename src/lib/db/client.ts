@@ -15,3 +15,10 @@ export function openDb(file = process.env.DB_PATH ?? './data/app.db') {
 const g = globalThis as unknown as { __db?: ReturnType<typeof openDb> };
 export const db = () => (g.__db ??= openDb());
 export type Db = ReturnType<typeof openDb>;
+
+/** Закрывает текущее соединение: следующий вызов db() откроет файл заново (после восстановления из копии). */
+export function resetDb() {
+  const d = g.__db;
+  g.__db = undefined;
+  try { d?.$client.close(); } catch { /* уже закрыто */ }
+}
