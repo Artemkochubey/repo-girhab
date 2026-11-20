@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
 import { Achievements } from '@/components/Achievements';
 import { ClimbRoster } from '@/components/ClimbRoster';
@@ -9,7 +8,8 @@ import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { xpNeed } from '@/lib/game/level';
 import { AvatarPicker } from '@/components/AvatarPicker';
-import { Bar, Radar, Section } from '@/components/ui';
+import { Bar, Fold, Radar } from '@/components/ui';
+import { Hint } from '@/components/Hints';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
 import { TalentTree } from '@/components/TalentTree';
 
@@ -56,28 +56,19 @@ export default function Hero() {
         </div>
       </section>
 
-      <Section title="⛰ Восхождение">
-        {(() => {
-          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
-          return <><MountainClimb climbers={climbers} /><ClimbRoster climbers={climbers} /></>;
-        })()}
-        {(() => {
-          const r = rankFor(d.level, d.xp);
-          return (
-            <div className="climb-info">
-              <p><b>{r.rank.emoji} {r.rank.name}</b> · {r.rank.text}</p>
-              {r.next
-                ? <><Bar value={Math.round(r.progress * 100)} max={100} label={`до «${r.next.name}» (ур. ${r.next.level}): ещё ${r.xpToNext} опыта`} /></>
-                : <p className="gold">Выше только небо: пройдены все этапы восхождения!</p>}
-              <p className="muted small">Каждый этап — новое звание. У каждого героя плашка с именем и выноской к его точке на тропе, ★ — это вы.</p>
-            </div>
-          );
-        })()}
-      </Section>
+      <Hint id="hero" more="/rules">Опыт повышает уровень героя. За каждый уровень даётся очко таланта. Класс усиливает одну сферу, подкласс (с 5 уровня) — вторую. Начните с выбора класса.</Hint>
 
-      <Section title="Характеристики (30 дней)"><Radar data={d.radar} /></Section>
+      <Fold title="🌳 Таланты" open={d.talentPointsFree > 0} right={<b>очков: {d.talentPointsFree}</b>}>
+        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p>
+          : <TalentTree cls={h.cls} talents={h.talents} level={d.level} onBuy={(id) => act('buyTalent', { id }).catch(() => toast('Не получилось'))} />}
+        {s.parent && <button className="btn ghost" onClick={() => act('resetTalents')}>Сбросить таланты (родитель)</button>}
+      </Fold>
 
-      <Section title="Класс">
+      <Link className="card more-card" href="/bag"><span className="mi">🎁</span><b>Сундуки: {d.chests.available} доступно</b><small>Открывать сундуки, призы и артефакты теперь во вкладке «🎒 Добыча».</small></Link>
+
+      <Fold title="📊 Характеристики (30 дней)"><Radar data={d.radar} /></Fold>
+
+      <Fold title="🎭 Класс и подкласс" open={!h.cls} right={<span className="muted">{h.cls ? `${CLASS_NAMES[h.cls]}${subName ? ` · ${subName}` : ''}` : 'не выбран'}</span>}>
         <div className="grid">
           {CLS.map((c) => (
             <button key={c} className={`card pick ${h.cls === c ? 'sel' : ''}`} disabled={h.cls === c} onClick={() => setPicking(c)}>
@@ -137,24 +128,26 @@ export default function Hero() {
             </tbody>
           </table>
         </details>
-      </Section>
+      </Fold>
 
-      <QuestsBlock />
-
-      <Link className="card more-card" href="/bag"><span className="mi">🎁</span><b>Сундуки: {d.chests.available} доступно</b><small>Открывать сундуки, призы и артефакты теперь во вкладке «🎒 Добыча».</small></Link>
-
-      <Section title="🌳 Таланты" right={<b>очков: {d.talentPointsFree}</b>}>
-        {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p>
-          : <TalentTree cls={h.cls} talents={h.talents} level={d.level} onBuy={(id) => act('buyTalent', { id }).catch(() => toast('Не получилось'))} />}
-        {s.parent && <button className="btn ghost" onClick={() => act('resetTalents')}>Сбросить таланты (родитель)</button>}
-      </Section>
-
-      <Section title={`${s.boss.boss.emoji} ${s.boss.boss.name}`}>
-        <Bar value={Math.max(0, s.boss.hp - s.boss.damage)} max={s.boss.hp} color="var(--danger)" label={`${Math.max(0, s.boss.hp - s.boss.damage)} / ${s.boss.hp}`} />
-        <ul className="list">
-          {s.members.map((m) => <li key={m.id}>{m.emoji} {m.name}: <b>{s.boss.byMember[m.id] ?? 0}</b></li>)}
-        </ul>
-      </Section>
+      <Fold title="⛰ Восхождение" right={<span className="muted">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</span>}>
+        {(() => {
+          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
+          return <><MountainClimb climbers={climbers} /><ClimbRoster climbers={climbers} /></>;
+        })()}
+        {(() => {
+          const r = rankFor(d.level, d.xp);
+          return (
+            <div className="climb-info">
+              <p><b>{r.rank.emoji} {r.rank.name}</b> · {r.rank.text}</p>
+              {r.next
+                ? <><Bar value={Math.round(r.progress * 100)} max={100} label={`до «${r.next.name}» (ур. ${r.next.level}): ещё ${r.xpToNext} опыта`} /></>
+                : <p className="gold">Выше только небо: пройдены все этапы восхождения!</p>}
+              <p className="muted small">Каждый этап — новое звание. У каждого героя плашка с именем и выноской к его точке на тропе, ★ — это вы.</p>
+            </div>
+          );
+        })()}
+      </Fold>
 
       <Achievements items={d.achievements} />
     </>

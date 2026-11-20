@@ -282,3 +282,15 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 }
 .subtabs { display: flex; gap: 6px; } .subtabs a { flex: 1; text-align: center; padding: 8px 10px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); text-decoration: none; font-weight: 600; } .subtabs a.on { color: var(--text); border-color: var(--accent); background: linear-gradient(135deg, #2b2142, #3a2c14); }
 .more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; } .more-card { display: grid; grid-template-columns: 2.6rem 1fr; gap: 2px 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; text-decoration: none; color: var(--text); } .more-card:hover { border-color: var(--accent); } .more-card .mi { font-size: 2rem; grid-row: span 2; text-align: center; } .more-card small { color: var(--muted); }
+
+/* сворачиваемые блоки и подсказки новичкам */
+.fold { gap: 0; } .fold > summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; list-style: none; margin: 0; color: inherit; }
+.fold > summary::-webkit-details-marker { display: none; } .fold > summary h2 { margin: 0; } .fold > summary::after { content: '▾'; color: var(--muted); margin-left: 8px; transition: transform .15s; }
+.fold[open] > summary::after { transform: rotate(180deg); } .fold-r { margin-left: auto; } .fold-body { display: grid; gap: 10px; margin-top: 10px; }
+.fold-group > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 14px; color: inherit; margin: 0; list-style: none; }
+.fold-group > summary::-webkit-details-marker { display: none; } .fold-group > summary::before { content: '▸'; color: var(--muted); } .fold-group[open] > summary::before { content: '▾'; }
+.fold-stack { display: grid; gap: 12px; margin-top: 12px; }
+.hint-card { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid #5a4a14; background: rgba(255, 210, 74, .08); }
+.hint-card .hint-text { flex: 1; font-size: .92rem; line-height: 1.4; } .hint-card a { color: var(--accent); white-space: nowrap; } .hint-ico { font-size: 1.2rem; }
+.steps .list li { display: block; line-height: 1.35; } .step-mark { width: 1.2em; } .step-done b { text-decoration: line-through; color: var(--muted); } .step-done .step-mark { color: var(--accent); }
+.abil-fold > summary { cursor: pointer; }

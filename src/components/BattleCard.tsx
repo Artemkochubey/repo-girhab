@@ -20,7 +20,8 @@ export function BattleCard() {
   return (
     <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<Link className="btn ghost sm" href="/battle">Подробнее</Link>}>
       <BattleScene look={lookOf(s.detail!.gear)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />
-      <AbilityBar compact />
+      {b.cls && b.abilities.list.length > 0 && <details className="abil-fold"><summary>⚡ Способности · энергия {b.abilities.focusLeft}/{b.abilities.focusMax}</summary><AbilityBar compact /></details>}
+      <details className="abil-fold"><summary>🌊 Три волны · отбито {f.cleared} из 3</summary>
       <div className="waves">
         {f.waves.map((w, i) => (
           <div key={i} className={`wave ${w.cleared ? 'done' : w === nextWave ? 'now' : ''}`}>
@@ -30,6 +31,7 @@ export function BattleCard() {
           </div>
         ))}
       </div>
+      </details>
       <p className="muted small">{verdict} · ❤️ {b.hp}/{l.maxHp}{l.weakened ? ' (ослаблен: орда крепче)' : ''}{b.streak ? ` · 🔥 побед подряд: ${b.streak}` : ''}</p>
       {nextWave && <p className="small">Бейте по слабости: {DOMAIN_INFO[nextWave.weak].emoji} <b>{DOMAIN_INFO[nextWave.weak].name}</b> наносит ×1,5 урона.</p>}
       <Bar value={Math.round(f.waves.reduce((a, w) => a + Math.min(w.damage, w.hp), 0))} max={l.totalHp} color="var(--danger)" label={`урон ${Math.round(f.damage)} / ${l.totalHp}`} />

@@ -2,9 +2,10 @@
 import Link from 'next/link';
 import { useGame } from '@/components/Shell';
 import { MORE_ITEMS } from '@/lib/nav';
+import { resetHints } from '@/components/Hints';
 
 export default function More() {
-  const { s } = useGame();
+  const { s, toast } = useGame();
   const me = s.members.find((m) => m.id === s.me);
   return (
     <>
@@ -15,6 +16,7 @@ export default function More() {
           <Link key={i.href} href={i.href} className="more-card"><span className="mi">{i.emoji}</span><b>{i.title}</b><small>{i.text}</small></Link>
         ))}
       </div>
+      <button className="btn ghost" onClick={() => { resetHints(); toast('💡 Подсказки снова включены на всех вкладках'); }}>💡 Показать подсказки для новичков снова</button>
       {me && <p className="muted small">Вы вошли как {me.emoji} {me.name}. Сменить героя и войти как родитель можно в шапке сайта.</p>}
     </>
   );

@@ -39,3 +39,19 @@ export function Radar({ data }: { data: { key: string; value: number }[] }) {
 export const Section = ({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) => (
   <section className="card"><div className="row between"><h2>{title}</h2>{right}</div>{children}</section>
 );
+
+/** Сворачиваемый блок-карточка: заголовок виден всегда, содержимое открывается по нажатию. */
+export const Fold = ({ title, children, right, open = false }: { title: string; children: React.ReactNode; right?: React.ReactNode; open?: boolean }) => (
+  <details className="card fold" open={open}>
+    <summary><h2>{title}</h2>{right && <span className="fold-r">{right}</span>}</summary>
+    <div className="fold-body">{children}</div>
+  </details>
+);
+
+/** Группа карточек под одной кнопкой-заголовком (внутри обычные карточки). */
+export const FoldGroup = ({ title, hint, children, open = false }: { title: string; hint?: string; children: React.ReactNode; open?: boolean }) => (
+  <details className="fold-group" open={open}>
+    <summary><b>{title}</b>{hint && <small className="muted">{hint}</small>}</summary>
+    <div className="fold-stack">{children}</div>
+  </details>
+);

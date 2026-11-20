@@ -1,13 +1,14 @@
 'use client';
+import Link from 'next/link';
 import { FamilyQuests } from '@/components/FamilyQuests';
 import { EveningReminder } from '@/components/EveningReminder';
 import { BattleCard } from '@/components/BattleCard';
-import { BossScene } from '@/components/BossScene';
 import { WeeklyGoal } from '@/components/WeeklyGoal';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
-import { Bar, Chips, Section } from '@/components/ui';
+import { Bar, Chips, FoldGroup, Section } from '@/components/ui';
+import { FirstSteps } from '@/components/Hints';
 import { addDays } from '@/lib/date';
 
 export default function Today() {
@@ -40,17 +41,9 @@ export default function Today() {
         <p className="muted small">Цели: {me.goal} баллов → {s.config.minutes} мин, {me.superGoal} → {s.config.superMinutes} мин</p>
       </Section>
 
+      <FirstSteps />
+
       <EveningReminder />
-
-      <BattleCard />
-
-      <WeeklyGoal />
-
-      <MvpCard />
-
-      <QuestsBlock />
-
-      <FamilyQuests />
 
       <Section title="💪 Тренировка и зарядка" right={
         <button className={`btn ${d.day.stats.warmups ? '' : 'ghost'}`} onClick={() => act('toggleWarmup')}>
@@ -69,11 +62,19 @@ export default function Today() {
         </ul>
       </Section>
 
-      <Section title={`${b.boss.emoji} Босс недели: ${b.boss.name}`}>
-        <Bar value={Math.max(0, b.hp - b.damage)} max={b.hp} color="var(--danger)" label={`${Math.max(0, b.hp - b.damage)} / ${b.hp} HP`} />
-        <BossScene boss={b.boss} hp={b.hp} damage={b.damage} defeated={b.defeated} party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: b.byMember[m.id] ?? 0 }))} meId={s.me} />
-        <p className="muted">{b.defeated ? '🏆 Босс повержен!' : 'Вся семья бьёт босса своими очками.'}</p>
-      </Section>
+      <QuestsBlock />
+
+      <BattleCard />
+
+      <FoldGroup title="🗓 Семья и неделя" hint="цель недели, MVP, семейные квесты, босс">
+        <WeeklyGoal />
+        <MvpCard />
+        <FamilyQuests />
+        <Section title={`${b.boss.emoji} Босс недели: ${b.boss.name}`} right={<Link className="btn ghost sm" href="/battle">Бой</Link>}>
+          <Bar value={Math.max(0, b.hp - b.damage)} max={b.hp} color="var(--danger)" label={`${Math.max(0, b.hp - b.damage)} / ${b.hp} HP`} />
+          <p className="muted">{b.defeated ? '🏆 Босс повержен!' : 'Вся семья бьёт босса своими очками.'}</p>
+        </Section>
+      </FoldGroup>
     </>
   );
 }

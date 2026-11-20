@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/components/Hints';
 import { useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { ARTIFACTS, SOURCE_NAMES } from '@/lib/game/artifacts';
@@ -71,6 +72,7 @@ export default function Bag() {
   return (
     <>
       <h1 className="title">🎒 Добыча: {me.emoji} {me.name}</h1>
+      <Hint id="bag" more="/rules">Сундуки дают призы, снаряжение и артефакты. Приз можно копить в сумке, а когда захотите получить, нажмите «Использовать»: родитель отметит «Выдано». Артефакт — одноразовый помощник.</Hint>
       <LootTabs />
 
       <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>

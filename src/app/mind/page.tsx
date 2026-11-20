@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/components/Hints';
 import { useStoredRange } from '@/lib/useStoredRange';
 import { useMemo, useState } from 'react';
 import { BrainFigure, BrainLegend } from '@/components/BrainFigure';
@@ -36,6 +37,7 @@ export default function Mind() {
   return (
     <>
       <h1 className="title">🧠 Ум</h1>
+      <Hint id="mind">Записывайте учёбу, книги и привычки. Каждая сфера светится на мозге своим цветом. Чем больше развиваете её, тем ярче свет. Свечение сбрасывается каждый день.</Hint>
       <Section title="🧠 Развитие ума" right={<div className="row">{RANGES.map((r) => <button key={r.id} className={`btn ${range === r.id ? '' : 'ghost'} sm`} onClick={() => setRange(r.id)}>{r.label}</button>)}</div>}>
         <div className="brain-wrap">
           <BrainFigure intensity={intensity} overall={overall} hover={hover} onHover={setHover} onPick={pick} />

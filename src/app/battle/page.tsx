@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/components/Hints';
 import { useGame } from '@/components/Shell';
 import { BattleScene } from '@/components/BattleScene';
 import { AbilityBar } from '@/components/AbilityBar';
@@ -40,6 +41,7 @@ export default function Battle() {
   return (
     <>
       <h1 className="title">⚔️ Бой: {me.emoji} {me.name}</h1>
+      <Hint id="battle" more="/rules">Каждый день приходит новая орда из трёх волн. Бьют ваши дневные очки, а очки слабой сферы волны бьют в 1,5 раза сильнее. Победа даёт опыт и снаряжение. Босс недели общий: бьёт вся семья.</Hint>
 
       <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
         <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />

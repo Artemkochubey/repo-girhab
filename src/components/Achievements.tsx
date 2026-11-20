@@ -1,7 +1,7 @@
 'use client';
 import { useMemo } from 'react';
 import type { AchievementDto } from '@/lib/client';
-import { Bar, Section } from './ui';
+import { Bar, Fold } from './ui';
 
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -14,7 +14,7 @@ export function Achievements({ items }: { items: AchievementDto[] }) {
   }, [items]);
   const earned = items.filter((a) => a.earnedOn).length;
   return (
-    <Section title="🏅 Достижения" right={<b>{earned} из {items.length}</b>}>
+    <Fold title="🏅 Достижения" right={<b>{earned} из {items.length}</b>}>
       {groups.map(([g, list]) => (
         <div key={g}>
           <h3>{g}</h3>
@@ -32,6 +32,6 @@ export function Achievements({ items }: { items: AchievementDto[] }) {
           </div>
         </div>
       ))}
-    </Section>
+    </Fold>
   );
 }

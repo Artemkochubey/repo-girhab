@@ -1,4 +1,5 @@
 'use client';
+import { Hint } from '@/components/Hints';
 import { useStoredRange } from '@/lib/useStoredRange';
 import { useEffect, useMemo, useState } from 'react';
 import { BodyFigure, LoadLegend } from '@/components/BodyFigure';
@@ -111,6 +112,7 @@ export default function Body() {
   return (
     <>
       <h1 className="title">💪 Тело</h1>
+      <Hint id="body">Нажмите на упражнение и введите повторы или минуты. Чем больше работают мышцы, тем ярче они светятся на фигуре. Свечение сбрасывается каждый день.</Hint>
 
       <Section title="Нагрузка на мышцы" right={<div className="row">{RANGES.map((r) => <button key={r.id} className={`btn ${range === r.id ? '' : 'ghost'} sm`} onClick={() => setRange(r.id)}>{r.label}</button>)}</div>}>
         <div className="row wrapRow">
