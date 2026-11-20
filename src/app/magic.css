@@ -194,3 +194,35 @@ input, textarea, select { background: rgba(8, 5, 28, .7); border-color: rgba(200
   .class-hero .ch-tw2 { animation: m-spark 3.6s ease-in-out 1s infinite; transform-origin: 50% 50%; transform-box: fill-box; }
   .class-hero .ch-ring { animation: m-beam 3.4s ease-in-out infinite; }
 }
+
+/* герой в бою: цвета частей берутся из снаряжения (см. HeroBody), анимации только без «уменьшить движение» */
+.hf-aura { filter: blur(14px); opacity: .22; }
+.hf-ar1 { fill: var(--ar1); } .hf-ar2 { fill: var(--ar2); } .hf-hm1 { fill: var(--hm1); } .hf-hm2 { fill: var(--hm2); } .hf-bt1 { fill: var(--bt1); } .hf-bt2 { fill: var(--bt2); }
+@media (prefers-reduced-motion: no-preference) {
+  .hf-breathe { animation: hf-breathe 3.2s ease-in-out infinite; }
+  .hf-sway { animation: hf-sway 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 0; }
+  .hf-tw { animation: hf-twk 2.8s ease-in-out infinite; } .hf-tw2 { animation: hf-twk 3.6s ease-in-out 1s infinite; }
+  .hf-halo { animation: hf-twk 2.4s ease-in-out infinite; }
+  .hf-aura { animation: hf-aura 3s ease-in-out infinite; }
+  .hf-plume { animation: hf-plume 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 0% 100%; }
+  .hf-cls { animation: cls-float 2.6s ease-in-out infinite; }
+  .hf-w { animation: hf-wsway 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 85%; }
+  .hf-w-m { transform-origin: 50% 92%; }
+  .hf-w-atk.hf-w-w, .hf-w-atk.hf-w-p { animation: hf-slash .45s ease-in-out 3; transform-origin: 50% 88%; }
+  .hf-w-atk.hf-w-m { animation: hf-thrust .45s ease-in-out 3; }
+  .hf-w-atk.hf-w-b { animation: hf-strum .22s ease-in-out 6; transform-origin: 50% 60%; }
+  .hf-flare { animation: hf-flare .5s ease-out 3; transform-box: fill-box; transform-origin: center; opacity: 0; }
+  .hf-note { animation: hf-note 1.4s ease-out 2 both; } .hf-note.n2 { animation-delay: .3s; }
+  .hf-shield { animation: hf-breathe 3.6s ease-in-out infinite; }
+}
+@keyframes hf-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes hf-sway { 0%, 100% { transform: skewX(0); } 50% { transform: skewX(-2.500deg); } }
+@keyframes hf-twk { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes hf-aura { 0%, 100% { opacity: .14; } 50% { opacity: .32; } }
+@keyframes hf-plume { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(5deg); } }
+@keyframes hf-wsway { 0%, 100% { transform: rotate(-1.500deg); } 50% { transform: rotate(2deg); } }
+@keyframes hf-slash { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(48deg); } }
+@keyframes hf-thrust { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(7deg); } }
+@keyframes hf-strum { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
+@keyframes hf-flare { 0% { opacity: .85; transform: scale(.3); } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes hf-note { 0% { opacity: 0; transform: translateY(14px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-46px); } }
