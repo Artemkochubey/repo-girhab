@@ -3,6 +3,7 @@ import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
+import { DEED_DAY_CAP, deedJournal, deedSummary } from '../game/deeds';
 import { parseFace } from '../game/faces';
 import { CLASS_BATTLE, classOnly } from '../game/classBattle';
 import { basePoints } from '../game/points';
@@ -35,6 +36,7 @@ const RADAR = [
   { key: 'Творчество', spheres: ['Творчество'] },
   { key: 'Навыки', spheres: ['Навыки'] },
   { key: 'Дисциплина', spheres: ['habits'] },
+  { key: 'Доброта', spheres: ['deeds'] },
 ];
 
 /** Дни за последнюю неделю с меткой «проверить» (без уже просмотренных родителем). */
@@ -120,11 +122,16 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
       const shield = used('shield'), doubler = used('doubler');
       const days = dateRange(addDays(fam.today, -7), fam.today);
       return {
-        shield: days.filter((d) => d < fam.today && !shield.has(d) && basePoints((st.days.get(d)?.stats) ?? { workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, questXp: 0 }) < m.goal * 0.5),
+        shield: days.filter((d) => d < fam.today && !shield.has(d) && basePoints((st.days.get(d)?.stats) ?? { workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0 }) < m.goal * 0.5),
         doubler: days.filter((d) => !doubler.has(d)),
       };
     })(),
     date, radar,
+    deeds: (() => {
+      const rows = raw.deeds?.filter((x) => x.memberId === st.id) ?? [];
+      const journal = deedJournal(rows);
+      return { cap: DEED_DAY_CAP, day: journal.filter((j) => j.date === date), summary: deedSummary(rows, fam.today), recent: journal.slice(0, 40) };
+    })(),
     reviewDates: reviewFlags(raw, fam, st.id).map((f) => f.date),
     achievements: st.achievements.map((a) => ({ id: a.id, group: a.group, name: a.name, emoji: a.emoji, text: a.text, target: a.target, value: a.value, earnedOn: a.earnedOn })),
     // развитие ума по дням за 30 дней: для схемы мозга
@@ -211,6 +218,7 @@ export function tvState(raw: Raw, fam: Family) {
       points: d?.total ?? 0, workoutMinutes: Math.round(d?.stats.workoutMinutes ?? 0), warmup: !!d?.stats.warmups,
       studyMinutes: Object.values(study).reduce((a, v) => a + (v ?? 0), 0), studyByKind: study, books: d?.stats.books ?? 0,
       habits: raw.habits.filter((h) => h.memberId === id).map((h) => ({ id: h.id, name: h.name, checked: raw.habitChecks.some((c) => c.habitId === h.id && c.date === fam.today) })),
+      deeds: deedJournal((raw.deeds ?? []).filter((x) => x.memberId === id && x.date === fam.today)).map((j) => ({ kind: j.kind, counted: j.counted })),
     };
   };
   return {

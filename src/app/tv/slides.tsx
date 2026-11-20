@@ -5,6 +5,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { HeroFigure } from '@/components/HeroFigure';
 import { MountainClimb } from '@/components/MountainClimb';
 import { STUDY_KINDS } from '@/lib/db/schema';
+import { DEEDS, DEED_DAY_CAP, deedStatus } from '@/lib/game/deeds';
 import { CLASS_NAMES, type Cls } from '@/lib/game/classes';
 import { rankFor } from '@/lib/game/ranks';
 import { seasonName } from '@/lib/game/seasons';
@@ -249,7 +250,7 @@ export function RecordSlide({ d, who, setWho, note, record }: { d: Tv; who: numb
         const mins = [15, 30, 45, 60];
         return (
           <div className="tv-rec-grid">
-            <div className="tv-rec-sum">{m.emoji} {m.name} сегодня: <b>{r.points}</b> очков · тренировка {r.workoutMinutes} мин · учёба {r.studyMinutes} мин · зарядка {r.warmup ? '✔' : '—'} · привычки {r.habits.filter((h) => h.checked).length}/{r.habits.length}</div>
+            <div className="tv-rec-sum">{m.emoji} {m.name} сегодня: <b>{r.points}</b> очков · тренировка {r.workoutMinutes} мин · учёба {r.studyMinutes} мин · зарядка {r.warmup ? '✔' : '—'} · привычки {r.habits.filter((h) => h.checked).length}/{r.habits.length} · добрые дела {r.deeds.filter((x) => x.counted).length}</div>
             <div className="tv-rec-row"><span>🔥 Зарядка</span>
               <button data-tv className={`tv-b ${r.warmup ? 'done' : ''}`} disabled={r.warmup} onClick={() => record({ kind: 'warmup' }, 'Зарядка записана')}>{r.warmup ? '✔ Сделана' : 'Сделал(а) зарядку'}</button></div>
             <div className="tv-rec-row"><span>🏃 Тренировка</span>
@@ -258,6 +259,13 @@ export function RecordSlide({ d, who, setWho, note, record }: { d: Tv; who: numb
               <div key={k} className="tv-rec-row"><span>📚 {k}{r.studyByKind[k] ? ` · ${r.studyByKind[k]}` : ''}</span>
                 {[15, 30, 45].map((n) => <button key={n} data-tv className="tv-b" onClick={() => record({ kind: 'study', studyKind: k, minutes: n }, `${k} +${n} мин`)}>+{n} мин</button>)}</div>
             ))}
+            <div className="tv-rec-row wrap"><span>💛 Добрые дела · {r.deeds.filter((x) => x.counted).length}/{DEED_DAY_CAP}</span>
+              {DEEDS.filter((x) => x.id !== 'custom').map((x) => {
+                const st = deedStatus(r.deeds, x.id);
+                const done = r.deeds.some((j) => j.kind === x.id && j.counted);
+                return <button key={x.id} data-tv className={`tv-b ${done ? 'done' : ''}`} disabled={st !== 'ok'} onClick={() => record({ kind: 'deed', deedKind: x.id }, `Доброе дело: ${x.name} (+${x.points})`)}>{done ? '✔ ' : `${x.emoji} `}{x.name}</button>;
+              })}
+            </div>
             <div className="tv-rec-row"><span>📖 Книга</span>
               <button data-tv className="tv-b" onClick={() => record({ kind: 'book' }, 'Книга прочитана (+50)')}>Прочитал(а) книгу</button></div>
             {r.habits.length > 0 && (

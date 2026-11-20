@@ -17,6 +17,7 @@ export interface ReportMember {
   levelStart: number; levelEnd: number;
   newAchievements: { name: string; emoji: string; date: string }[];
   mvpDays: string[];
+  deedNotes: { date: string; text: string }[];   // свои добрые дела за неделю с пояснением: родитель видит, что именно сделал ребёнок
   warn: string[]; good: string[];
 }
 
@@ -66,6 +67,7 @@ export function buildReport(raw: Raw, fam: Family, week: string): Report {
       { key: 'study', label: 'Учёба', unit: 'мин', value: studyMin(range), prev: studyMin(prevRange) },
       { key: 'habits', label: 'Привычки', unit: 'шт.', value: sumOf(range, (x) => x.stats.habits), prev: sumOf(prevRange, (x) => x.stats.habits) },
       { key: 'books', label: 'Книги', unit: 'шт.', value: sumOf(range, (x) => x.stats.books), prev: sumOf(prevRange, (x) => x.stats.books) },
+      { key: 'deeds', label: 'Добрые дела', unit: 'шт.', value: sumOf(range, (x) => x.stats.deeds), prev: sumOf(prevRange, (x) => x.stats.deeds) },
     ];
 
     // квесты считаем только за закончившиеся дни: сегодняшний ещё можно выполнить
@@ -96,7 +98,7 @@ export function buildReport(raw: Raw, fam: Family, week: string): Report {
     else if (idle.length) warn.push(`Норма не выполнена в ${idle.length} из ${finished.length} дней`);
     for (const sp of spheres) {
       const enough = sp.key === 'habits' || sp.key === 'warmup' ? sp.prev >= 5 : sp.prev >= 30;
-      if (sp.key !== 'books' && enough && sp.value < sp.prev * 0.6) warn.push(`Просадка: ${sp.label.toLowerCase()} ${sp.value} против ${sp.prev} ${sp.unit} за те же дни прошлой недели (${pct(sp.value, sp.prev)}%)`);
+      if (sp.key !== 'books' && sp.key !== 'deeds' && enough && sp.value < sp.prev * 0.6) warn.push(`Просадка: ${sp.label.toLowerCase()} ${sp.value} против ${sp.prev} ${sp.unit} за те же дни прошлой недели (${pct(sp.value, sp.prev)}%)`);
     }
     for (const q of missed.filter((x) => x.times >= 2).slice(0, 2)) warn.push(`Квест «${q.title}» не выполнен ${q.times} ${plural(q.times, 'раз', 'раза', 'раз')}`);
     if (qTotal > 0 && qDone / qTotal < 0.5 && finished.length >= 2) warn.push(`Выполнено меньше половины квестов: ${qDone} из ${qTotal}`);
@@ -107,6 +109,9 @@ export function buildReport(raw: Raw, fam: Family, week: string): Report {
     if (dp !== null && dp >= 15) good.push(`Очков на ${dp}% больше, чем за те же дни прошлой недели`);
     if (bestDate && (day(bestDate)?.total ?? 0) > 0) good.push(`Лучший день: ${wdName(bestDate)} ${bestDate.slice(8)}.${bestDate.slice(5, 7)}, ${day(bestDate)!.total} очков`);
     if (levelEnd > levelStart) good.push(`Новый уровень: ${levelStart} → ${levelEnd}`);
+    const kind = sumOf(range, (x) => x.stats.deeds);
+    if (kind > 0) good.push(`Добрых дел: ${kind} 💛`);
+    const deedNotes = (raw.deeds ?? []).filter((x) => x.memberId === m.id && x.note && x.date >= week && x.date <= lastDay).map((x) => ({ date: x.date, text: x.note! })).sort((a, b) => a.date.localeCompare(b.date));
 
     return {
       id: m.id, name: m.name, emoji: m.emoji, color: m.color, goal: m.goal, superGoal: m.superGoal,
@@ -115,7 +120,7 @@ export function buildReport(raw: Raw, fam: Family, week: string): Report {
       best: bestDate && (day(bestDate)?.total ?? 0) > 0 ? { date: bestDate, points: day(bestDate)!.total } : null,
       daily: dateRange(week, end).map((d) => ({ date: d, points: day(d)?.total ?? 0, counted: d <= lastDay && exist(d), hitGoal: (day(d)?.total ?? 0) >= m.goal })),
       spheres, quests: { done: qDone, total: qTotal, allDoneDays: allDone, missed },
-      levelStart, levelEnd, newAchievements, mvpDays, warn, good,
+      levelStart, levelEnd, newAchievements, mvpDays, deedNotes, warn, good,
     };
   });
 

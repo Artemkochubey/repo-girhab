@@ -4,7 +4,7 @@ import * as s from '../db/schema';
 import { HttpError, runAction } from './actions';
 
 export const TV_MINUTES = [15, 30, 45, 60] as const;
-export type TvRecordInput = { memberId: unknown; kind: unknown; minutes?: unknown; studyKind?: unknown; habitId?: unknown };
+export type TvRecordInput = { memberId: unknown; kind: unknown; minutes?: unknown; studyKind?: unknown; habitId?: unknown; deedKind?: unknown };
 
 /**
  * Запись сделанного с ТВ (без входа). Права как у ребёнка: только себе, только за сегодня, без отмены записей.
@@ -23,6 +23,11 @@ export function tvRecord(db: Db, input: TvRecordInput, now = new Date()): unknow
     case 'workout': return runAction(db, ctx, 'addWorkout', { minutes: minutes() });
     case 'study': return runAction(db, ctx, 'addStudy', { kind: input.studyKind, minutes: minutes() });
     case 'habit': return runAction(db, ctx, 'recordHabit', { habitId: input.habitId });
+    case 'deed': {
+      // на ТВ только готовые дела из каталога, без «своего» (печатать неудобно)
+      if (input.deedKind === 'custom') throw new HttpError(400, 'Своё доброе дело записывается с телефона');
+      return runAction(db, ctx, 'addDeed', { kind: input.deedKind });
+    }
     case 'book': {
       // у книги нужно название: на ТВ печатать неудобно, поэтому нумеруем «Прочитанная книга №N»
       const n = db.select().from(s.book).where(eq(s.book.memberId, memberId)).all().length;

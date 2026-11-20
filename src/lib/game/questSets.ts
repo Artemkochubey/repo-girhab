@@ -20,6 +20,8 @@ const Q = {
   riddle: q('Загадка сфинкса', 'Шахматы, головоломки, логические задачи', 'study', 20, { kind: 'Мышление', m: 15 }),
   habits: q('Ритуал дня', 'Отмечай выполненные привычки в разделе «Ум»', 'habits', 20, { m: 3 }),
   habits2: q('Малый ритуал', 'Отметь хотя бы две привычки', 'habits', 10, { m: 2 }),
+  deed: q('Доброе дело', 'Сделай доброе дело и отметь его кнопкой «Отметить»', 'deeds', 20, { m: 1 }),
+  deeds2: q('Два добрых дела', 'Помоги дома и порадуй кого-нибудь', 'deeds', 30, { m: 2 }),
   home: q('Помочь по дому', 'Помоги родителям: уборка, посуда, порядок в комнате', 'manual', 20),
 };
 
@@ -30,6 +32,7 @@ export const QUEST_SETS: QuestSet[] = [
   { id: 'sport', name: 'Спортивный день', emoji: '💪', note: 'Зарядка и длинная тренировка', items: [Q.warmup, Q.huge, Q.habits2] },
   { id: 'smart', name: 'Умный день', emoji: '🧠', note: 'Учёба, языки, головоломки и чтение', items: [Q.schoolLong, Q.words, Q.riddle, Q.read] },
   { id: 'art', name: 'Творческий день', emoji: '🎨', note: 'Большой творческий проект и чтение', items: [Q.artLong, Q.readShort, Q.riddle, Q.habits2] },
+  { id: 'kind', name: 'Добрый день', emoji: '💛', note: 'Два добрых дела, немного учёбы и движения', items: [Q.deeds2, Q.readShort, Q.run, Q.habits2] },
   { id: 'easy', name: 'Лёгкий день', emoji: '🛋', note: 'Для усталости и болезни: минимум усилий', items: [Q.warmup, Q.readShort, Q.habits2] },
 ];
 

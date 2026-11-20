@@ -6,7 +6,7 @@ import { QUEST_SETS, scaleQuests } from '@/lib/game/questSets';
 import type { QuestItem } from '@/lib/game/quests';
 import { useGame } from './Shell';
 
-const KINDS = [['manual', 'Вручную (родитель подтвердит)'], ['warmup', 'Зарядка (само)'], ['workout', 'Тренировка, мин (само)'], ['habits', 'Привычки, шт. (само)'], ['study', 'Учёба, мин (само)']] as const;
+const KINDS = [['manual', 'Вручную (родитель подтвердит)'], ['warmup', 'Зарядка (само)'], ['workout', 'Тренировка, мин (само)'], ['habits', 'Привычки, шт. (само)'], ['study', 'Учёба, мин (само)'], ['deeds', 'Добрые дела, шт. (само)']] as const;
 const blank = (): QuestDto => ({ t: '', xp: 20, k: 'manual' });
 
 export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?: () => void }) {
@@ -23,7 +23,7 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
   const save = async () => {
     const clean = items.map((q) => ({
       t: q.t, d: q.d, xp: q.xp, k: q.k,
-      m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' ? q.m ?? 1 : undefined,
+      m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' || q.k === 'deeds' ? q.m ?? 1 : undefined,
       kind: q.k === 'study' ? q.kind ?? 'any' : undefined,
     }));
     try { await act('setQuests', { memberId, date: scope === 'default' ? 'default' : s.today, items: clean }); toast('Квесты сохранены'); onSaved?.(); } catch { /* toast уже показан */ }
@@ -49,7 +49,7 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
               <option value="any">любая</option>{STUDY_KINDS.map((k) => <option key={k}>{k}</option>)}
             </select>
           )}
-          {(q.k === 'workout' || q.k === 'habits' || q.k === 'study') && (
+          {(q.k === 'workout' || q.k === 'habits' || q.k === 'study' || q.k === 'deeds') && (
             <input className="num" inputMode="numeric" value={q.m ?? ''} onChange={(e) => set(i, { m: Number(e.target.value.replace(/\D/g, '')) })} aria-label="Минуты или штуки" />
           )}
           <label className="xpl">XP <input className="num" inputMode="numeric" value={q.xp} onChange={(e) => set(i, { xp: Number(e.target.value.replace(/\D/g, '')) })} /></label>
@@ -63,7 +63,7 @@ export function QuestEditor({ memberId, onSaved }: { memberId: number; onSaved?:
       </div>
       <div className="row wrapRow">
         <input value={setName} maxLength={40} placeholder="Название своего набора" onChange={(e) => setSetName(e.target.value)} />
-        <button className="btn ghost" disabled={!items.length || !setName.trim()} onClick={() => act('saveQuestSet', { name: setName, items: items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' ? q.m ?? 1 : undefined, kind: q.k === 'study' ? q.kind ?? 'any' : undefined })) }).then(() => { setSetName(''); toast('Набор сохранён'); }).catch(() => {})}>💾 Сохранить как набор</button>
+        <button className="btn ghost" disabled={!items.length || !setName.trim()} onClick={() => act('saveQuestSet', { name: setName, items: items.map((q) => ({ t: q.t, d: q.d, xp: q.xp, k: q.k, m: q.k === 'workout' || q.k === 'habits' || q.k === 'study' || q.k === 'deeds' ? q.m ?? 1 : undefined, kind: q.k === 'study' ? q.kind ?? 'any' : undefined })) }).then(() => { setSetName(''); toast('Набор сохранён'); }).catch(() => {})}>💾 Сохранить как набор</button>
       </div>
       <p className="muted small">Квесты «на сегодня» сбросят сегодняшние отметки. Шаблон «на каждый день» действует, пока не задан квест на конкретный день.</p>
     </div>

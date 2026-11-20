@@ -3,6 +3,7 @@ import { hashPin, validPin } from '../auth';
 import type { Db } from '../db/client';
 import * as s from '../db/schema';
 import { dateAllowed, isDate, todayIn } from '../date';
+import { CUSTOM_DEED, CUSTOM_NOTE_MAX, DEED_DAY_CAP, deedById, scoreDeeds } from '../game/deeds';
 import { defaultFace, parseFace, validateFace, type Gender } from '../game/faces';
 import { AVATARS } from '../game/avatars';
 import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '../game/loot';
@@ -86,6 +87,21 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       db.insert(s.studyEntry).values({ memberId, date, kind: a.kind as s.StudyKind, minutes: int(a.minutes, 1, 600, 'Минуты'), createdBy: ctx.memberId }).run();
       return { ok: true };
     }
+    case 'addDeed': {
+      // доброе дело: из каталога, «своё» с пояснением. Очки считает движок (лимиты в game/deeds.ts), в журнале остаётся всё
+      const memberId = target(), date = dateArg();
+      const def = deedById(String(a.kind));
+      if (!def) fail(400, 'Такого доброго дела нет в списке');
+      let note: string | null = null;
+      if (a.note !== undefined && a.note !== null && String(a.note).trim()) note = str(a.note, CUSTOM_NOTE_MAX, 'Пояснение');
+      if (def!.id === CUSTOM_DEED && (!note || note.length < 3)) fail(400, 'Опишите своё доброе дело (хотя бы 3 символа)');
+      const rows = db.select().from(s.deedEntry).where(and(eq(s.deedEntry.memberId, memberId), eq(s.deedEntry.date, date))).all();
+      if (rows.length >= DEED_DAY_CAP * 2) fail(400, 'Сегодня уже много записей: остальные добрые дела запишите завтра');
+      const before = scoreDeeds(rows).counted;
+      db.insert(s.deedEntry).values({ memberId, date, kind: def!.id, note, createdBy: ctx.memberId }).run();
+      const after = scoreDeeds([...rows, { kind: def!.id }]);
+      return { ok: true, counted: after.counted > before, points: after.counted > before ? def!.points : 0, countedToday: after.counted };
+    }
     case 'toggleWarmup': {
       const memberId = target(), date = dateArg();
       const ex = db.select().from(s.warmupEntry).where(and(eq(s.warmupEntry.memberId, memberId), eq(s.warmupEntry.date, date))).get();
@@ -140,9 +156,9 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
     case 'deleteEntry': {
       needParent();
       const id = int(a.id, 1, 1e9, 'id');
-      const t = { workout: s.workoutEntry, study: s.studyEntry, warmup: s.warmupEntry } as const;
+      const t = { workout: s.workoutEntry, study: s.studyEntry, warmup: s.warmupEntry, deed: s.deedEntry } as const;
       if (a.type === 'book') db.delete(s.book).where(eq(s.book.id, id)).run();
-      else if (a.type === 'workout' || a.type === 'study' || a.type === 'warmup') db.delete(t[a.type]).where(eq(t[a.type].id, id)).run();
+      else if (a.type === 'workout' || a.type === 'study' || a.type === 'warmup' || a.type === 'deed') db.delete(t[a.type]).where(eq(t[a.type].id, id)).run();
       else fail(400, 'Неизвестный тип записи');
       return { ok: true };
     }
@@ -162,6 +178,7 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
         study: db.select().from(s.studyEntry).where(eq(s.studyEntry.memberId, memberId)).all(),
         warmups: db.select().from(s.warmupEntry).where(eq(s.warmupEntry.memberId, memberId)).all(),
         books: db.select().from(s.book).where(eq(s.book.memberId, memberId)).all(),
+        deeds: db.select().from(s.deedEntry).where(eq(s.deedEntry.memberId, memberId)).all(),
       };
     }
 

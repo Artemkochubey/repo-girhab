@@ -73,6 +73,14 @@ export const studyEntry = sqliteTable('study_entry', {
   minutes: integer('minutes').notNull(),
 }, (t) => [index('study_member_date').on(t.memberId, t.date)]);
 
+export const deedEntry = sqliteTable('deed_entry', {
+  ...entryBase,
+  // id дела из каталога (game/deeds.ts)
+  kind: text('kind').notNull(),
+  // пояснение (для «своего» дела обязательно)
+  note: text('note'),
+}, (t) => [index('deed_member_date').on(t.memberId, t.date)]);
+
 export const habit = sqliteTable('habit', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),

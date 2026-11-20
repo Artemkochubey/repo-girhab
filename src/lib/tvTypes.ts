@@ -15,6 +15,6 @@ export interface Tv {
   season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
   members: TvMember[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string; weak: readonly string[] } };
-  record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
+  record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[]; deeds: { kind: string; counted: boolean }[] }>;
   quests: { memberId: number; items: TvQuest[] }[];
 }

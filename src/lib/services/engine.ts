@@ -13,6 +13,7 @@ import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/a
 import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
 import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
 import { CLASS_BATTLE, abilityView, withAbilities, withClass, type AbilityView } from '../game/classBattle';
+import { scoreDeeds } from '../game/deeds';
 import { BOSS_DROP, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
@@ -27,6 +28,7 @@ export interface Raw {
   habits: { id: number; memberId: number; name: string }[];
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
+  deeds?: { id?: number; memberId: number; date: string; kind: string; note?: string | null }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
   chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string; gear?: string | null }[];
   familyQuests: FamilyQuestInput[];
@@ -107,6 +109,10 @@ export function buildFamily(raw: Raw, today: string): Family {
     for (const s of raw.study) if (s.memberId === m.id) { const d = get(s.date); d.study[s.kind] = (d.study[s.kind] ?? 0) + s.minutes; }
     for (const c of raw.habitChecks) if (habitOwner.get(c.habitId) === m.id) get(c.date).habits++;
     for (const b of raw.books) if (b.memberId === m.id) get(b.finishedAt).books++;
+    // добрые дела: за день засчитывается не больше DEED_DAY_CAP, один вид один раз (см. game/deeds.ts)
+    const deedsByDate = new Map<string, { kind: string }[]>();
+    for (const x of raw.deeds ?? []) if (x.memberId === m.id) deedsByDate.set(x.date, [...(deedsByDate.get(x.date) ?? []), { kind: x.kind }]);
+    for (const [date, rows] of deedsByDate) { const r = scoreDeeds(rows); const d = get(date); d.deeds = r.counted; d.deedPoints = r.points; }
 
     const created = todayIn(tz, new Date(m.createdAt));
     const first = [...stats.keys()].reduce((a, b) => (b < a ? b : a), created);
@@ -313,7 +319,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     const wins = bossHistory.filter((w) => w.finished && w.defeated && (w.byMember[st.id] ?? 0) > 0 && (w.byMember[st.id] ?? 0) / Math.max(1, Object.values(w.byMember).reduce((x, y) => x + y, 0)) >= 0.1);
     st.achievements = computeAchievements({
       dates: a.dates, streak: a.streak, points: a.points, questsAllDone: a.questsAllDone, superGoal: a.superGoal,
-      books: a.stats.map((x) => x.books), warmups: a.stats.map((x) => x.warmups), habits: a.stats.map((x) => x.habits),
+      deeds: a.stats.map((x) => x.deeds), books: a.stats.map((x) => x.books), warmups: a.stats.map((x) => x.warmups), habits: a.stats.map((x) => x.habits),
       study: a.stats.map((x) => Object.values(x.study).reduce((p, q) => p + (q ?? 0), 0)), workoutEq: a.stats.map((x) => x.workoutMinutes),
       chestDates: raw.chestsOpened.filter((c) => c.memberId === st.id && c.date).map((c) => c.date!),
       bossWinDates: wins.map((w) => addDays(w.weekStart, 6)),

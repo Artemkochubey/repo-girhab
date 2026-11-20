@@ -36,6 +36,7 @@ export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = tru
   for (const k of STUDY_KINDS) add(k, d.study[k] ?? 0);
   add('habits', Math.min(d.habits, POINTS.habitCap) * POINTS.habit);
   add('book', d.books * POINTS.book);
+  add('deeds', d.deedPoints);
 
   const sphereTotal = Object.values(bySphere).reduce((a, b) => a + (b ?? 0), 0);
   let flat = 0, questBonus = 0;
@@ -82,7 +83,7 @@ function isoWeekKey(date: string): string {
 /** Очки без классов и талантов — основа для серий. */
 export const basePoints = (d: DayStats): number =>
   d.workoutMinutes + Math.min(d.warmups, 1) * POINTS.warmup + Math.min(d.habits, POINTS.habitCap) * POINTS.habit +
-  d.books * POINTS.book + Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0);
+  d.books * POINTS.book + d.deedPoints + Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0);
 
 /**
  * Длина серии на конец каждого дня (dates по возрастанию).

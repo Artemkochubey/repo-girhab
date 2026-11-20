@@ -1,6 +1,6 @@
 import type { DayStats, StudyKind } from './types';
 
-export type QuestKind = 'manual' | 'warmup' | 'workout' | 'habits' | 'study';
+export type QuestKind = 'manual' | 'warmup' | 'workout' | 'habits' | 'study' | 'deeds';
 export interface QuestItem { t: string; d?: string; xp: number; k: QuestKind; m?: number; kind?: StudyKind | 'any'; done?: boolean; pending?: boolean }
 
 export const QUEST_TEMPLATES: QuestItem[] = [
@@ -55,6 +55,7 @@ export function questDone(q: QuestItem, d: DayStats): boolean {
     case 'warmup': return d.warmups > 0;
     case 'workout': return d.workoutMinutes >= (q.m ?? 1);
     case 'habits': return d.habits >= (q.m ?? 1);
+    case 'deeds': return d.deeds >= (q.m ?? 1);
     case 'study': {
       const min = q.m ?? 1;
       if (!q.kind || q.kind === 'any') return Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0) >= min;
@@ -76,6 +77,7 @@ export function questHint(q: QuestItem): string {
     case 'warmup': return 'Отметьте зарядку (кнопка «Зарядка» на экранах «Сегодня» и «Тело»)';
     case 'workout': return `Запишите тренировку: ${q.m ?? 1} мин за день (экран «Тело»)`;
     case 'habits': return `Отметьте привычек за день: ${q.m ?? 1} (экран «Ум»)`;
+    case 'deeds': return `Отметьте добрых дел за день: ${q.m ?? 1} (кнопка «Отметить», раздел «Добрые дела»)`;
     case 'study': {
       const what = !q.kind || q.kind === 'any' ? 'любой учёбы' : `«${q.kind}»`;
       return `Запишите ${q.m ?? 1} мин ${what} (экран «Ум»)`;
@@ -90,6 +92,7 @@ export function questProgress(q: QuestItem, d: DayStats): { have: number; need: 
     case 'warmup': return { have: Math.min(d.warmups, 1), need: 1, unit: '' };
     case 'workout': return { have: d.workoutMinutes, need: q.m ?? 1, unit: 'мин' };
     case 'habits': return { have: d.habits, need: q.m ?? 1, unit: 'шт.' };
+    case 'deeds': return { have: d.deeds, need: q.m ?? 1, unit: 'шт.' };
     case 'study': {
       const have = !q.kind || q.kind === 'any' ? Object.values(d.study).reduce((a, b) => a + (b ?? 0), 0) : d.study[q.kind] ?? 0;
       return { have, need: q.m ?? 1, unit: 'мин' };

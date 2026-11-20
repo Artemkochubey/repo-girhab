@@ -49,7 +49,7 @@ export function FirstSteps() {
   const [hidden, hide] = useDismissed('steps');
   const d = s.detail!;
   const steps = [
-    { done: d.xp > 0, text: 'Запишите первое занятие', hint: 'тренировка, зарядка, учёба или привычка ниже' },
+    { done: d.xp > 0, text: 'Запишите первое занятие', hint: 'кнопка «✍️ Отметить» справа внизу: тело, ум или доброе дело' },
     { done: !!d.hero.cls, text: 'Выберите класс', hint: 'вкладка «Герой»' },
     { done: d.hero.talents.length > 0, text: 'Возьмите первый талант', hint: 'очко таланта даётся за новый уровень' },
     { done: d.chests.opened > 0, text: 'Откройте первый сундук', hint: 'вкладка «Добыча»' },

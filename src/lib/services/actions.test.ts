@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
+import { tvRecord } from './tvRecord';
 import { adminView, memberDetail, tvState } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
@@ -339,6 +340,34 @@ describe('действия', () => {
     expect(row().face).not.toBeNull();
     const { raw, family } = loadFamily(db, NOW);
     expect(tvState(raw, family).members.find((m) => m.id === 2)!.face).toMatchObject({ hair: 'spiky', gender: 'm' });   // лицо доходит до ТВ
+  });
+  it('добрые дела: очки, лимиты, своё дело, права и журнал', () => {
+    const fam = () => loadFamily(db, NOW).family.members.get(2)!;
+    const today = () => fam().days.get(loadFamily(db, NOW).family.today)!;
+    const r1 = runAction(db, kid, 'addDeed', { kind: 'dishes' }) as { counted: boolean; points: number };
+    expect(r1).toMatchObject({ counted: true, points: 8 });
+    expect(today()!.stats.deedPoints).toBe(8);
+    expect(today()!.total).toBe(8);                                        // очки дела идут в очки дня
+    const r2 = runAction(db, kid, 'addDeed', { kind: 'dishes' }) as { counted: boolean; points: number };
+    expect(r2).toMatchObject({ counted: false, points: 0 });               // то же дело дважды за день не считается
+    expect(today()!.stats.deedPoints).toBe(8);
+    expect(err(() => runAction(db, kid, 'addDeed', { kind: 'custom' }))?.status).toBe(400);               // своё дело без описания
+    expect(err(() => runAction(db, kid, 'addDeed', { kind: 'hack' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'addDeed', { memberId: 1, kind: 'trash' }))?.status).toBe(403);   // чужой профиль
+    expect(runAction(db, kid, 'addDeed', { kind: 'custom', note: 'Помог соседке донести сумки' })).toMatchObject({ counted: true, points: 8 });
+    expect(today()!.stats.deeds).toBe(2);
+    const id = db.select().from(s.deedEntry).all()[0]!.id;
+    expect(err(() => runAction(db, kid, 'deleteEntry', { type: 'deed', id }))?.status).toBe(403);        // удаляет только родитель
+    runAction(db, dad, 'deleteEntry', { type: 'deed', id });
+    expect(today()!.stats.deeds).toBe(2);                                  // после удаления повтор «Помыл посуду» становится засчитанным
+    const detail = (() => { const { raw, family } = loadFamily(db, NOW); return memberDetail(raw, family, family.members.get(2)!); })();
+    expect(detail.deeds.summary.total).toBe(2);
+    expect(detail.deeds.day[0]).toMatchObject({ kind: 'custom', counted: true });
+  });
+  it('добрые дела с ТВ: только готовые, без своего', () => {
+    expect(tvRecord(db, { memberId: 2, kind: 'deed', deedKind: 'hug' }, NOW)).toMatchObject({ counted: true });
+    expect(() => tvRecord(db, { memberId: 2, kind: 'deed', deedKind: 'custom' }, NOW)).toThrow();
+    expect(() => tvRecord(db, { memberId: 2, kind: 'deed', deedKind: 'nope' }, NOW)).toThrow();
   });
   it('магазин: покупка, нехватка очков, выдача и отмена', () => {
     const itemId = (runAction(db, dad, 'saveShopItem', { name: 'Кино', emoji: '🎬', price: 100, currency: 'points' }) as { id: number }).id;

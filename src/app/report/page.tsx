@@ -57,6 +57,7 @@ function MemberCard({ m }: { m: ReportMember }) {
         <div className="rep-box"><b>Невыполненные квесты</b>
           <ul>{q.missed.map((x) => <li key={x.title}>{x.title} <small className="muted">· {x.times} {x.times === 1 ? 'день' : 'дн.'}</small></li>)}</ul></div>
       )}
+      {m.deedNotes.length > 0 && <div className="rep-box"><b>💛 Свои добрые дела</b><ul>{m.deedNotes.map((x, i) => <li key={i}>{x.text} <small className="muted">· {x.date.slice(8)}.{x.date.slice(5, 7)}</small></li>)}</ul></div>}
       {m.good.length > 0 && <div className="rep-box good"><b>✔ Что получилось</b><ul>{m.good.map((g, i) => <li key={i}>{g}</li>)}</ul></div>}
       {(m.newAchievements.length > 0 || m.mvpDays.length > 0) && (
         <p className="small">{m.newAchievements.map((a) => `${a.emoji} ${a.name}`).join(' · ')}{m.newAchievements.length > 0 && m.mvpDays.length > 0 ? ' · ' : ''}{m.mvpDays.length > 0 ? `🏆 MVP дня: ${m.mvpDays.length}` : ''}</p>

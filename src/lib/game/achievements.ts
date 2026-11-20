@@ -1,6 +1,6 @@
 import { levelFromXp } from './level';
 
-export type Metric = 'dayMvps' | 'streak' | 'books' | 'workoutDays' | 'warmups' | 'study' | 'habits' | 'level' | 'questDays' | 'chests' | 'bossWins' | 'mvp' | 'bigDays' | 'seasonWins';
+export type Metric = 'dayMvps' | 'streak' | 'books' | 'workoutDays' | 'warmups' | 'study' | 'habits' | 'level' | 'questDays' | 'chests' | 'bossWins' | 'mvp' | 'bigDays' | 'seasonWins' | 'deeds' | 'kindDays' | 'kindStreak';
 
 export interface AchievementDef { id: string; group: string; name: string; emoji: string; text: string; metric: Metric; target: number }
 
@@ -39,6 +39,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'mvpd10', group: 'Боссы', name: 'Звезда семьи', emoji: '🌠', text: '10 раз стать MVP дня', metric: 'dayMvps', target: 10 },
   { id: 'seas1', group: 'Сезоны', name: 'Чемпион сезона', emoji: '🏅', text: 'Выиграть месячный сезон семьи', metric: 'seasonWins', target: 1 },
   { id: 'seas3', group: 'Сезоны', name: 'Легенда сезонов', emoji: '👑', text: 'Выиграть 3 сезона', metric: 'seasonWins', target: 3 },
+  { id: 'kind1', group: 'Доброта', name: 'Первое доброе дело', emoji: '💛', text: 'Сделать первое доброе дело', metric: 'deeds', target: 1 },
+  { id: 'kind10', group: 'Доброта', name: 'Добрая душа', emoji: '🤗', text: '10 добрых дел', metric: 'deeds', target: 10 },
+  { id: 'kind50', group: 'Доброта', name: 'Добрый волшебник', emoji: '🌈', text: '50 добрых дел', metric: 'deeds', target: 50 },
+  { id: 'kind200', group: 'Доброта', name: 'Сердце семьи', emoji: '💖', text: '200 добрых дел', metric: 'deeds', target: 200 },
+  { id: 'kinddays7', group: 'Доброта', name: 'Добрая неделя', emoji: '🌻', text: '7 дней с добрым делом', metric: 'kindDays', target: 7 },
+  { id: 'kinddays30', group: 'Доброта', name: 'Добрый месяц', emoji: '🌞', text: '30 дней с добрым делом', metric: 'kindDays', target: 30 },
+  { id: 'kindstreak5', group: 'Доброта', name: 'Добрая серия', emoji: '🔗', text: '5 дней подряд с добрым делом', metric: 'kindStreak', target: 5 },
   { id: 'big1', group: 'Рекорды', name: 'Рекордный день', emoji: '⚡', text: 'Набрать за день 1,5 супер-нормы', metric: 'bigDays', target: 1 },
   { id: 'big10', group: 'Рекорды', name: 'Машина', emoji: '🚀', text: '10 рекордных дней', metric: 'bigDays', target: 10 },
 ];
@@ -46,6 +53,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 export interface AchievementInput {
   dates: string[];                       // по возрастанию, до сегодняшнего дня
   streak: number[];                      // длина серии на конец каждого дня
+  deeds?: number[];                      // засчитанные добрые дела по дням
   books: number[]; warmups: number[]; habits: number[]; study: number[]; workoutEq: number[];
   points: number[];                      // очки за день (с бонусами)
   questsAllDone: boolean[];
@@ -69,6 +77,9 @@ export function computeAchievements(i: AchievementInput): AchievementState[] {
   const series: Record<Metric, number[]> = {
     streak: i.streak.map((s) => (maxStreak = Math.max(maxStreak, s))),
     books: cumulative(i.books),
+    deeds: cumulative(i.deeds ?? i.dates.map(() => 0)),
+    kindDays: cumulative((i.deeds ?? i.dates.map(() => 0)).map((n) => (n > 0 ? 1 : 0))),
+    kindStreak: (() => { let run = 0, best = 0; return (i.deeds ?? i.dates.map(() => 0)).map((n) => { run = n > 0 ? run + 1 : 0; best = Math.max(best, run); return best; }); })(),
     workoutDays: cumulative(i.workoutEq.map((m) => (m >= WORKOUT_DAY_MIN ? 1 : 0))),
     warmups: cumulative(i.warmups),
     study: cumulative(i.study),

@@ -1,5 +1,5 @@
 export type Cls = 'w' | 'm' | 'b' | 'p';
-export type Sphere = 'workout' | 'warmup' | 'Книги' | 'Языки' | 'Учёба' | 'Навыки' | 'Творчество' | 'Мышление' | 'habits' | 'book';
+export type Sphere = 'workout' | 'warmup' | 'Книги' | 'Языки' | 'Учёба' | 'Навыки' | 'Творчество' | 'Мышление' | 'habits' | 'book' | 'deeds';
 
 export const CLASS_NAMES: Record<Cls, string> = { w: '⚔️ Воин', m: '🔮 Маг', b: '🎵 Бард', p: '🛡 Паладин' };
 

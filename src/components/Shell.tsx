@@ -8,6 +8,7 @@ import { rankFor } from '@/lib/game/ranks';
 import { ClassPicker } from './ClassPicker';
 import { SubclassPicker } from './SubclassPicker';
 import { TABS, activeTab } from '@/lib/nav';
+import { QuickLog } from './QuickLog';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -112,6 +113,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="wrap">{children}</main>
+      {s.detail && s.detail.hero.cls && <QuickLog />}
       {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
       {s.detail && s.detail.hero.cls && s.detail.level >= 5 && !s.detail.hero.sub && !subLater && newAch.length === 0 && !mvpWin && (
         <SubclassPicker memberName={me.name} cls={s.detail.hero.cls} level={s.detail.level} recommended={(s.detail.recommendedSub as 'w' | 'm' | 'b' | 'p' | null)} onClose={() => setSubLater(true)} />
@@ -122,7 +124,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <h2>🏆 Ты MVP дня!</h2>
             <div className="big">🎁</div>
             <b>Вчера ты был лучшим в семье</b>
-            <div className="muted small">Тебе начислен сундук. Открой его на экране «Герой».</div>
+            <div className="muted small">Тебе начислен сундук. Открой его во вкладке «Добыча».</div>
             <button className="btn" onClick={closeMvp}>Ура!</button>
           </div>
         </div>

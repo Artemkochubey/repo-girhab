@@ -9,6 +9,8 @@ export interface DayStats {
   study: Partial<Record<StudyKind, number>>;
   habits: number;           // отмеченных привычек (до лимита считается в points)
   books: number;            // прочитано книг в этот день
+  deeds: number;            // засчитанных добрых дел за день (см. game/deeds.ts)
+  deedPoints: number;       // очки за них
   questXp: number;          // опыт подтверждённых квестов
 }
 
@@ -21,7 +23,7 @@ export interface HeroBuild {
 }
 
 export const emptyDay = (): DayStats => ({
-  workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, questXp: 0,
+  workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0,
 });
 
 export type { Cls, Sphere };

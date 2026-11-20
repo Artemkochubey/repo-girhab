@@ -7,12 +7,13 @@ import { WeeklyGoal } from '@/components/WeeklyGoal';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
 import { useGame } from '@/components/Shell';
-import { Bar, Chips, FoldGroup, Section } from '@/components/ui';
+import { Bar, FoldGroup, Section } from '@/components/ui';
+import { openQuickLog } from '@/components/QuickLog';
 import { FirstSteps } from '@/components/Hints';
 import { addDays } from '@/lib/date';
 
 export default function Today() {
-  const { s, act, date, setDate } = useGame();
+  const { s, date, setDate } = useGame();
   const d = s.detail!;
   const me = s.members.find((m) => m.id === s.me)!;
   const pts = d.day.points;
@@ -45,21 +46,12 @@ export default function Today() {
 
       <EveningReminder />
 
-      <Section title="💪 Тренировка и зарядка" right={
-        <button className={`btn ${d.day.stats.warmups ? '' : 'ghost'}`} onClick={() => act('toggleWarmup')}>
-          {d.day.stats.warmups ? '✔ Зарядка' : '○ Зарядка +10'}
-        </button>}>
-        <p className="muted">Сегодня: {d.day.stats.workoutMinutes} мин</p>
-        <Chips values={[15, 30, 45, 60]} onPick={(n) => act('addWorkout', { minutes: n })} />
-      </Section>
-
-      <Section title="✅ Привычки" right={<span className="muted">{d.habits.filter((h) => h.checked).length}/{d.habits.length}</span>}>
-        {d.habits.length === 0 && <p className="muted">Привычек пока нет — добавьте на вкладке «Ум».</p>}
-        <ul className="list">
-          {d.habits.map((h) => (
-            <li key={h.id}><button className={`mark ${h.checked ? 'on' : ''}`} onClick={() => act('toggleHabit', { habitId: h.id })}>{h.checked ? '✔' : '○'}</button> {h.name}</li>
-          ))}
-        </ul>
+      <Section title="✍️ Отмечено сегодня" right={<button className="btn" onClick={() => openQuickLog('body')}>✍️ Отметить действие</button>}>
+        <div className="today-marks">
+          <button className="mark-tile" onClick={() => openQuickLog('body')}><span>💪</span><b>{Math.round(d.day.stats.workoutMinutes)} мин</b><small>тело{d.day.stats.warmups ? ' · зарядка ✔' : ''}</small></button>
+          <button className="mark-tile" onClick={() => openQuickLog('mind')}><span>🧠</span><b>{Object.values(d.day.stats.study).reduce((a, x) => a + (x ?? 0), 0)} мин</b><small>ум · привычки {d.habits.filter((h) => h.checked).length}/{d.habits.length}</small></button>
+          <button className="mark-tile" onClick={() => openQuickLog('kind')}><span>💛</span><b>{d.day.stats.deeds} из {d.deeds.cap}</b><small>добрых дел</small></button>
+        </div>
       </Section>
 
       <QuestsBlock />

@@ -6,7 +6,7 @@ export const TABS: Tab[] = [
   { id: 'battle', href: '/battle', emoji: '⚔️', label: 'Бой', match: ['/battle'] },
   { id: 'hero', href: '/hero', emoji: '🛡', label: 'Герой', match: ['/hero'] },
   { id: 'loot', href: '/bag', emoji: '🎒', label: 'Добыча', match: ['/bag', '/shop'] },
-  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/body', '/mind', '/season', '/arsenal', '/rules', '/settings', '/report'] },
+  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/body', '/mind', '/season', '/deeds', '/arsenal', '/rules', '/settings', '/report'] },
 ];
 
 /** Какая вкладка подсвечена на этом адресе (подстраницы «Ещё» и «Добычи» подсвечивают свою группу). */
@@ -16,6 +16,7 @@ export interface MoreItem { href: string; emoji: string; title: string; text: st
 export const MORE_ITEMS: MoreItem[] = [
   { href: '/body', emoji: '💪', title: 'Тело', text: 'Тренировки, силуэт мышц, история и год по дням' },
   { href: '/mind', emoji: '🧠', title: 'Ум', text: 'Учёба, привычки, книги и мозг, который светится' },
+  { href: '/deeds', emoji: '💛', title: 'Доброта', text: 'Добрые дела, звания и журнал' },
   { href: '/season', emoji: '🏆', title: 'Сезон', text: 'Рейтинг семьи за месяц и призы' },
   { href: '/arsenal', emoji: '🗡', title: 'Арсенал', text: 'Всё снаряжение игры: мечи, посохи, доспехи' },
   { href: '/rules', emoji: '📖', title: 'Правила', text: 'Как всё работает: очки, уровни, сундуки, бои' },

@@ -6,9 +6,9 @@ import { weekStart } from './boss';
  * а родитель может задать свою (ручную: он сам отмечает выполнение). Прогресс считается из записей.
  * За выполненную цель: бонус опыта, за среднюю и сложную сундук, за сложную ещё артефакт.
  */
-export type GoalKind = 'normDays' | 'workout' | 'study' | 'habits' | 'points' | 'questDays';
+export type GoalKind = 'normDays' | 'workout' | 'study' | 'habits' | 'points' | 'questDays' | 'deeds';
 export type GoalTier = 'easy' | 'mid' | 'hard';
-export const GOAL_KINDS: GoalKind[] = ['normDays', 'workout', 'study', 'habits', 'points', 'questDays'];
+export const GOAL_KINDS: GoalKind[] = ['normDays', 'workout', 'study', 'habits', 'points', 'questDays', 'deeds'];
 export const TIERS: GoalTier[] = ['easy', 'mid', 'hard'];
 export const TIER_NAMES: Record<GoalTier, string> = { easy: 'Лёгкая', mid: 'Средняя', hard: 'Сложная' };
 
@@ -19,6 +19,7 @@ export const GOAL_INFO: Record<GoalKind, { name: string; emoji: string; unit: st
   habits: { name: 'Привычки', emoji: '✅', unit: 'шт.', text: (n) => `отметить привычки ${n} раз за неделю` },
   points: { name: 'Очки недели', emoji: '⭐', unit: 'оч.', text: (n) => `набрать ${n} очков за неделю` },
   questDays: { name: 'Квесты', emoji: '⚔️', unit: 'дн.', text: (n) => `выполнить все квесты в ${n} дн. недели` },
+  deeds: { name: 'Добрые дела', emoji: '💛', unit: 'шт.', text: (n) => `сделать ${n} добрых дел за неделю` },
 };
 
 export const REWARD: Record<GoalTier, { xp: number; chests: number; artifact: boolean }> = {
@@ -30,7 +31,7 @@ export const REWARD: Record<GoalTier, { xp: number; chests: number; artifact: bo
 export const rewardXp = (tier: GoalTier, goal: number): number => Math.max(5, Math.round((REWARD[tier].xp * goal) / 60 / 5) * 5);
 
 const BASE: Record<GoalKind, [number, number, number]> = {
-  normDays: [3, 5, 7], workout: [120, 200, 300], study: [120, 240, 360], habits: [12, 20, 30], points: [4, 6, 8], questDays: [2, 4, 6],
+  normDays: [3, 5, 7], workout: [120, 200, 300], study: [120, 240, 360], habits: [12, 20, 30], points: [4, 6, 8], questDays: [2, 4, 6], deeds: [4, 8, 12],
 };
 const r5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
 
@@ -45,7 +46,7 @@ export function goalTarget(kind: GoalKind, tier: GoalTier, goal: number, habitsC
   }
 }
 
-export interface GoalDay { total: number; stats: { workoutMinutes: number; habits: number; study: Partial<Record<string, number>> }; questsAllDone: boolean }
+export interface GoalDay { total: number; stats: { workoutMinutes: number; habits: number; deeds?: number; study: Partial<Record<string, number>> }; questsAllDone: boolean }
 
 /** Прогресс по дням недели (дни до сегодняшнего включительно). */
 export function goalProgress(kind: GoalKind, days: GoalDay[], goal: number): number {
@@ -56,6 +57,7 @@ export function goalProgress(kind: GoalKind, days: GoalDay[], goal: number): num
     case 'habits': return days.reduce((a, d) => a + d.stats.habits, 0);
     case 'points': return Math.round(days.reduce((a, d) => a + d.total, 0));
     case 'questDays': return days.filter((d) => d.questsAllDone).length;
+    case 'deeds': return days.reduce((a, d) => a + (d.stats.deeds ?? 0), 0);
   }
 }
 

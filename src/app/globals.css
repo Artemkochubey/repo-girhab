@@ -316,3 +316,17 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 h1.title.row { display: flex; align-items: center; gap: 10px; }
 .r-av { overflow: hidden; }
 .herolook { grid-auto-flow: column; grid-template-columns: auto 1fr; align-items: center; border-width: 2px; } .herolook p { margin: 4px 0 10px; }
+
+/* кнопка «Отметить» и окно записи действий */
+.quick-fab { position: fixed; right: 16px; bottom: 84px; z-index: 12; display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; border: 2px solid var(--accent); background: linear-gradient(135deg, #3a2c14, #5a4118); color: #fff; font: inherit; font-weight: 700; font-size: 1rem; box-shadow: 0 6px 20px #0008; cursor: pointer; }
+.quick-fab span { font-size: 1.3rem; }
+@media (min-width: 721px) { .quick-fab { bottom: 24px; right: 24px; } }
+.modal.sheet { align-items: flex-end; } @media (min-width: 721px) { .modal.sheet { align-items: center; } }
+.card.quick { width: min(560px, 100%); max-height: 88vh; overflow-y: auto; border-radius: 18px 18px 0 0; }
+@media (min-width: 721px) { .card.quick { border-radius: 18px; } }
+.quick-body { display: grid; gap: 10px; } .quick-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border-radius: 12px; background: var(--panel2); } .quick-row.col { flex-direction: column; align-items: stretch; }
+.deed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+.deed { display: grid; gap: 2px; justify-items: center; text-align: center; padding: 8px 4px; border-radius: 12px; border: 2px solid var(--line); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; } .deed b { font-size: .8rem; line-height: 1.15; } .deed small { color: var(--accent); } .deed .de { font-size: 1.5rem; }
+.deed.done { border-color: #4cae6a; background: #17301f; } .deed:disabled { opacity: .6; cursor: default; }
+.today-marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .mark-tile { display: grid; gap: 2px; justify-items: center; text-align: center; padding: 10px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; cursor: pointer; } .mark-tile span { font-size: 1.6rem; } .mark-tile small { color: var(--muted); font-size: .72rem; line-height: 1.2; }
+.deed-log li { display: flex; align-items: center; gap: 8px; }

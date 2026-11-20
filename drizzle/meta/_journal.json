@@ -113,6 +113,13 @@
       "when": 1795177561252,
       "tag": "0015_clumsy_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1795178707946,
+      "tag": "0016_fresh_firebrand",
+      "breakpoints": true
     }
   ]
 }
