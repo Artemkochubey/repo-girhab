@@ -7,6 +7,7 @@ import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { rankFor } from '@/lib/game/ranks';
 import { ClassPicker } from './ClassPicker';
 import { SubclassPicker } from './SubclassPicker';
+import { TABS, activeTab } from '@/lib/nav';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -14,8 +15,6 @@ interface Ctx {
 }
 const C = createContext<Ctx | null>(null);
 export const useGame = () => useContext(C)!;
-
-const NAV: readonly (readonly [string, string])[] = [['/', '🏠 Сегодня'], ['/hero', '🛡 Герой'], ['/battle', '⚔️ Бой'], ['/bag', '🎒 Сумка'], ['/body', '💪 Тело'], ['/mind', '🧠 Ум'], ['/season', '🏆 Сезон'], ['/shop', '🛍 Магазин'], ['/rules', '📖 Правила'], ['/settings', '⚙️ Настройки']] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<State | null>(null);
@@ -104,7 +103,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
       <header className="top">
         <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
-        <nav>{[...NAV, ...(s.parent ? [['/report', '📊 Отчёт'] as const] : [])].map(([h, l]) => <Link key={h} href={h} className={path === h ? 'on' : ''}>{l}</Link>)}</nav>
+        <nav className="tabs" aria-label="Разделы">{TABS.map((t) => <Link key={t.id} href={t.href} className={activeTab(path) === t.id ? 'on' : ''} aria-current={activeTab(path) === t.id ? 'page' : undefined}><span className="em">{t.emoji}</span><span className="lb">{t.label}</span></Link>)}</nav>
         <div className="who">
           <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
           {s.parent

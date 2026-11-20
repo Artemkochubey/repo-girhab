@@ -4,6 +4,10 @@ import { useGame } from '@/components/Shell';
 import { ARTIFACTS, SOURCE_NAMES } from '@/lib/game/artifacts';
 import type { ArtifactDto } from '@/lib/client';
 import { Section } from '@/components/ui';
+import { LootTabs } from '@/components/LootTabs';
+import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from '@/lib/game/chests';
+import { gearById, gearDisplay } from '@/lib/game/gear';
+import type { ArtifactKind } from '@/lib/game/artifacts';
 
 const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
 
@@ -45,6 +49,7 @@ export default function Bag() {
   const me = s.members.find((m) => m.id === s.me)!;
   const run = (action: string, args: Record<string, unknown>, ok: string) => act(action, { memberId: me.id, ...args }).then(() => toast(ok)).catch(() => {});
   const arts = [...d.artifacts].sort((x, y) => (x.status === 'used' ? 1 : 0) - (y.status === 'used' ? 1 : 0) || (x.date < y.date ? 1 : -1));
+  const [chest, setChest] = useState<{ rarity: string; reward: string; artifact?: string | null; gear?: string | null; talisman?: boolean; why?: string | null } | null>(null);
   const inBag = d.chestLog.filter((c) => c.status === 'bag');
   const asked = d.chestLog.filter((c) => c.status === 'requested');
   const done = d.chestLog.filter((c) => c.status === 'delivered');
@@ -65,7 +70,22 @@ export default function Bag() {
 
   return (
     <>
-      <div className="row between wrapRow"><h1 className="title">🎒 Сумка: {me.emoji} {me.name}</h1><b>{d.chests.available} 🎁 не открыто</b></div>
+      <h1 className="title">🎒 Добыча: {me.emoji} {me.name}</h1>
+      <LootTabs />
+
+      <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
+        <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
+        <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
+        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}{chest.talisman ? ' · 🍀 талисман сработал' : ''}{chest.why === 'boss' ? ' · 🐉 сундук за победу над боссом' : chest.why === 'pityRare' ? ' · ⭐ сработала гарантия редкого' : chest.why === 'pityLegend' ? ' · ⭐ сработала гарантия легендарного' : ''}</small><b>{chest.reward}</b>{chest.gear && gearById(chest.gear) && <span className="gold">🗡 Найдено снаряжение: {gearDisplay(gearById(chest.gear)!, d.battle.cls).emoji} {gearDisplay(gearById(chest.gear)!, d.battle.cls).name}! Оно в разделе «⚔️ Бой».</span>}{chest.artifact && <span className="gold">🔮 Найден артефакт: {ARTIFACTS[chest.artifact as ArtifactKind]?.emoji} {ARTIFACTS[chest.artifact as ArtifactKind]?.name}! Он лежит ниже, в разделе «Артефакты».</span>}</div>}
+        <p className="muted small">Шансы сундука: обычный {Math.round((1 - BASE_CHANCE.rare - BASE_CHANCE.legend) * 100)}%, редкий {Math.round(BASE_CHANCE.rare * 100)}%, легендарный {Math.round(BASE_CHANCE.legend * 100)}% (таланты удачи прибавляют). Гарантии: редкий или лучше не реже чем через {PITY.rare} сундуков (ещё {d.pity.untilRare}), легендарный не реже чем через {PITY.legend} (ещё {d.pity.untilLegend}).{d.pity.bossWaiting > 0 ? ` 🐉 Сундуков за победу над боссом: ${d.pity.bossWaiting}. Они открываются первыми, не ниже редкого и с шансом ${Math.round(BOSS_CHEST_LEGEND * 100)}% на легендарный.` : ''}</p>
+        <p className="muted small">Призы из сундуков попадают в сумку ниже: их можно копить, использовать и отмечать выданными.</p>
+        <details className="chestlog">
+          <summary>📜 Что выпало ({d.chestLog.length})</summary>
+          {d.chestLog.length === 0 ? <p className="muted small">Пока ни одного открытого сундука.</p> : (
+            <ul className="list">{d.chestLog.slice(0, 30).map((c) => <li key={c.n} className={`cl r-${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b> <small className="muted">{c.status === 'delivered' ? '✅ выдано' : c.status === 'requested' ? '⏳ ждёт выдачи' : '🎒 в сумке'}</small></li>)}</ul>
+          )}
+        </details>
+      </Section>
 
       <Section title={`🎁 Призы в сумке (${inBag.length})`}>
         {inBag.length === 0 && <p className="muted">Сумка пуста. Откройте сундук на экране «Герой»: приз попадёт сюда и будет ждать, пока вы его не используете.</p>}

@@ -12,9 +12,6 @@ import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
 import { TalentTree } from '@/components/TalentTree';
-import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from '@/lib/game/chests';
-import { ARTIFACTS, type ArtifactKind } from '@/lib/game/artifacts';
-import { gearById, gearDisplay } from '@/lib/game/gear';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -24,7 +21,6 @@ export default function Hero() {
   const d = s.detail!;
   const me = s.members.find((m) => m.id === s.me)!;
   const h = d.hero;
-  const [chest, setChest] = useState<{ rarity: string; reward: string; artifact?: string | null; gear?: string | null; talisman?: boolean; why?: string | null } | null>(null);
   const [picking, setPicking] = useState<Cls | null>(null);
   const [pickAvatar, setPickAvatar] = useState(false);
   // подкласс: сразу показываем выбор (не дожидаясь ответа сервера) и играем эффект
@@ -44,7 +40,6 @@ export default function Hero() {
   };
   const change = h.cls ? canChangeClass(Date.parse(h.clsChangedAt), Date.now()) : { ok: true as const };
   const subName = h.cls && h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
-  const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
 
   return (
     <>
@@ -146,19 +141,7 @@ export default function Hero() {
 
       <QuestsBlock />
 
-      <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
-        <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
-        <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
-        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}{chest.talisman ? ' · 🍀 талисман сработал' : ''}{chest.why === 'boss' ? ' · 🐉 сундук за победу над боссом' : chest.why === 'pityRare' ? ' · ⭐ сработала гарантия редкого' : chest.why === 'pityLegend' ? ' · ⭐ сработала гарантия легендарного' : ''}</small><b>{chest.reward}</b>{chest.gear && gearById(chest.gear) && <span className="gold">🗡 Найдено снаряжение: {gearDisplay(gearById(chest.gear)!, h.cls).emoji} {gearDisplay(gearById(chest.gear)!, h.cls).name}! Оно в разделе «⚔️ Бой».</span>}{chest.artifact && <span className="gold">🔮 Найден артефакт: {ARTIFACTS[chest.artifact as ArtifactKind]?.emoji} {ARTIFACTS[chest.artifact as ArtifactKind]?.name}! Он лежит в «🎒 Сумке».</span>}</div>}
-        <p className="muted small">Шансы сундука: обычный {Math.round((1 - BASE_CHANCE.rare - BASE_CHANCE.legend) * 100)}%, редкий {Math.round(BASE_CHANCE.rare * 100)}%, легендарный {Math.round(BASE_CHANCE.legend * 100)}% (таланты удачи прибавляют). Гарантии: редкий или лучше не реже чем через {PITY.rare} сундуков (ещё {d.pity.untilRare}), легендарный не реже чем через {PITY.legend} (ещё {d.pity.untilLegend}).{d.pity.bossWaiting > 0 ? ` 🐉 Сундуков за победу над боссом: ${d.pity.bossWaiting}. Они открываются первыми, не ниже редкого и с шансом ${Math.round(BOSS_CHEST_LEGEND * 100)}% на легендарный.` : ''}</p>
-        <p className="muted small">Призы из сундуков лежат в <Link href="/bag">🎒 сумке</Link>: там их можно копить, использовать и отмечать выданными.</p>
-        <details className="chestlog">
-          <summary>📜 Что выпало ({d.chestLog.length})</summary>
-          {d.chestLog.length === 0 ? <p className="muted small">Пока ни одного открытого сундука.</p> : (
-            <ul className="list">{d.chestLog.slice(0, 30).map((c) => <li key={c.n} className={`cl r-${c.rarity}`}><small className="muted">№{c.n} · {c.date}</small> <span>{RAR[c.rarity] ?? c.rarity}</span> <b>{c.reward}</b> <small className="muted">{c.status === 'delivered' ? '✅ выдано' : c.status === 'requested' ? '⏳ ждёт выдачи' : '🎒 в сумке'}</small></li>)}</ul>
-          )}
-        </details>
-      </Section>
+      <Link className="card more-card" href="/bag"><span className="mi">🎁</span><b>Сундуки: {d.chests.available} доступно</b><small>Открывать сундуки, призы и артефакты теперь во вкладке «🎒 Добыча».</small></Link>
 
       <Section title="🌳 Таланты" right={<b>очков: {d.talentPointsFree}</b>}>
         {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его таланты.</p>

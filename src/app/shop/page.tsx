@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { Section } from '@/components/ui';
+import { LootTabs } from '@/components/LootTabs';
 import type { ShopItemDto } from '@/lib/client';
 
 const STATUS = { pending: '⏳ Ждёт выдачи', done: '✔ Выдано', cancelled: '✖ Отменено (цена возвращена)' } as const;
@@ -24,7 +25,9 @@ export default function Shop() {
 
   return (
     <>
-      <h1 className="title">🛍 Магазин наград</h1>
+      <h1 className="title">🎒 Добыча: магазин наград</h1>
+      <LootTabs />
+
       <section className="card wallet">
         <div><small className="muted">Очки</small><b>{d.wallet.balance}</b></div>
         <div><small className="muted">Сундуки</small><b>{d.chests.available} 🎁</b></div>
