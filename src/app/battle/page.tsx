@@ -1,5 +1,6 @@
 'use client';
 import { Hint } from '@/components/Hints';
+import Link from 'next/link';
 import { useGame } from '@/components/Shell';
 import { BattleScene } from '@/components/BattleScene';
 import { AbilityBar } from '@/components/AbilityBar';
@@ -121,7 +122,7 @@ export default function Battle() {
             </li>
           ))}
         </ul>
-        <p className="muted small">В каждом слоте один предмет. Бонусы действуют в личных сражениях и не меняют очки и уровень.</p>
+        <p className="muted small">В каждом слоте один предмет. Бонусы действуют в личных сражениях и не меняют очки и уровень. <Link href="/arsenal">🗡 Посмотреть всё снаряжение игры</Link></p>
       </Section>
     </>
   );

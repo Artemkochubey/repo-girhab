@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fight, simulate, MAX_HP } from './battle';
 import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, abilityBlocked, abilityById, abilityView, classOnly, withAbilities, withClass } from './classBattle';
-import { GEAR, NO_GEAR, gearBonus, gearById, gearDisplay, type Domain } from './gear';
+import { GEAR, GEAR_RARITIES, NO_GEAR, TIER_NAMES, gearBonus, gearById, gearDisplay, type Domain } from './gear';
 import type { Cls } from './classes';
 
 const waves = (weak: Domain[], hp: number[]) => weak.map((w, i) => ({ unit: 'u' + i, weak: w, hp: hp[i] as number }));
@@ -56,14 +56,25 @@ describe('классы в бою', () => {
 describe('вид и названия снаряжения по классам', () => {
   it('один и тот же предмет называется по-разному', () => {
     const sword = gearById('sword-epic')!;
-    expect(CLASSES.map((c) => gearDisplay(sword, c).name)).toEqual(['Эпический меч', 'Эпический посох', 'Эпическая лира', 'Эпическая булава']);
-    expect(gearDisplay(gearById('hammer-legend')!, 'm').name).toBe('Легендарный посох силы');
-    expect(gearDisplay(gearById('armor-rare')!, 'm').name).toBe('Крепкая мантия');
-    expect(gearDisplay(gearById('armor-rare')!, 'p').name).toBe('Крепкие латы');
+    expect(CLASSES.map((c) => gearDisplay(sword, c).name)).toEqual(['Фламберг', 'Посох звёздного кольца', 'Серебряная лира', 'Боевой молот']);
+    expect(gearDisplay(gearById('hammer-legend')!, 'm').name).toBe('Посох архимага силы');
+    expect(gearDisplay(gearById('armor-rare')!, 'm').name).toBe('Ряса с поясом');
+    expect(gearDisplay(gearById('armor-rare')!, 'p').name).toBe('Кираса');
     expect(gearDisplay(gearById('helm-common')!, 'p').name).toBe('Простой крылатый шлем');
     expect(gearDisplay(gearById('boots-epic')!, 'b').name).toBe('Эпические ботфорты');
     expect(gearDisplay(sword, null).name).toBe(sword.name);
     expect(gearDisplay(gearById('amulet-rare')!, 'm').name).toBe(gearById('amulet-rare')!.name);   // амулеты общие
+  });
+  it('оружие и доспех у каждого класса бывают в четырёх разных видах по редкости', () => {
+    for (const c of CLASSES) {
+      for (const kind of ['weapon', 'armor'] as const) {
+        const names = TIER_NAMES[kind][c];
+        expect(names).toHaveLength(4);
+        expect(new Set(names).size).toBe(4);
+      }
+      expect(GEAR_RARITIES.map((r) => gearDisplay(gearById(`armor-${r}`)!, c).name)).toEqual([...TIER_NAMES.armor[c]]);
+      expect(GEAR_RARITIES.map((r) => gearDisplay(gearById(`sword-${r}`)!, c).name)).toEqual([...TIER_NAMES.weapon[c]]);
+    }
   });
   it('у каждого класса названия в каталоге уникальны', () => {
     for (const c of CLASSES) {

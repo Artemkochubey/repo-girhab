@@ -1,6 +1,7 @@
 'use client';
 import { memo, useId } from 'react';
-import { gearById, type Domain, type GearItem, type GearRarity, type Slot } from '@/lib/game/gear';
+import { GEAR_RARITIES, gearById, type Domain, type GearItem, type GearRarity, type Slot } from '@/lib/game/gear';
+import { ArmorArt, WeaponArt } from './gearArt';
 import type { Cls } from '@/lib/game/classes';
 
 /** Что надето: id предмета по слотам (null — пусто). */
@@ -82,36 +83,10 @@ function Body({ look, color, emoji, attack, uid, cls }: Props) {
       {c === 'b' && <path d="M33 62 L67 104" stroke={accent} strokeWidth="5" opacity="0.9" />}
       {c === 'm' && <path d="M31 96 H69" stroke={accent} strokeWidth="4" />}
 
-      {/* доспех по классам */}
-      {armor?.family === 'armor' && (() => {
-        const col = rc(armor);
-        const g = glow(armor);
-        if (c === 'm') return (
-          <g filter={g}>
-            <path d="M31 60 Q50 54 69 60 L72 104 L78 138 Q50 146 22 138 L28 104 Z" fill={col} stroke={ink} strokeWidth="0.9" opacity="0.95" />
-            <path d="M50 58 V140 M36 110 Q50 118 64 110" stroke="#fff" strokeOpacity="0.35" fill="none" strokeWidth="1.1" />
-            <path d="M24 134 Q50 142 76 134" stroke="#fff" strokeOpacity="0.5" fill="none" strokeWidth="1.2" />
-            <circle cx="50" cy="96" r="3" fill={accent} stroke={ink} strokeWidth="0.5" />
-            <path d="M33 66 Q50 74 67 66" fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="1.2" />
-          </g>
-        );
-        if (c === 'b') return (
-          <g filter={g}>
-            <path d="M31 62 Q50 56 69 62 L67 102 Q50 108 33 102 Z" fill={col} stroke={ink} strokeWidth="0.9" />
-            <path d="M44 66 L56 74 M56 66 L44 74 M44 78 L56 86 M56 78 L44 86 M44 90 L56 98 M56 90 L44 98" stroke="#fff" strokeOpacity="0.45" strokeWidth="0.9" />
-            {[[36, 72], [36, 84], [36, 96], [64, 72], [64, 84], [64, 96]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.6" fill="#fff" opacity="0.7" />)}
-          </g>
-        );
-        return (
-          <g filter={g}>
-            <path d="M30 62 Q50 54 70 62 L67 106 Q50 112 33 106 Z" fill={col} stroke={ink} strokeWidth="0.9" />
-            <path d="M50 58 V108 M36 80 H64 M37 94 H63" stroke={c === 'p' ? GOLD : '#fff'} strokeOpacity={c === 'p' ? 0.9 : 0.35} strokeWidth="1" fill="none" />
-            <ellipse cx="29" cy="64" rx="7" ry="5.5" fill={col} stroke={ink} strokeWidth="0.8" />
-            <ellipse cx="71" cy="64" rx="7" ry="5.5" fill={col} stroke={ink} strokeWidth="0.8" />
-            {c === 'p' && <path d="M50 70 V86 M43 77 H57" stroke={GOLD} strokeWidth="2.4" />}
-          </g>
-        );
-      })()}
+      {/* доспех: четыре вида на класс, вид зависит от редкости */}
+      {armor?.family === 'armor' && (
+        <g filter={glow(armor)}><ArmorArt c={c} tier={GEAR_RARITIES.indexOf(armor.rarity)} col={rc(armor)} accent={accent} /></g>
+      )}
       <rect x="31" y="100" width="38" height="5" rx="2" fill="#1a1428" />
       {amulet && (
         <g filter={glow(amulet)}>
@@ -208,35 +183,7 @@ function Body({ look, color, emoji, attack, uid, cls }: Props) {
         <circle cx="80" cy="98" r="4.5" fill={SKIN} />
         <g filter={glow(weapon)}>
           {!weapon && <path d="M80 98 L88 58" stroke="#8a6a3b" strokeWidth="3" strokeLinecap="round" />}
-          {weapon && (c === 'm' ? (
-            <>
-              <path d="M80 100 L92 30" stroke="#8a6a3b" strokeWidth="3" strokeLinecap="round" />
-              <circle cx="93" cy="26" r="7" fill={rc(weapon)} stroke={ink} strokeWidth="0.9" />
-              <circle cx="91" cy="24" r="2" fill="#fff" opacity="0.7" />
-              {gem && <circle cx="93" cy="26" r="3" fill={gem} opacity="0.9" />}
-            </>
-          ) : c === 'b' ? (
-            <>
-              <path d="M82 96 L98 38" stroke="#8a6a3b" strokeWidth="2.6" strokeLinecap="round" />
-              <ellipse cx="82" cy="84" rx="9" ry="12" fill={rc(weapon)} stroke={ink} strokeWidth="0.9" transform="rotate(14 82 84)" />
-              <circle cx="82" cy="84" r="3" fill="#1a1428" />
-              <path d="M78 76 L86 94" stroke="#fff" strokeOpacity="0.6" strokeWidth="0.7" />
-              {gem && <circle cx="98" cy="36" r="3" fill={gem} />}
-            </>
-          ) : c === 'p' ? (
-            <>
-              <path d="M80 100 L90 48" stroke="#8a6a3b" strokeWidth="3.4" strokeLinecap="round" />
-              <circle cx="92" cy="40" r="9" fill={rc(weapon)} stroke={ink} strokeWidth="0.9" />
-              <path d="M92 32 V48 M84 40 H100" stroke={GOLD} strokeWidth="2.2" />
-              {gem && <circle cx="92" cy="40" r="3" fill={gem} />}
-            </>
-          ) : (
-            <>
-              <path d="M80 96 L92 40 L96 42 L84 98 Z" fill={rc(weapon)} stroke={ink} strokeWidth="0.8" />
-              <path d="M74 94 L90 102" stroke="#caa86a" strokeWidth="3" strokeLinecap="round" />
-              {gem && <circle cx="94" cy="44" r="2.6" fill={gem} />}
-            </>
-          ))}
+          {weapon && <WeaponArt c={c} tier={GEAR_RARITIES.indexOf(weapon.rarity)} col={rc(weapon)} gem={gem} />}
         </g>
       </g>
 
@@ -247,11 +194,18 @@ function Body({ look, color, emoji, attack, uid, cls }: Props) {
   );
 }
 
+/** Область фигуры для витрины снаряжения (viewBox): целиком или крупно один предмет. */
+export const FOCUS_BOX: Record<'full' | Slot, string> = {
+  full: '0 0 115 152', weapon: '66 4 48 112', armor: '2 50 96 96', helm: '20 0 64 56', boots: '22 104 60 46', amulet: '28 54 44 40',
+};
+
 /** Одиночная фигура героя (для карточек и списков). */
-export const HeroFigure = memo(function HeroFigure({ look, color, emoji, cls = null, size = 120, attack = false, className = '' }: { look: Look; color: string; emoji: string; cls?: ClsKey; size?: number; attack?: boolean; className?: string }) {
+export const HeroFigure = memo(function HeroFigure({ look, color, emoji, cls = null, size = 120, attack = false, className = '', focus = 'full' }: { look: Look; color: string; emoji: string; cls?: ClsKey; size?: number; attack?: boolean; className?: string; focus?: 'full' | Slot }) {
   const uid = useId().replace(/:/g, '');
+  const box = FOCUS_BOX[focus];
+  const [, , w, h] = box.split(' ').map(Number) as [number, number, number, number];
   return (
-    <svg viewBox="0 0 115 152" width={size} height={size * (152 / 115)} className={`hero-fig ${className}`} role="img" aria-label="Герой">
+    <svg viewBox={box} width={size} height={size * (h / w)} className={`hero-fig ${className}`} role="img" aria-label="Герой">
       <Defs uid={uid} />
       <Body look={look} color={color} emoji={emoji} attack={attack} uid={uid} cls={cls} />
     </svg>

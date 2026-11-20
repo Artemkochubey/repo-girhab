@@ -190,6 +190,21 @@ const CLASS_NOUN: Record<string, Record<Cls, [string, G, string]>> = {
   helm: { w: ['шлем', 'm', '⛑'], m: ['шляпа', 'f', '🎩'], b: ['берет', 'm', '🧢'], p: ['крылатый шлем', 'm', '👼'] },
   boots: { w: ['сапоги', 'p', '👢'], m: ['туфли', 'p', '🩴'], b: ['ботфорты', 'p', '🥾'], p: ['сабатоны', 'p', '👢'] },
 };
+/** Названия оружия и доспеха по классу и редкости: у каждого свой вид (меч, палаш, фламберг, клеймор и т.д.). */
+export const TIER_NAMES: Record<'weapon' | 'armor', Record<Cls, [string, string, string, string]>> = {
+  weapon: {
+    w: ['Короткий меч', 'Палаш', 'Фламберг', 'Клеймор'],
+    m: ['Деревянный посох', 'Посох с кристаллом', 'Посох звёздного кольца', 'Посох архимага'],
+    b: ['Простая лютня', 'Лютня мастера', 'Серебряная лира', 'Золотая лира'],
+    p: ['Дубина', 'Шипастая булава', 'Боевой молот', 'Солнечный скипетр'],
+  },
+  armor: {
+    w: ['Стёганка', 'Кольчуга', 'Латный доспех', 'Доспех героя'],
+    m: ['Простая ряса', 'Ряса с поясом', 'Звёздная мантия', 'Одеяние архимага'],
+    b: ['Жилет', 'Колет со шнуровкой', 'Камзол менестреля', 'Парадный камзол'],
+    p: ['Табард', 'Кираса', 'Латы с крыльями', 'Сияющие латы'],
+  },
+};
 const DOMAIN_OF_WEAPON: Record<Domain, string> = { body: 'силы', mind: 'мудрости', art: 'вдохновения', will: 'воли' };
 
 export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 'name' | 'emoji'> & { effect: { type: string; domain?: Domain } }, cls: Cls | null): { name: string; emoji: string } {
@@ -198,6 +213,11 @@ export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 
   const kind = item.slot === 'weapon' ? 'weapon' : item.family === 'armor' ? 'armor' : item.family === 'shield' ? 'shield' : item.family === 'helm' ? 'helm' : item.family === 'boots' ? 'boots' : null;
   const n = kind ? CLASS_NOUN[kind]?.[cls] : null;
   if (!n) return { name: item.name, emoji: item.emoji };
+  if (kind === 'weapon' || kind === 'armor') {
+    const base = TIER_NAMES[kind][cls][ri] as string;
+    const suffix = kind === 'weapon' && item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
+    return { name: `${base}${suffix}`, emoji: n[2] };
+  }
   const suffix = item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
   return { name: `${ADJ_BY[n[1]][ri]} ${n[0]}${suffix}`, emoji: n[2] };
 }

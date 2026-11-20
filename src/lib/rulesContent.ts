@@ -8,7 +8,7 @@ import { WEAK_BONUS, BOSSES } from './game/boss';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from './game/chests';
 import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY } from './game/classBattle';
 import { CLASS_FREE_WINDOW_MS, CLASS_INFO, CLASS_NAMES, CLASS_PAUSE_MS, MAIN_BONUS, SUBCLASS_NAMES, subBonus } from './game/classes';
-import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, RARITY_NAMES, SLOT_INFO, SLOTS } from './game/gear';
+import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, RARITY_NAMES, SLOT_INFO, SLOTS, TIER_NAMES as GEAR_TIER_NAMES } from './game/gear';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
 import { xpNeed } from './game/level';
 import { DAY_RATIO_CAP, MVP_CHEST_PER_DAY } from './game/mvp';
@@ -241,8 +241,9 @@ export function buildRules(): Section[] {
           '**Оружие:** урон всеми очками или очками одной сферы. **Доспех:** меньше потерь здоровья при поражении или слабее орда. **Шлем:** сильнее удар по слабости или лечение каждый день. **Сапоги:** серия побед усиливает урон или первая волна слабее. **Амулет:** больше шанс снаряжения или лечение за победу.',
           `**Откуда:** победа над ордой (редкость по весам: ${Object.entries(BATTLE_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), победа над боссом (всегда не ниже редкого: ${Object.entries(BOSS_DROP).map(([k, v]) => `${RARITY_NAMES[k as keyof typeof RARITY_NAMES]} ${pc(v as number)}`).join(', ')}), сундуки.`,
           'Бонусы действуют в личных боях и (оружие, оружие сферы, слабость) в бою с боссом. На очки дня, опыт и уровень снаряжение не влияет.',
-          'Вид и название предмета зависят от класса героя (см. «Классы в бою»), эффект не зависит.',
+          'Вид и название предмета зависят от класса героя (см. «Классы в бою») и от редкости, эффект не зависит. Все предметы можно посмотреть на странице «🗡 Арсенал» (вкладка «Ещё»): выберите класс и тип предмета, у каждого предмета видно рисунок, редкость и бонус, а то, что уже есть у героя, отмечено.',
         ] },
+        { table: { head: ['Класс', 'Оружие (обычное → легендарное)', 'Доспех (обычный → легендарный)'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], GEAR_TIER_NAMES.weapon[c].join(' → '), GEAR_TIER_NAMES.armor[c].join(' → ')]) } },
       ],
     },
     {
