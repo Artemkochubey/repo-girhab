@@ -1,7 +1,7 @@
 import { DAY_RATIO_CAP, dayRatio, pickDayMvp } from './mvp';
 
 /** Из чего складываются очки дня (для таблицы рейтинга). */
-export type SourceId = 'workout' | 'walk' | 'warmup' | 'mind' | 'art' | 'books' | 'habits' | 'deeds' | 'quests' | 'bonus';
+export type SourceId = 'workout' | 'walk' | 'warmup' | 'mind' | 'art' | 'books' | 'habits' | 'deeds' | 'quests' | 'tasks' | 'bonus';
 export const SOURCES: { id: SourceId; emoji: string; name: string; short: string; color: string }[] = [
   { id: 'workout', emoji: '🏃', name: 'Тренировка', short: 'Трен.', color: '#e8574a' },
   { id: 'walk', emoji: '🌳', name: 'Прогулка', short: 'Прог.', color: '#4cae6a' },
@@ -12,6 +12,7 @@ export const SOURCES: { id: SourceId; emoji: string; name: string; short: string
   { id: 'habits', emoji: '✅', name: 'Привычки', short: 'Прив.', color: '#2ec4b6' },
   { id: 'deeds', emoji: '💛', name: 'Добрые дела', short: 'Добро', color: '#ffd24a' },
   { id: 'quests', emoji: '📜', name: 'Квесты', short: 'Квест', color: '#c9a24b' },
+  { id: 'tasks', emoji: '📌', name: 'Задачи дня', short: 'Задачи', color: '#4aa3c9' },
   { id: 'bonus', emoji: '⭐', name: 'Бонусы талантов', short: 'Бонус', color: '#9b8fc4' },
 ];
 export const sourceById = (id: SourceId) => SOURCES.find((s) => s.id === id)!;
@@ -27,6 +28,7 @@ export interface RatingInput {
   total: number;                       // очки дня целиком (с бонусами)
   bySphere: Partial<Record<string, number>>;
   questXp: number;                     // опыт квестов и семейных квестов за день
+  taskPoints?: number;                 // очки за задачи дня (награда родителя)
   walkShare: number;                   // доля прогулки в тренировочных очках (0..1)
   exists?: boolean;                    // герой уже был в игре в этот день (иначе день не считается), по умолчанию да
 }
@@ -55,7 +57,9 @@ export function partsOf(i: RatingInput): RatingPart[] {
   const spheres = [...acc.values()].reduce((a, b) => a + b, 0);
   const quests = Math.max(0, i.questXp);
   add('quests', quests);
-  const rest = i.total - spheres - quests;
+  const tasks = Math.max(0, i.taskPoints ?? 0);
+  add('tasks', tasks);
+  const rest = i.total - spheres - quests - tasks;
   if (rest >= 0.5) add('bonus', rest);
   return [...acc.entries()].map(([id, v]) => ({ id, points: Math.round(v) })).filter((p) => p.points > 0).sort((a, b) => b.points - a.points);
 }

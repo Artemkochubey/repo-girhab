@@ -660,4 +660,119 @@ describe('действия', () => {
     runAction(db, dad, 'addLootFromCatalog', { tier: 'rare' });
     expect(db.select().from(s.config).get()!.lootRare.length).toBeGreaterThan(30);
   });
+
+  describe('мои задачи на день и выдача сундуков', () => {
+    const mkTask = (o: Record<string, unknown> = {}) => (runAction(db, dad, 'saveTask', { memberId: 2, title: 'Собрать рюкзак', repeat: 'daily', points: 10, ...o }) as { id: number }).id;
+    const st2 = () => loadFamily(db, NOW).family.members.get(2)!;
+    it('задачи и награды задаёт только родитель', () => {
+      expect(err(() => runAction(db, kid, 'saveTask', { title: 'Уроки', repeat: 'daily', points: 50 }))?.status).toBe(403);
+      expect(err(() => runAction(db, dad, 'saveTask', { memberId: 2, title: 'Уроки', repeat: 'daily', points: 51 }))?.status).toBe(400);
+      expect(err(() => runAction(db, dad, 'saveTask', { memberId: 2, title: 'Уроки', repeat: 'weekdays', days: [] }))?.status).toBe(400);
+      expect(err(() => runAction(db, dad, 'saveTask', { memberId: 2, title: 'Уроки', repeat: 'daily', chests: 4 }))?.status).toBe(400);
+      const id = mkTask();
+      expect(err(() => runAction(db, kid, 'archiveTask', { id }))?.status).toBe(403);
+      expect(err(() => runAction(db, kid, 'saveTask', { id, title: 'Иначе', repeat: 'daily', points: 50 }))?.status).toBe(403);
+    });
+    it('ребёнок ставит галочку: очки идут в день, снять можно', () => {
+      const id = mkTask();
+      const before = st2().days.get('2026-11-19')!.total;
+      expect(runAction(db, kid, 'toggleTask', { taskId: id })).toEqual({ done: true, pending: false });
+      const day = st2().days.get('2026-11-19')!;
+      expect(day.stats.taskPoints).toBe(10);
+      expect(day.total - before).toBe(10);
+      expect(runAction(db, kid, 'toggleTask', { taskId: id })).toEqual({ done: false, pending: false });
+      expect(st2().days.get('2026-11-19')!.stats.taskPoints).toBe(0);
+    });
+    it('чужие задачи и будущие дни недоступны ребёнку, окно 7 дней действует', () => {
+      const own = mkTask({ memberId: 1 });
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: own }))?.status).toBe(403);
+      const id = mkTask();
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: id, date: '2026-11-20' }))?.status).toBe(403);
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: id, date: '2026-11-10' }))?.status).toBe(403);
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: id, date: '2026-11-05' }))?.status).toBe(403);
+    });
+    it('задача, которой нет в списке на день, не отмечается', () => {
+      const id = mkTask({ repeat: 'weekdays', days: [0] });   // только воскресенье, сегодня четверг
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: id }))?.status).toBe(400);
+    });
+    it('с подтверждением: очки и сундук только после родителя, снять подтверждённое ребёнок не может', () => {
+      const id = mkTask({ points: 20, chests: 1 });         // сундук всегда требует подтверждения
+      expect(runAction(db, kid, 'toggleTask', { taskId: id })).toEqual({ done: true, pending: true });
+      expect(st2().days.get('2026-11-19')!.stats.taskPoints).toBe(0);
+      expect(st2().taskChests).toBe(0);
+      const adm = () => { const { raw, family } = loadFamily(db, NOW); return adminView(raw, family, { loot: [], lootRare: [], lootLegend: [], questSets: [] }); };
+      expect(adm().tasksPending).toHaveLength(1);
+      const avail = st2().chestsAvailable;
+      expect(err(() => runAction(db, kid, 'confirmTask', { taskId: id, date: '2026-11-19' }))?.status).toBe(403);
+      runAction(db, dad, 'confirmTask', { taskId: id, date: '2026-11-19' });
+      expect(st2().days.get('2026-11-19')!.stats.taskPoints).toBe(20);
+      expect(st2().taskChests).toBe(1);
+      expect(st2().chestsAvailable).toBe(avail + 1);
+      expect(adm().tasksPending).toHaveLength(0);
+      expect(err(() => runAction(db, kid, 'toggleTask', { taskId: id }))?.status).toBe(403);   // накрутить «сделал–снял–открыл» нельзя
+      runAction(db, dad, 'toggleTask', { taskId: id, memberId: 2 });                           // родитель снимает
+      expect(st2().taskChests).toBe(0);
+    });
+    it('родитель может отклонить отметку', () => {
+      const id = mkTask({ needConfirm: true });
+      runAction(db, kid, 'toggleTask', { taskId: id });
+      runAction(db, dad, 'confirmTask', { taskId: id, date: '2026-11-19', approve: false });
+      expect(db.select().from(s.taskDone).all()).toHaveLength(0);
+      expect(err(() => runAction(db, dad, 'confirmTask', { taskId: id, date: '2026-11-19' }))?.status).toBe(400);
+    });
+    it('отметка родителя подтверждена сразу', () => {
+      const id = mkTask({ needConfirm: true });
+      expect(runAction(db, dad, 'toggleTask', { taskId: id, memberId: 2 })).toEqual({ done: true, pending: false });
+    });
+    it('архив: без отметок задача удаляется, с отметками остаётся в истории, но пропадает из списков', () => {
+      const a = mkTask(), b = mkTask({ title: 'Вторая' });
+      runAction(db, kid, 'toggleTask', { taskId: b });
+      runAction(db, dad, 'archiveTask', { id: a });
+      runAction(db, dad, 'archiveTask', { id: b });
+      expect(db.select().from(s.dayTask).all().map((t) => t.id)).toEqual([b]);
+      const { raw, family } = loadFamily(db, NOW);
+      const view = memberDetail(raw, family, family.members.get(2)!).tasks;
+      expect(view.has).toBe(false);
+      expect(view.days[0].items.map((x) => x.id)).toEqual([b]);   // отмеченное сегодня остаётся видно
+      expect(st2().days.get('2026-11-19')!.stats.taskPoints).toBe(10);
+    });
+    it('лимит активных задач на героя', () => {
+      for (let i = 0; i < 20; i++) mkTask({ title: 'Задача ' + i });
+      expect(err(() => mkTask())?.status).toBe(400);
+    });
+    it('карточка героя: задачи за 7 дней, «3 из 5» и награда дня', () => {
+      const a = mkTask(), b = mkTask({ title: 'Вторая', points: 5 });
+      runAction(db, kid, 'toggleTask', { taskId: a });
+      const { raw, family } = loadFamily(db, NOW);
+      const t = memberDetail(raw, family, family.members.get(2)!).tasks;
+      expect(t.days).toHaveLength(7);
+      expect(t.days[0].date).toBe('2026-11-19');
+      expect(t.days[0].progress).toEqual({ total: 2, done: 1, waiting: 0 });
+      expect(t.days[0].reward.points).toBe(10);
+      expect(t.days[0].items.map((x) => x.id)).toEqual([b, a]);
+    });
+    it('очки задач попадают в рейтинг дня отдельным источником', () => {
+      const id = mkTask({ points: 30 });
+      runAction(db, kid, 'toggleTask', { taskId: id });
+      const { raw, family } = loadFamily(db, NOW);
+      const row = ratingView(raw, family, '2026-11-19').rows.find((r) => r.id === 2)!;
+      expect(row.parts.find((p) => p.id === 'tasks')?.points).toBe(30);
+    });
+    it('выдача сундука: только родитель, любому герою, в том числе родителю; отмена, пока не открыт', () => {
+      const avail = (id: number) => loadFamily(db, NOW).family.members.get(id)!.chestsAvailable;
+      expect(err(() => runAction(db, kid, 'grantChest', { memberId: 2, count: 1 }))?.status).toBe(403);
+      expect(err(() => runAction(db, dad, 'grantChest', { memberId: 2, count: 0 }))?.status).toBe(400);
+      expect(err(() => runAction(db, dad, 'grantChest', { memberId: 2, count: 6 }))?.status).toBe(400);
+      const a1 = avail(1), a2 = avail(2);
+      runAction(db, dad, 'grantChest', { memberId: 1, count: 2, reason: 'За помощь на даче' });
+      const g = (runAction(db, dad, 'grantChest', { memberId: 2, count: 1 }) as { id: number }).id;
+      expect(avail(1)).toBe(a1 + 2);
+      expect(avail(2)).toBe(a2 + 1);
+      runAction(db, kid, 'openChest', {});
+      expect(err(() => runAction(db, dad, 'deleteChestGrant', { id: g }))?.status).toBe(400);   // уже открыт
+      const first = db.select().from(s.chestGrant).all().find((x) => x.memberId === 1)!;
+      runAction(db, dad, 'deleteChestGrant', { id: first.id });
+      expect(avail(1)).toBe(a1);
+    });
+  });
 });

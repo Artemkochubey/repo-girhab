@@ -53,6 +53,7 @@ export function OverviewSlide({ d }: { d: Tv }) {
                 </div>
               )}
               <GoalLine d={d} m={m} />
+              {d.tasks?.[m.id] && <div className={`tv-goal ${d.tasks[m.id].done === d.tasks[m.id].total ? 'done' : ''}`}><span>📌 Задачи: {d.tasks[m.id].done} из {d.tasks[m.id].total}{d.tasks[m.id].done === d.tasks[m.id].total ? ' 🎉' : ''}</span></div>}
             </div>
           );
         })}

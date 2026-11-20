@@ -21,6 +21,7 @@ import { SLOTS, gearById, mergeCheck, rollChestGear } from '../game/gear';
 import { SPEC_LEVEL, abilityBlocked, abilityById, validSpec, type Spec } from '../game/classBattle';
 import { GOAL_KINDS, TIERS, canChooseGoal, goalTarget, goalWeekStart, type GoalKind, type GoalTier } from '../game/goals';
 import { basePoints } from '../game/points';
+import { GRANT_CHESTS_MAX, TASKS_ACTIVE_MAX, TASK_CHESTS_MAX, TASK_POINTS_MAX, TASK_TITLE_MAX, taskNeedsConfirm, tasksOn, validRepeat, type TaskDef } from '../game/tasks';
 import { loadFamily, getConfig } from './load';
 
 export class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
@@ -111,6 +112,97 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       db.insert(s.deedEntry).values({ memberId, date, kind: def!.id, note, createdBy: ctx.memberId }).run();
       const after = scoreDeeds([...rows, { kind: def!.id }]);
       return { ok: true, counted: after.counted > before, points: after.counted > before ? def!.points : 0, countedToday: after.counted };
+    }
+    case 'saveTask': {
+      // «Мои задачи на день»: задачу и награду за неё задаёт только родитель
+      needParent();
+      const memberId = target();
+      const title = str(a.title, TASK_TITLE_MAX, 'Название задачи');
+      const emoji = typeof a.emoji === 'string' && a.emoji.trim() && a.emoji.length <= 8 ? a.emoji.trim() : '📌';
+      if (!validRepeat(a.repeat)) return fail(400, 'Выберите, как часто повторять задачу');
+      const repeat = a.repeat;
+      let days: number[] = [];
+      let date: string | null = null;
+      if (repeat === 'weekdays') {
+        if (!Array.isArray(a.days) || !a.days.length || !a.days.every((x) => Number.isInteger(x) && x >= 0 && x <= 6)) fail(400, 'Выберите хотя бы один день недели');
+        days = [...new Set(a.days as number[])].sort((x, y) => x - y);
+      }
+      if (repeat === 'once') {
+        date = a.date === undefined || a.date === null ? today : (isDate(a.date) ? a.date : fail(400, 'Неверная дата'));
+      }
+      const points = int(a.points ?? 0, 0, TASK_POINTS_MAX, 'Очки');
+      const chests = int(a.chests ?? 0, 0, TASK_CHESTS_MAX, 'Сундуки');
+      const needConfirm = a.needConfirm === true || chests > 0;
+      const mine = db.select().from(s.dayTask).where(eq(s.dayTask.memberId, memberId)).all();
+      if (typeof a.id === 'number') {
+        const row = mine.find((t) => t.id === a.id);
+        if (!row) return fail(404, 'Нет такой задачи');
+        db.update(s.dayTask).set({ title, emoji, repeat, days, date, points, chests, needConfirm }).where(eq(s.dayTask.id, row.id)).run();
+        return { id: row.id };
+      }
+      if (mine.filter((t) => t.until === null || t.until > today).length >= TASKS_ACTIVE_MAX) fail(400, `Не больше ${TASKS_ACTIVE_MAX} задач у одного героя: уберите ненужные`);
+      const from = date && date < today ? date : today;
+      const r = db.insert(s.dayTask).values({ memberId, title, emoji, repeat, days, date, from, points, chests, needConfirm }).returning({ id: s.dayTask.id }).get();
+      return { id: r.id };
+    }
+    case 'archiveTask': {
+      needParent();
+      const row = db.select().from(s.dayTask).where(eq(s.dayTask.id, int(a.id, 1, 1e9, 'Номер задачи'))).get();
+      if (!row) return fail(404, 'Нет такой задачи');
+      // без отметок задача просто удаляется, с отметками остаётся в истории и исчезает из списков с сегодняшнего дня
+      const marks = db.select().from(s.taskDone).where(eq(s.taskDone.taskId, row.id)).all();
+      if (!marks.length) db.delete(s.dayTask).where(eq(s.dayTask.id, row.id)).run();
+      else db.update(s.dayTask).set({ until: today }).where(eq(s.dayTask.id, row.id)).run();
+      return { ok: true };
+    }
+    case 'toggleTask': {
+      // ребёнок ставит и снимает галочку сам; награду даёт подтверждённая отметка (родитель подтверждает сразу своей)
+      const date = dateArg();
+      const row = db.select().from(s.dayTask).where(eq(s.dayTask.id, int(a.taskId, 1, 1e9, 'Номер задачи'))).get();
+      if (!row) return fail(404, 'Нет такой задачи');
+      if (row.memberId !== ctx.memberId && !ctx.parent) fail(403, 'Можно менять только свои задачи');
+      const def: TaskDef = { ...row };
+      const marks = db.select().from(s.taskDone).where(eq(s.taskDone.taskId, row.id)).all().map((m) => ({ taskId: m.taskId, date: m.date, confirmed: m.confirmed }));
+      const mark = marks.find((m) => m.date === date);
+      if (mark) {
+        if (!ctx.parent && mark.confirmed && taskNeedsConfirm(def)) fail(403, 'Эту задачу уже подтвердил родитель: снять отметку может только он');
+        db.delete(s.taskDone).where(and(eq(s.taskDone.taskId, row.id), eq(s.taskDone.date, date))).run();
+        return { done: false, pending: false };
+      }
+      if (!tasksOn([def], marks, date, today).length) fail(400, 'Этой задачи нет в списке на этот день');
+      const confirmed = ctx.parent || !taskNeedsConfirm(def);
+      db.insert(s.taskDone).values({ taskId: row.id, date, confirmed, createdBy: ctx.memberId }).run();
+      return { done: true, pending: !confirmed };
+    }
+    case 'confirmTask': {
+      needParent();
+      const taskId = int(a.taskId, 1, 1e9, 'Номер задачи');
+      const date = a.date;
+      if (!isDate(date)) return fail(400, 'Неверная дата');
+      const mark = db.select().from(s.taskDone).where(and(eq(s.taskDone.taskId, taskId), eq(s.taskDone.date, date))).get();
+      if (!mark || mark.confirmed) return fail(400, 'Нечего подтверждать');
+      if (a.approve === false) db.delete(s.taskDone).where(eq(s.taskDone.id, mark.id)).run();
+      else db.update(s.taskDone).set({ confirmed: true }).where(eq(s.taskDone.id, mark.id)).run();
+      return { ok: true };
+    }
+    case 'grantChest': {
+      // родитель выдаёт сундуки любому герою, в том числе другому родителю или себе
+      needParent();
+      const memberId = target();
+      const count = int(a.count, 1, GRANT_CHESTS_MAX, 'Сколько сундуков');
+      const reason = a.reason === undefined || a.reason === null || !String(a.reason).trim() ? '' : str(a.reason, 60, 'Причина');
+      const r = db.insert(s.chestGrant).values({ memberId, count, reason, date: today, createdBy: ctx.memberId }).returning({ id: s.chestGrant.id }).get();
+      return { id: r.id };
+    }
+    case 'deleteChestGrant': {
+      // отмена ошибочной выдачи: возможна, пока эти сундуки ещё не открыты
+      needParent();
+      const g = db.select().from(s.chestGrant).where(eq(s.chestGrant.id, int(a.id, 1, 1e9, 'Номер выдачи'))).get();
+      if (!g) return fail(404, 'Нет такой выдачи');
+      const st = loadFamily(db, now).family.members.get(g.memberId)!;
+      if (st.chestsAvailable < g.count) fail(400, 'Часть этих сундуков уже открыта, отменить выдачу нельзя');
+      db.delete(s.chestGrant).where(eq(s.chestGrant.id, g.id)).run();
+      return { ok: true };
     }
     case 'saveMonthGoal': {
       // цель семьи на месяц: одна на месяц, ставит родитель (текущий или будущий месяц)

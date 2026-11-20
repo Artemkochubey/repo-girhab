@@ -8,6 +8,7 @@ import { KidHome } from '@/components/KidHome';
 import { MonthGoalCard } from '@/components/MonthGoalCard';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
+import { TasksCard } from '@/components/Tasks';
 import { useGame } from '@/components/Shell';
 import { Bar, FoldGroup, Section } from '@/components/ui';
 import { openQuickLog } from '@/components/QuickLog';
@@ -56,6 +57,8 @@ export default function Today() {
           <button className="mark-tile" onClick={() => openQuickLog('kind')}><span>💛</span><b>{d.day.stats.deeds} из {d.deeds.cap}</b><small>добрых дел</small></button>
         </div>
       </Section>
+
+      <TasksCard />
 
       <QuestsBlock />
 

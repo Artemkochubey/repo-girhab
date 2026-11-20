@@ -14,6 +14,7 @@ import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goal
 import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
 import { CLASS_BATTLE, abilityPower, abilityView, bossAbilityBonus, specBossBonus, withAbilities, withClass, type AbilityView, type Spec } from '../game/classBattle';
 import { scoreDeeds } from '../game/deeds';
+import type { TaskDef, TaskDoneRow } from '../game/tasks';
 import { BOSS_DROP, bossArmor, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
@@ -31,6 +32,9 @@ export interface Raw {
   seen?: { targetId: number; byId: number; date: string }[];
   monthGoals?: { id: number; month: string; title: string; emoji: string; kind: 'points' | 'deeds' | 'normDays'; target: number; reward: string; given: boolean }[];
   deeds?: { id?: number; memberId: number; date: string; kind: string; note?: string | null }[];
+  tasks?: TaskDef[];
+  taskDone?: TaskDoneRow[];
+  chestGrants?: { id?: number; memberId: number; count: number; date: string; reason?: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
   chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string; gear?: string | null; holder?: number | null }[];
   familyQuests: FamilyQuestInput[];
@@ -66,6 +70,8 @@ export interface MemberState {
   days: Map<string, DayCalc>;
   questDays: number;
   chestsEarned: number; chestsOpened: number; chestsAvailable: number;
+  taskChests: number;                      // сундуки за подтверждённые задачи дня
+  grantedChests: number;                   // сундуки, выданные родителем
   bossChestsEarned: number;                // сундуки за победы над боссом: открываются первыми, не ниже редкого
   spentPoints: number; spentChests: number; balance: number;
   achievements: AchievementState[];
@@ -116,6 +122,13 @@ export function buildFamily(raw: Raw, today: string): Family {
     const deedsByDate = new Map<string, { kind: string }[]>();
     for (const x of raw.deeds ?? []) if (x.memberId === m.id) deedsByDate.set(x.date, [...(deedsByDate.get(x.date) ?? []), { kind: x.kind }]);
     for (const [date, rows] of deedsByDate) { const r = scoreDeeds(rows); const d = get(date); d.deeds = r.counted; d.deedPoints = r.points; }
+
+    // «Мои задачи на день»: очки дают только подтверждённые отметки (награду определил родитель)
+    const myTasks = (raw.tasks ?? []).filter((t) => t.memberId === m.id);
+    for (const dn of raw.taskDone ?? []) {
+      const t = dn.confirmed ? myTasks.find((x) => x.id === dn.taskId) : undefined;
+      if (t && t.points > 0) get(dn.date).taskPoints += t.points;
+    }
 
     const created = todayIn(tz, new Date(m.createdAt));
     const first = [...stats.keys()].reduce((a, b) => (b < a ? b : a), created);
@@ -227,7 +240,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, cls),
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
-      chestsEarned: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
+      chestsEarned: 0, taskChests: 0, grantedChests: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
       spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb, equipped: resolveEquipped(raw.gearEquipped.filter((e) => e.memberId === m.id), { merges: myMerges, battles: myBattles, chests: raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })) }),
       battle: { live, hp: sim.hp, streak: sim.streak, rows: sim.rows, xp: battleXp, abilities: abilityView(cls, myUses, today, spec, powerLevel) },
       goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
@@ -316,9 +329,12 @@ export function buildFamily(raw: Raw, today: string): Family {
   // Сезоны (месяцы): рейтинг по очкам относительно нормы, призы победителям
   const seasons = buildSeasons(today, raw.seasonSince, raw.members.map((m) => ({ id: m.id, goal: m.goal, createdOn: createdOf.get(m.id)! })), (id, d) => members.get(id)?.days.get(d)?.total ?? 0);
 
+  const taskDefs = new Map((raw.tasks ?? []).map((t) => [t.id, t]));
   for (const st of members.values()) {
     st.bossChestsEarned = bossChests.get(st.id) ?? 0;
-    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0) + st.goals.chests
+    st.taskChests = (raw.taskDone ?? []).filter((dn) => dn.confirmed && taskDefs.get(dn.taskId)?.memberId === st.id).reduce((a, dn) => a + (taskDefs.get(dn.taskId)?.chests ?? 0), 0);
+    st.grantedChests = (raw.chestGrants ?? []).filter((g) => g.memberId === st.id).reduce((a, g) => a + g.count, 0);
+    st.chestsEarned = chestsEarned(st.level, st.questDays, st.taskChests + st.grantedChests + (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0) + st.goals.chests
       + raw.artifactUse.filter((u) => u.memberId === st.id && u.kind === 'key' && u.status === 'used').length);   // «Ключ сундука» = +1 сундук
     // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.
     const mine = raw.purchases.filter((p) => p.memberId === st.id && p.status !== 'cancelled');

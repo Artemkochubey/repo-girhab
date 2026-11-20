@@ -19,7 +19,7 @@ export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true)
   return m;
 }
 
-export interface DayBreakdown { bySphere: Partial<Record<Sphere, number>>; flat: number; quests: number; total: number }
+export interface DayBreakdown { bySphere: Partial<Record<Sphere, number>>; flat: number; quests: number; tasks: number; total: number }
 
 export interface DayCtx { date?: string; superGoal?: number; doubler?: boolean }
 
@@ -51,10 +51,11 @@ export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = tru
     if (e.type === 'quest') questBonus += e.pct * rank;
   }
   const quests = d.questXp * (1 + questBonus);
-  let total = Math.round(sphereTotal + flat + quests);
+  const tasks = d.taskPoints ?? 0;   // награда родителя: без множителей, не входит в «основу» серий
+  let total = Math.round(sphereTotal + flat + quests + tasks);
   // артефакт «Удвоитель»: бонус равен очкам дня, но не больше супер-нормы
   if (ctx.doubler) total += Math.min(total, ctx.superGoal ?? total);
-  return { bySphere, flat, quests, total };
+  return { bySphere, flat, quests, tasks, total };
 }
 
 /** Серия: подряд идущие дни с очками >= minPoints (по базовым очкам). Щит прощает один пропуск за неделю. */

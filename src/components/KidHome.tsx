@@ -49,6 +49,25 @@ export function KidHome() {
         <button className="kid-big kind" onClick={() => openQuickLog('kind')}><span>💛</span><b>Добро</b><small>помог, порадовал</small></button>
       </section>
 
+      {(() => {
+        const td = d.tasks.days[0];
+        if (!td.items.length) return null;
+        return (
+          <section className="card kid-quests">
+            <h2>📌 Мои задачи: {td.progress.done} из {td.progress.total}</h2>
+            <ul>
+              {td.items.map((t) => (
+                <li key={t.id} className={t.done && t.confirmed ? 'done' : ''}>
+                  <button className="kid-check" disabled={t.done && t.confirmed && t.confirm} onClick={() => act('toggleTask', { taskId: t.id, date: td.date }).catch(() => {})} aria-label={t.done ? 'Снять отметку' : 'Отметить выполненной'}>{t.done ? (t.confirmed ? '✔' : '⏳') : '○'}</button>
+                  <span className="grow">{t.emoji} {t.title}{t.done && !t.confirmed ? ' (ждёт родителя)' : ''}</span>
+                  {canSpeak() && <button className="btn ghost sm" onClick={() => speak(t.title)} aria-label="Прочитать задачу">🔊</button>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
+
       <section className="card kid-quests">
         <h2>🎯 Задания</h2>
         <ul>

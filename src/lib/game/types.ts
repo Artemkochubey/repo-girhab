@@ -13,6 +13,7 @@ export interface DayStats {
   deeds: number;            // засчитанных добрых дел за день (см. game/deeds.ts)
   deedPoints: number;       // очки за них
   questXp: number;          // опыт подтверждённых квестов
+  taskPoints: number;       // очки за подтверждённые «Мои задачи на день» (задаёт родитель)
 }
 
 export interface HeroBuild {
@@ -24,7 +25,7 @@ export interface HeroBuild {
 }
 
 export const emptyDay = (): DayStats => ({
-  workoutMinutes: 0, walk: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0,
+  workoutMinutes: 0, walk: 0, warmups: 0, study: {}, habits: 0, books: 0, deeds: 0, deedPoints: 0, questXp: 0, taskPoints: 0,
 });
 
 export type { Cls, Sphere };

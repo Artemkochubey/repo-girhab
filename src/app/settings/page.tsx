@@ -7,6 +7,7 @@ import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { BackupBlock } from '@/components/BackupBlock';
 import { GoalAdmin } from '@/components/GoalAdmin';
 import { MonthGoalAdmin } from '@/components/MonthGoalAdmin';
+import { GrantChest, TaskAdmin } from '@/components/TaskAdmin';
 import { QuestSets } from '@/components/QuestSets';
 import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
@@ -16,7 +17,7 @@ import { BASE_CHANCE } from '@/lib/game/chests';
 
 type M = ReturnType<typeof useGame>['s']['members'][number];
 const TABS = [
-  { id: 'now', emoji: '⏳', name: 'Сейчас' }, { id: 'heroes', emoji: '👪', name: 'Герои' }, { id: 'quests', emoji: '⚔️', name: 'Квесты' },
+  { id: 'now', emoji: '⏳', name: 'Сейчас' }, { id: 'heroes', emoji: '👪', name: 'Герои' }, { id: 'quests', emoji: '⚔️', name: 'Квесты' }, { id: 'tasks', emoji: '📌', name: 'Задачи' },
   { id: 'rewards', emoji: '🎁', name: 'Награды' }, { id: 'data', emoji: '💾', name: 'Данные' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
@@ -65,7 +66,7 @@ function AdminSettings() {
   const [qm, setQm] = useState<number | null>(null);
   const [tab, setTab] = useState<TabId>(() => { try { const t = sessionStorage.getItem(TAB_KEY); return TABS.some((x) => x.id === t) ? (t as TabId) : 'now'; } catch { return 'now'; } });
   const pickTab = (t: TabId) => { setTab(t); try { sessionStorage.setItem(TAB_KEY, t); } catch { /* без хранилища просто не запомним */ } };
-  const waiting = a.pending.length + a.prizesRequested.length;
+  const waiting = a.pending.length + a.prizesRequested.length + a.tasksPending.length;
 
   const lines = (t: string) => t.split('\n').map((x) => x.trim()).filter(Boolean);
   const saveCfg = () => act('setConfig', {
@@ -99,6 +100,23 @@ function AdminSettings() {
           })}
         </ul>
       </Section>
+
+      {a.tasksPending.length > 0 && (
+        <Section title={`📌 Задачи ждут проверки (${a.tasksPending.length})`}>
+          <ul className="list">
+            {a.tasksPending.map((p) => {
+              const m = nameOf(p.memberId);
+              return (
+                <li key={`${p.taskId}-${p.date}`} className="wrapRow">
+                  <span className="grow">{m?.emoji} {m?.name} · {p.emoji} {p.title} <small className="muted">({p.date}{p.points ? `, +${p.points}` : ''}{p.chests ? `, 🎁×${p.chests}` : ''})</small></span>
+                  <button className="btn" onClick={() => act('confirmTask', { taskId: p.taskId, date: p.date })}>Подтвердить</button>
+                  <button className="btn ghost" onClick={() => act('confirmTask', { taskId: p.taskId, date: p.date, approve: false })}>Отклонить</button>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      )}
 
       {a.prizesRequested.length > 0 && (
         <Section title={`🎁 Просят выдать приз (${a.prizesRequested.length})`}>
@@ -160,6 +178,12 @@ function AdminSettings() {
         {qm !== null && <QuestEditor key={qm} memberId={qm} />}
       </Section>
 
+        </>
+      )}
+      {tab === 'tasks' && (
+        <>
+          <TaskAdmin />
+          <GrantChest />
         </>
       )}
       {tab === 'rewards' && (

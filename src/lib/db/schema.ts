@@ -309,3 +309,41 @@ export const monthGoal = sqliteTable('month_goal', {
   given: integer('given', { mode: 'boolean' }).notNull().default(false),
   createdAt: createdAt(),
 }, (t) => [unique('month_goal_unique').on(t.month)]);
+
+/** «Мои задачи на день»: личный список дел героя. Задачи и награды задаёт только родитель. */
+export const dayTask = sqliteTable('day_task', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  emoji: text('emoji').notNull().default('📌'),
+  repeat: text('repeat', { enum: ['daily', 'weekdays', 'once'] }).notNull().default('daily'),
+  days: text('days', { mode: 'json' }).$type<number[]>().notNull().$defaultFn(() => []),
+  date: text('date'),
+  from: text('from_date').notNull(),
+  until: text('until_date'),
+  points: integer('points').notNull().default(0),
+  chests: integer('chests').notNull().default(0),
+  needConfirm: integer('need_confirm', { mode: 'boolean' }).notNull().default(false),
+  createdAt: createdAt(),
+}, (t) => [index('day_task_member').on(t.memberId)]);
+
+/** Отметка «сделано» по задаче за день. Награда начисляется, когда confirmed. */
+export const taskDone = sqliteTable('task_done', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  taskId: integer('task_id').notNull().references(() => dayTask.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  confirmed: integer('confirmed', { mode: 'boolean' }).notNull().default(true),
+  createdBy: integer('created_by'),
+  createdAt: createdAt(),
+}, (t) => [unique('task_done_unique').on(t.taskId, t.date)]);
+
+/** Сундуки, выданные родителем (за помощь, подарок, награду вне игры). */
+export const chestGrant = sqliteTable('chest_grant', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  count: integer('count').notNull(),
+  reason: text('reason').notNull().default(''),
+  date: text('date').notNull(),
+  createdBy: integer('created_by'),
+  createdAt: createdAt(),
+});

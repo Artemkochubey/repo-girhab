@@ -84,6 +84,10 @@ export interface GearBonusDto { rage: number; comeback: number; lossMult: number
 export const lookOf = (g: { items: { key: string; itemId: string }[]; slots: Record<string, string | null> }): Record<string, string | null> =>
   Object.fromEntries(Object.entries(g.slots).map(([sl, k]) => [sl, g.items.find((x) => x.key === k)?.itemId ?? null]));
 
+export interface TaskItemDto { id: number; title: string; emoji: string; done: boolean; confirmed: boolean; carried: boolean; points: number; chests: number; confirm: boolean }
+export interface TaskDayDto { date: string; items: TaskItemDto[]; progress: { total: number; done: number; waiting: number }; reward: { points: number; chests: number; count: number } }
+export interface TaskDefDto { id: number; memberId: number; title: string; emoji: string; repeat: 'daily' | 'weekdays' | 'once'; days: number[]; date: string | null; from: string; until: string | null; points: number; chests: number; needConfirm: boolean; label: string; confirm: boolean }
+
 export interface State {
   monthGoal: MonthGoalViewDto;
   season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
@@ -96,6 +100,9 @@ export interface State {
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
     pending: { memberId: number; date: string; index: number; t: string; xp: number }[];
+    tasks: Record<number, TaskDefDto[]>;
+    tasksPending: { memberId: number; taskId: number; title: string; emoji: string; date: string; points: number; chests: number }[];
+    grants: { id: number; memberId: number; count: number; date: string; reason?: string }[];
     familyQuestsAll: FamilyQuestDto[];
     quests: Record<number, { items: QuestDto[]; hasDefault: boolean }>;
     loot: string[]; lootRare: string[]; lootLegend: string[];
@@ -108,7 +115,8 @@ export interface State {
     id: number; date: string; xp: number; level: number; into: number; span: number; streak: number; talentPointsFree: number; shopDiscount: number; reviewDates: string[]; recommendedSub: string | null;
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; spec: 'a' | 'b' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
-    chests: { earned: number; opened: number; available: number };
+    chests: { earned: number; opened: number; available: number; fromTasks: number; granted: number };
+    tasks: { days: TaskDayDto[]; has: boolean };
     battle: { abilities: { list: { id: string; emoji: string; name: string; text: string; cost: 1 | 2; cd: number; usedToday: boolean; readyIn: number; ready: boolean }[]; focusLeft: number; focusMax: number; activeToday: string[]; power: number }; cls: 'w' | 'm' | 'b' | 'p' | null; specs: { id: 'a' | 'b'; emoji: string; name: string; text: string; ability: { emoji: string; name: string; text: string } }[]; specLevel: number; classInfo: { role: string; roleEmoji: string; armor: string; summary: string; abilities: { emoji: string; name: string; text: string }[]; boss: { dmg: number; weak: number; party: number } } | null; live: LiveBattleDto; hp: number; streak: number; xp: number; recent: { date: string; hordeId: string; cleared: number; win: boolean; hpDelta: number; xp: number; drop: string | null }[] };
     gear: { items: { key: string; itemId: string; source: 'battle' | 'boss' | 'chest' | 'merge'; date: string; equipped: boolean; item: GearItemDto }[]; slots: Record<string, string | null>; bonus: GearBonusDto; classBonus: GearBonusDto };
     pity: { untilRare: number; untilLegend: number; bossWaiting: number };
@@ -121,7 +129,7 @@ export interface State {
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];
     mvpWins: number;
-    day: { points: number; stats: { workoutMinutes: number; walk: number; warmups: number; study: Record<string, number>; habits: number; books: number; deeds: number; deedPoints: number; questXp: number };
+    day: { points: number; stats: { workoutMinutes: number; walk: number; warmups: number; study: Record<string, number>; habits: number; books: number; deeds: number; deedPoints: number; taskPoints: number; questXp: number };
       bySphere: Record<string, number>;
       quests: { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean; completed: boolean }[] };
     workoutLog: { id: number; date: string; minutes: number; reps: number | null; eq: number; exercise: string | null; muscles: string[] | null }[];

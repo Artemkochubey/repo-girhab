@@ -6,7 +6,7 @@ export const TABS: Tab[] = [
   { id: 'battle', href: '/battle', emoji: '⚔️', label: 'Бой', match: ['/battle'] },
   { id: 'hero', href: '/hero', emoji: '🛡', label: 'Герой', match: ['/hero'] },
   { id: 'loot', href: '/bag', emoji: '🎒', label: 'Добыча', match: ['/bag', '/shop'] },
-  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/body', '/mind', '/season', '/rating', '/book', '/deeds', '/arsenal', '/rules', '/about', '/settings', '/report'] },
+  { id: 'more', href: '/more', emoji: '☰', label: 'Ещё', match: ['/more', '/tasks', '/body', '/mind', '/season', '/rating', '/book', '/deeds', '/arsenal', '/rules', '/about', '/settings', '/report'] },
 ];
 
 /** Какая вкладка подсвечена на этом адресе (подстраницы «Ещё» и «Добычи» подсвечивают свою группу). */
@@ -14,6 +14,7 @@ export const activeTab = (path: string): string | null => TABS.find((t) => t.mat
 
 export interface MoreItem { href: string; emoji: string; title: string; text: string; parent?: boolean }
 export const MORE_ITEMS: MoreItem[] = [
+  { href: '/tasks', emoji: '📌', title: 'Мои задачи на день', text: 'Личный список дел на сегодня, его задают родители' },
   { href: '/body', emoji: '💪', title: 'Тело и здоровье', text: 'Тренировки, прогулки, силуэт мышц, история и год по дням' },
   { href: '/mind', emoji: '🧠', title: 'Ум', text: 'Учёба, привычки, книги и мозг, который светится' },
   { href: '/deeds', emoji: '💛', title: 'Доброта', text: 'Добрые дела, звания и журнал' },

@@ -144,6 +144,25 @@ await check('специализация: с 8 уровня герой выбир
   ok(st.detail.battle.abilities.list.some((x) => x.id === 'p-smite'), 'способность ветки должна появиться в списке');
   void me;
 });
+await check('задачи на день: родитель задаёт, герой отмечает, сундук выдаёт родитель', async () => {
+  const me = (await state()).me;
+  const task = await rpc('saveTask', { memberId: me, title: 'Собрать рюкзак', repeat: 'daily', points: 12 });
+  const chestTask = await rpc('saveTask', { memberId: me, title: 'Сделать уроки', repeat: 'daily', points: 5, chests: 1 });
+  ok(task.id > 0 && chestTask.id > 0, 'родитель должен сохранить задачи');
+  await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();
+  await p.click('.tasks li:has-text("Собрать рюкзак") .mark'); await p.waitForTimeout(600); await dismiss();
+  await p.click('.tasks li:has-text("Сделать уроки") .mark'); await p.waitForTimeout(600); await dismiss();
+  let st = await state();
+  // сессия в режиме родителя (PIN введён выше), поэтому его отметки подтверждаются сразу; путь «ребёнок → подтверждение» проверяют тесты логики
+  ok(st.detail.tasks.days[0].reward.points === 17, 'очки за обе задачи должны начислиться');
+  ok(st.detail.tasks.days[0].progress.done === 2, 'в карточке должно быть «2 из 2»');
+  const before = (await state()).detail.chests.available;
+  await rpc('grantChest', { memberId: me, count: 2, reason: 'проверка' });
+  st = await state();
+  ok(st.detail.chests.available === before + 2, 'выданные сундуки должны появиться у героя');
+  ok(st.detail.chests.fromTasks === 1, 'сундук за задачу должен учитываться');
+  await p.goto(base + '/tasks'); await p.waitForSelector('h1:has-text("Мои задачи на день")');
+});
 await check('нет связи: полоса предупреждения появляется и исчезает', async () => {
   await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();
   await ctx.setOffline(true);
