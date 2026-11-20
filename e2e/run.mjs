@@ -81,6 +81,12 @@ await check('рейтинг дня: места и источники очков'
   ok((await p.locator('.rating-table tbody tr').first().innerText()).includes('Младший'), 'у Младшего больше всех очков от нормы, он должен быть первым');
   ok((await p.locator('.rating-table thead th.c-src').count()) >= 2, 'нет столбцов источников очков');
 });
+await check('рейтинг недели: таблица и разбивка по дням', async () => {
+  await p.goto(base + '/rating'); await p.waitForSelector('.rating-table'); await dismiss();
+  await p.click('.seg button:has-text("За неделю")'); await p.waitForSelector('.week-days');
+  ok((await p.locator('.week-days thead th').count()) === 8, 'в разбивке по дням должно быть 7 дней и колонка героя');
+  ok((await p.locator('.rating-table').first().locator('tbody tr').count()) === 4, 'в рейтинге недели должно быть 4 героя');
+});
 await check('лицо героя: создать и сохранить отдельно от смайлика', async () => {
   await p.goto(base + '/hero'); await dismiss(); await p.click('.herolook .btn'); await p.waitForSelector('.facepick');
   await p.click('.seg button:has-text("Девочка")'); await p.click('.face-opt:has-text("Косы")'); await p.click('.btn:has-text("Сохранить лицо")'); await p.waitForTimeout(700);

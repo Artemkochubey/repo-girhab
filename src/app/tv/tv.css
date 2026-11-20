@@ -124,3 +124,8 @@
 .rating-tv .rating-table th, .rating-tv .rating-table td { padding: 10px 10px; } .rating-tv .rb-bar { height: 34px; } .rating-tv .rb-bar i { font-size: 1rem; }
 .rating-tv .rating-bars, .rating-tv .rating-h { display: none; } .rating-tv .rating-legend { font-size: 1rem; color: #cbbff0; }
 .rating-tv .m-only { display: none !important; }
+.rating-tv .week-days .wd b { font-size: 1.4rem; } .rating-tv .week-days .wd small { font-size: .95rem; } .rating-tv .week-days { margin-top: 4px; }
+.rating-tv .rating-table { border-spacing: 0 4px; } .rating-tv .rating-table th, .rating-tv .rating-table td { padding: 6px 8px; }
+.rating-tv .c-place { font-size: 1.5rem; } .rating-tv .r-emoji { font-size: 1.6rem; } .rating-tv .c-pts b { font-size: 1.3rem; }
+.rating-tv .week-days .wd b { font-size: 1.15rem; } .rating-tv .week-days .wd small { font-size: .8rem; } .rating-tv p.muted { display: none; }
+.rating-week.rating-tv .rating-legend { display: none; } .rating-week.rating-tv .rating-table th, .rating-week.rating-tv .rating-table td { padding: 4px 8px; }

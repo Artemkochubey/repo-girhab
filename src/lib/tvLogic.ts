@@ -9,12 +9,13 @@ export const TV_SLIDES = [
   { id: 'battles', emoji: '⚔️', label: 'Бои' },
   { id: 'mountain', emoji: '⛰', label: 'Гора' },
   { id: 'rating', emoji: '📊', label: 'Рейтинг' },
+  { id: 'week', emoji: '🗓', label: 'Неделя' },
   { id: 'season', emoji: '🏆', label: 'Сезон' },
   { id: 'quests', emoji: '📜', label: 'Квесты' },
   { id: 'record', emoji: '✍️', label: 'Запись' },
 ] as const;
 export type TvSlideId = (typeof TV_SLIDES)[number]['id'];
-export const TV_AUTO: TvSlideId[] = ['overview', 'rating', 'heroes', 'boss', 'battles', 'mountain', 'season', 'quests'];
+export const TV_AUTO: TvSlideId[] = ['overview', 'rating', 'week', 'heroes', 'boss', 'battles', 'mountain', 'season', 'quests'];
 export const TV_INTERVALS = [10, 20, 30, 60] as const;
 export const isSlide = (x: unknown): x is TvSlideId => TV_SLIDES.some((s) => s.id === x);
 

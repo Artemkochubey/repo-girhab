@@ -5,6 +5,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { HeroFigure } from '@/components/HeroFigure';
 import { MountainClimb } from '@/components/MountainClimb';
 import { RatingTable } from '@/components/RatingTable';
+import { WeekRatingTable } from '@/components/WeekRatingTable';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import { DEEDS, DEED_DAY_CAP, deedStatus } from '@/lib/game/deeds';
 import { CLASS_NAMES, type Cls } from '@/lib/game/classes';
@@ -187,6 +188,16 @@ export function RatingSlide({ d }: { d: Tv }) {
       <h1>📊 Рейтинг дня</h1>
       {d.rating ? <section className="tv-ratingbox"><RatingTable rows={d.rating.rows} tv /></section> : <p className="tv-hint">Нет данных</p>}
       <p className="tv-hint">Место зависит от выполнения личной нормы: очки ÷ норма (не больше двух норм). Первый, выполнивший норму, получает 🏆 MVP дня.</p>
+    </div>
+  );
+}
+
+/** Рейтинг недели на ТВ: места, средняя доля нормы, очки по источникам и по дням. */
+export function WeekSlide({ d }: { d: Tv }) {
+  return (
+    <div className="tv-col">
+      <h1>🗓 Рейтинг недели</h1>
+      {d.ratingWeek ? <section className="tv-ratingbox"><WeekRatingTable w={d.ratingWeek} tv /></section> : <p className="tv-hint">Нет данных</p>}
     </div>
   );
 }

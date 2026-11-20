@@ -56,8 +56,15 @@ import type { DeedSummary } from './game/deeds';
 export interface DeedItemDto { id: number | null; date: string; kind: string; note: string | null; counted: boolean; points: number }
 export interface RatingRowDto {
   id: number; place: number; points: number; goal: number; superGoal: number; percent: number; ratio: number; qualified: boolean; mvp: boolean;
-  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; name: string; emoji: string; color: string;
+  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; name: string; emoji: string; color: string; exists: boolean;
 }
+export interface RatingWeekRowDto {
+  id: number; place: number; points: number; percent: number; ratio: number; normDays: number; days: number; best: { date: string; points: number } | null;
+  parts: { id: import('./game/rating').SourceId; points: number }[]; top: import('./game/rating').SourceId | null; mvpDays: number;
+  daily: { date: string; points: number; percent: number; place: number; qualified: boolean; mvp: boolean; counted: boolean }[];
+  name: string; emoji: string; color: string; goal: number;
+}
+export interface RatingWeekDto { weekStart: string; weekEnd: string; today: string; isCurrent: boolean; dates: string[]; rows: RatingWeekRowDto[] }
 export interface RatingDto { date: string; today: string; isToday: boolean; rows: RatingRowDto[] }
 export interface WaveDto { unit: string; weak: DomainId; hp: number; damage: number; cleared: boolean }
 export interface LiveBattleDto {

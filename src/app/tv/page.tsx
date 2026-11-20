@@ -4,7 +4,7 @@ import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { hourIn } from '@/lib/clock';
 import { TV_AUTO, TV_INTERVALS, TV_SLIDES, dayPhase, isSlide, stepSlide, tvEvents, tvHighlights, type TvEvent, type TvSlideId } from '@/lib/tvLogic';
 import type { Tv } from '@/lib/tvTypes';
-import { BattlesSlide, BossSlide, HeroesSlide, MountainSlide, OverviewSlide, QuestsSlide, RatingSlide, RecordSlide, SeasonSlide } from './slides';
+import { BattlesSlide, BossSlide, HeroesSlide, MountainSlide, OverviewSlide, QuestsSlide, RatingSlide, RecordSlide, SeasonSlide, WeekSlide } from './slides';
 import './tv.css';
 
 const STORE = 'mr_tv';
@@ -199,6 +199,7 @@ export default function TvPage() {
         {slide === 'battles' && <BattlesSlide d={d} />}
         {slide === 'mountain' && <MountainSlide d={d} />}
         {slide === 'rating' && <RatingSlide d={d} />}
+        {slide === 'week' && <WeekSlide d={d} />}
         {slide === 'season' && <SeasonSlide d={d} />}
         {slide === 'quests' && <QuestsSlide d={d} mark={mark} />}
         {slide === 'record' && <RecordSlide d={d} who={who} setWho={setWho} note={note} record={record} />}

@@ -44,3 +44,43 @@ describe('рейтинг дня', () => {
     expect(new Set(SOURCES.map((s) => s.color)).size).toBe(SOURCES.length);
   });
 });
+
+import { buildWeekRating } from './rating';
+describe('рейтинг недели', () => {
+  const day = (date: string, rows: RatingInput[]) => ({ date, rows: buildRating(rows) });
+  const A = (total: number, extra: Partial<RatingInput> = {}) => inp({ id: 1, goal: 60, total, bySphere: { workout: total }, ...extra });
+  const B = (total: number, extra: Partial<RatingInput> = {}) => inp({ id: 2, goal: 40, total, bySphere: { deeds: total }, ...extra });
+  it('очки и источники суммируются по дням, место от средней доли нормы', () => {
+    const w = buildWeekRating([day('d1', [A(60), B(20)]), day('d2', [A(30), B(40)]), day('d3', [A(0), B(0)])]);
+    const a = w.find((x) => x.id === 1)!, b = w.find((x) => x.id === 2)!;
+    expect(a.points).toBe(90); expect(b.points).toBe(60);
+    expect(a.ratio).toBeCloseTo((1 + 0.5 + 0) / 3); expect(b.ratio).toBeCloseTo((0.5 + 1 + 0) / 3);
+    expect(a.parts).toEqual([{ id: 'workout', points: 90 }]); expect(b.parts).toEqual([{ id: 'deeds', points: 60 }]);
+    expect(a.normDays).toBe(1); expect(a.days).toBe(3);
+    expect(a.best).toEqual({ date: 'd1', points: 60 });
+  });
+  it('равенство по доле нормы решают очки, одинаково — одно место', () => {
+    const w = buildWeekRating([day('d1', [A(60), B(40)])]);   // оба 100%, у A больше очков
+    expect(w.map((x) => x.id)).toEqual([1, 2]);
+    expect(w.map((x) => x.place)).toEqual([1, 2]);
+    const eq = buildWeekRating([day('d1', [A(30), inp({ id: 2, goal: 60, total: 30 })])]);
+    expect(eq.map((x) => x.place)).toEqual([1, 1]);
+  });
+  it('дни до появления героя не считаются и не снижают среднее', () => {
+    const w = buildWeekRating([day('d1', [A(60), B(0, { exists: false })]), day('d2', [A(60), B(40)])]);
+    const b = w.find((x) => x.id === 2)!;
+    expect(b.days).toBe(1); expect(b.ratio).toBeCloseTo(1);
+    expect(b.daily[0]!.counted).toBe(false);
+  });
+  it('по дням видно место и MVP, считаются дни MVP', () => {
+    const w = buildWeekRating([day('d1', [A(60), B(60)]), day('d2', [A(10), B(40)])]);   // d1: B 150%, A 100% → B MVP; d2: B 100% → MVP
+    const b = w.find((x) => x.id === 2)!;
+    expect(b.mvpDays).toBe(2);
+    expect(b.daily.map((x) => x.place)).toEqual([1, 1]);
+    expect(w.find((x) => x.id === 1)!.daily.map((x) => x.place)).toEqual([2, 2]);
+  });
+  it('день без очков у всех: у каждого 0%', () => {
+    const w = buildWeekRating([day('d1', [A(0), B(0)])]);
+    expect(w.every((x) => x.points === 0 && x.percent === 0 && x.top === null)).toBe(true);
+  });
+});

@@ -3,7 +3,8 @@ import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
 import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { gearById, SLOTS } from '../game/gear';
-import { buildRating } from '../game/rating';
+import { buildRating, buildWeekRating } from '../game/rating';
+import { weekStart } from '../game/boss';
 import { DEED_DAY_CAP, deedJournal, deedSummary } from '../game/deeds';
 import { parseFace } from '../game/faces';
 import { CLASS_BATTLE, classOnly } from '../game/classBattle';
@@ -216,9 +217,18 @@ export function ratingView(raw: Raw, fam: Family, date: string) {
   const rows = buildRating(raw.members.map((m) => {
     const d = fam.members.get(m.id)?.days.get(date);
     const wm = d?.stats.workoutMinutes ?? 0;
-    return { id: m.id, goal: m.goal, superGoal: m.superGoal, total: d?.total ?? 0, bySphere: d?.bySphere ?? {}, questXp: d?.stats.questXp ?? 0, walkShare: d && wm > 0 ? d.stats.walk / wm : 0 };
+    return { id: m.id, goal: m.goal, superGoal: m.superGoal, total: d?.total ?? 0, bySphere: d?.bySphere ?? {}, questXp: d?.stats.questXp ?? 0, walkShare: d && wm > 0 ? d.stats.walk / wm : 0, exists: !!d };
   })).map((r) => { const m = raw.members.find((x) => x.id === r.id)!; return { ...r, name: m.name, emoji: m.emoji, color: m.color }; });
   return { date, today: fam.today, isToday: date === fam.today, rows };
+}
+
+/** Рейтинг недели (понедельник–воскресенье, к которой относится дата): места от средней доли нормы, очки по источникам и по дням. */
+export function ratingWeekView(raw: Raw, fam: Family, anyDate: string) {
+  const start = weekStart(anyDate), end = addDays(start, 6);
+  const dates = dateRange(start, end);
+  const week = buildWeekRating(dates.map((d) => ({ date: d, rows: ratingView(raw, fam, d).rows })));
+  const rows = week.map((r) => { const m = raw.members.find((x) => x.id === r.id)!; return { ...r, name: m.name, emoji: m.emoji, color: m.color, goal: m.goal }; });
+  return { weekStart: start, weekEnd: end, today: fam.today, isCurrent: start === weekStart(fam.today), dates, rows };
 }
 
 export function tvState(raw: Raw, fam: Family) {
@@ -233,7 +243,7 @@ export function tvState(raw: Raw, fam: Family) {
     };
   };
   return {
-    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, rating: ratingView(raw, fam, fam.today),
+    today: fam.today, timezone: raw.timezone, reminderHour: raw.reminderHour, rating: ratingView(raw, fam, fam.today), ratingWeek: ratingWeekView(raw, fam, fam.today),
     season: { id: fam.seasons.current.id, daysLeft: fam.seasons.current.daysLeft, top: fam.seasons.current.rows.slice(0, 4).map((r) => ({ memberId: r.memberId, ratio: r.ratio, points: r.points })) }, members: summary(raw, fam), boss: bossView(fam.boss),
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },

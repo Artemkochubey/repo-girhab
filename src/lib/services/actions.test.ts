@@ -6,7 +6,7 @@ import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
 import { tvRecord } from './tvRecord';
-import { adminView, memberDetail, ratingView, tvState } from './view';
+import { adminView, memberDetail, ratingView, ratingWeekView, tvState } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -358,6 +358,25 @@ describe('действия', () => {
     expect(r.rows[0]!.place).toBe(1);
     expect(r.rows.map((x) => x.name).sort()).toEqual(raw.members.map((m) => m.name).sort());
     expect(ratingView(raw, family, '2000-01-01').rows.every((x) => x.points === 0 && x.parts.length === 0)).toBe(true);
+  });
+  it('рейтинг недели: сумма очков, дни, источники и место от средней доли нормы', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 40 });
+    runAction(db, kid, 'addDeed', { kind: 'dishes' });
+    runAction(db, dad, 'addWorkout', { minutes: 30 });
+    const { raw, family } = loadFamily(db, NOW);
+    const w = ratingWeekView(raw, family, family.today);
+    expect(w.dates).toHaveLength(7);
+    expect(w.isCurrent).toBe(true);
+    expect(w.rows.map((r) => r.name).sort()).toEqual(raw.members.map((m) => m.name).sort());
+    const kidW = w.rows.find((r) => r.id === 2)!;
+    const dayRow = ratingView(raw, family, family.today).rows.find((r) => r.id === 2)!;
+    expect(kidW.daily.find((d) => d.date === family.today)!.points).toBe(dayRow.points);     // день недели совпадает с рейтингом дня
+    expect(kidW.points).toBeGreaterThanOrEqual(dayRow.points);
+    expect(kidW.parts.map((p) => p.id)).toEqual(expect.arrayContaining(['workout', 'deeds']));
+    expect(kidW.daily.filter((d) => d.counted).length).toBe(kidW.days);
+    expect(w.rows[0]!.place).toBe(1);
+    expect(w.rows.every((r) => r.daily.filter((d) => d.date > family.today).every((d) => !d.counted))).toBe(true);   // будущие дни не считаются
+    expect(ratingWeekView(raw, family, '2000-01-03').rows.every((r) => r.points === 0)).toBe(true);
   });
   it('прогулка: минуты считаются по половинной цене с потолком в день', () => {
     const today = () => loadFamily(db, NOW).family.members.get(2)!.days.get(loadFamily(db, NOW).family.today)!;

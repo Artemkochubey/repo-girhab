@@ -6,7 +6,7 @@ const MEDAL = ['🥇', '🥈', '🥉'];
 export const placeMark = (place: number) => MEDAL[place - 1] ?? `${place}`;
 
 /** Что принесло больше всего очков героя: короткая фраза для подписи. */
-export function whyText(r: RatingRowDto): string {
+export function whyText(r: { points: number; parts: { id: SourceId; points: number }[] }): string {
   if (!r.parts.length) return 'пока без очков';
   const top = r.parts[0]!;
   const share = r.points > 0 ? Math.round((top.points / r.points) * 100) : 0;
@@ -18,7 +18,6 @@ export function whyText(r: RatingRowDto): string {
 /** Таблица рейтинга дня: место, герой, очки, % нормы и очки по источникам; под таблицей полоски «из чего набрано». */
 export function RatingTable({ rows, me = null, tv = false }: { rows: RatingRowDto[]; me?: number | null; tv?: boolean }) {
   const used = SOURCES.filter((s) => rows.some((r) => r.parts.some((p) => p.id === s.id && p.points > 0)));
-  const max = Math.max(1, ...rows.map((r) => r.points));
   const cell = (r: RatingRowDto, id: SourceId) => r.parts.find((p) => p.id === id)?.points ?? 0;
   const colTotal = (id: SourceId) => rows.reduce((a, r) => a + cell(r, id), 0);
   const famTotal = rows.reduce((a, r) => a + r.points, 0);
@@ -54,7 +53,17 @@ export function RatingTable({ rows, me = null, tv = false }: { rows: RatingRowDt
       </div>
 
       <p className="muted small m-only">Таблицу можно листать вправо: там очки по каждому источнику.</p>
-      <h3 className="rating-h">Из чего набраны очки</h3>
+      <SourceBars rows={rows} used={used} />
+    </div>
+  );
+}
+
+/** Полоски «из чего набраны очки» с подписями и легенда источников. */
+export function SourceBars({ rows, used, title = 'Из чего набраны очки' }: { rows: { id: number; place: number; emoji: string; name: string; points: number; parts: { id: SourceId; points: number }[] }[]; used: typeof SOURCES; title?: string }) {
+  const max = Math.max(1, ...rows.map((r) => r.points));
+  return (
+    <>
+      <h3 className="rating-h">{title}</h3>
       <ul className="rating-bars">
         {rows.map((r) => (
           <li key={r.id}>
@@ -69,6 +78,6 @@ export function RatingTable({ rows, me = null, tv = false }: { rows: RatingRowDt
       <ul className="rating-legend">
         {used.map((s) => <li key={s.id}><i style={{ background: s.color }} /> {s.emoji} {s.name}</li>)}
       </ul>
-    </div>
+    </>
   );
 }
