@@ -293,6 +293,12 @@ export const TIER_NAMES: Record<'weapon' | 'armor' | 'helm' | 'boots' | 'shield'
 };
 const DOMAIN_OF_WEAPON: Record<Domain, string> = { body: 'силы', mind: 'мудрости', art: 'вдохновения', will: 'воли' };
 
+/** Какой значок рисовать: у классов своё оружие (посох мага, булава паладина, лютня барда), остальное по семейству предмета. */
+export function gearIconFamily(item: Pick<GearItem, 'slot' | 'family'>, cls: Cls | null): string {
+  if (item.slot !== 'weapon' || !cls) return item.family;
+  return { w: 'sword', m: 'staff', b: 'lute', p: 'hammer' }[cls];
+}
+
 export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 'name' | 'emoji'> & { effect: { type: string; domain?: Domain } }, cls: Cls | null): { name: string; emoji: string } {
   const ri = GEAR_RARITIES.indexOf(item.rarity);
   if (!cls) return { name: item.name, emoji: item.emoji };

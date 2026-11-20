@@ -7,6 +7,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { xpNeed } from '@/lib/game/level';
+import { ClassHero } from '@/components/ClassHero';
 import { HeroRing } from '@/components/HeroRing';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { FacePicker } from '@/components/FacePicker';
@@ -87,7 +88,7 @@ export default function Hero() {
         <div className="grid">
           {CLS.map((c) => (
             <button key={c} className={`card pick ${h.cls === c ? 'sel' : ''}`} disabled={h.cls === c} onClick={() => setPicking(c)}>
-              <b>{CLASS_NAMES[c]}</b><span className="muted">{CLASS_INFO[c].bonus}</span><small className="muted">{CLASS_INFO[c].pitch}</small>
+              <ClassHero cls={c} width={96} /><b>{CLASS_NAMES[c]}</b><span className="muted">{CLASS_INFO[c].bonus}</span><small className="muted">{CLASS_INFO[c].pitch}</small>
             </button>
           ))}
         </div>

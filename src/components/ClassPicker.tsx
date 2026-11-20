@@ -1,4 +1,5 @@
 'use client';
+import { ClassHero } from './ClassHero';
 import { useState } from 'react';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, type Cls } from '@/lib/game/classes';
 import { useGame } from './Shell';
@@ -31,6 +32,7 @@ export function ClassPicker({ memberName, onClose }: { memberName: string; onClo
         <div className="grid">
           {ORDER.map((c) => (
             <button key={c} className={`card pick ${sel === c ? 'sel' : ''}`} onClick={() => setSel(c)} aria-pressed={sel === c}>
+              <ClassHero cls={c} width={96} />
               <b>{CLASS_NAMES[c]}</b>
               <span className="muted">{CLASS_INFO[c].sphere}</span>
               <small className="gold">{CLASS_INFO[c].bonus}</small>

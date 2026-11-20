@@ -1,4 +1,5 @@
 'use client';
+import { GearSymbols } from './GearIcon';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -138,6 +139,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const me = s.members.find((m) => m.id === s.me)!;
   return (
     <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
+      <GearSymbols />
       <a className="skip-link" href="#main">К содержимому</a>
       <header className="top">
         <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
