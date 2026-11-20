@@ -5,6 +5,8 @@ import type { Cls } from '@/lib/game/classes';
 import type { FaceConfig } from '@/lib/game/faces';
 import { FaceArt } from './Face';
 import { RARITY_VARS } from './GearIcon';
+import { headgear } from './HeroHeadgear';
+import { weaponArt } from './HeroWeapons';
 import { bardArmor, mageArmor, paladinArmor, warriorArmor } from './HeroArmor';
 
 type Look = Partial<Record<Slot, string | null>>;
@@ -40,41 +42,27 @@ const Spark = ({ x, y, s = 1, c = '#fff1c2', cls = 'hf-tw' }: { x: number; y: nu
   <path className={cls} transform={`translate(${x} ${y}) scale(${s})`} d="M0 -8 L2 -2 L8 0 L2 2 L0 8 L-2 2 L-8 0 L-2 -2Z" fill={c} />
 );
 
-/** Оружие в руке: значок предмета нужной редкости, при ударе взмах. Без оружия: простая палка. */
+/** Оружие в руке: вид зависит от класса и редкости (HeroWeapons), цвета из редкости; при ударе взмах. Без оружия: простая палка. */
 function Weapon({ cls, item, attack }: { cls: Cls | null; item: GearItem | null; attack?: boolean }) {
-  const vars = item ? (RARITY_VARS[item.rarity] as CSSProperties) : undefined;
-  const fam = { w: 'sword', m: 'staff', b: 'lute', p: 'hammer' }[cls ?? 'w'];
-  const cn = `hf-w hf-w-${cls ?? 'w'} ${attack ? 'hf-w-atk' : ''}`;
-  if (cls === 'm') {
+  const c = cls ?? 'w';
+  const vars = item ? (RARITY_VARS[item.rarity] as CSSProperties) : (RARITY_VARS.common as CSSProperties);
+  const cn = `hf-w hf-w-${c} ${attack ? 'hf-w-atk' : ''}`;
+  const tier = tierOf(item);
+  if (!item) {
     return (
       <g className={cn}>
-        <rect x="64" y={item ? 70 : 58} width="7" height={item ? 286 : 298} rx="3" fill="#7a4a24" /><rect x="67.500" y={item ? 70 : 58} width="3.500" height={item ? 286 : 298} fill="#5a3416" />
-        {item && <g style={vars}><use href={`#gx-${fam}`} x="2.500" y="13" width="130" height="130" /></g>}
-        {attack && <circle className="hf-flare" cx="67.500" cy="44" r="18" fill={GLOW[item?.rarity ?? 'common']} />}
-      </g>
-    );
-  }
-  if (cls === 'b') {
-    return (
-      <g className={cn}>
-        {item ? <g style={vars}><g transform="translate(113.250 0) scale(-1 1)"><use href="#gx-lute" x="0" y="115" width="170" height="170" /></g></g>
-          : <g transform="rotate(-26 150 232)"><rect x="144" y="106" width="12" height="100" rx="3" fill="#7a4a24" /><ellipse cx="150" cy="238" rx="32" ry="38" fill="#c98a1d" /><circle cx="150" cy="236" r="9" fill="#3a2400" /></g>}
-        {attack && <><text className="hf-note" x="40" y="150" fontSize="34" fill="#8ff0d9">♪</text><text className="hf-note n2" x="200" y="140" fontSize="30" fill="#ffe39a">♫</text></>}
-      </g>
-    );
-  }
-  if (cls === 'p') {
-    return (
-      <g className={cn}>
-        {item ? <g style={vars}><use href={`#gx-${fam}`} x="111" y="84" width="160" height="160" /></g>
-          : <><rect x="187" y="92" width="9" height="140" rx="3" fill="#7a4a24" /><rect x="168" y="76" width="46" height="24" rx="6" fill="#9a97b5" /></>}
+        {c === 'm' ? <><rect x="64" y="58" width="7" height="298" rx="3" fill="#7a4a24" /><rect x="67.500" y="58" width="3.500" height="298" fill="#5a3416" /></>
+          : c === 'b' ? <g transform="rotate(-26 150 232)"><rect x="144" y="106" width="12" height="100" rx="3" fill="#7a4a24" /><ellipse cx="150" cy="238" rx="32" ry="38" fill="#c98a1d" /><circle cx="150" cy="236" r="9" fill="#3a2400" /></g>
+          : c === 'p' ? <><rect x="187" y="92" width="9" height="140" rx="3" fill="#7a4a24" /><rect x="168" y="76" width="46" height="24" rx="6" fill="#9a97b5" /></>
+          : <rect x="186" y="96" width="9" height="100" rx="3" fill="#8a6a3b" />}
       </g>
     );
   }
   return (
-    <g className={cn}>
-      {item ? <g style={vars}><use href={`#gx-${fam}`} x="115" y="74" width="150" height="150" /></g>
-        : <rect x="186" y="96" width="9" height="100" rx="3" fill="#8a6a3b" />}
+    <g className={cn} style={vars}>
+      {weaponArt(c, tier)}
+      {attack && c === 'm' && <circle className="hf-flare" cx="67.500" cy="42" r="18" fill={GLOW[item.rarity]} />}
+      {attack && c === 'b' && <><text className="hf-note" x="40" y="150" fontSize="34" fill="#8ff0d9">♪</text><text className="hf-note n2" x="200" y="140" fontSize="30" fill="#ffe39a">♫</text></>}
     </g>
   );
 }
@@ -117,8 +105,8 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
           <rect x="110" y="110" width="20" height="26" fill="#e8b48c" />
           {P.torso}
           <Head face={face} />
-          <path className="hf-hm1" d="M88 98 Q84 54 120 50 Q156 54 152 98 L144 98 L142 78 H98 L96 98 Z" /><path className="hf-hm2" d="M120 50 Q156 54 152 98 L144 98 L142 78 H120 Z" /><rect className="hf-hm2" x="118" y="70" width="5" height="24" rx="2" />
-          {crown ? <path d="M92 60 L96 40 L108 54 L120 32 L132 54 L144 40 L148 60Z" fill={PAL[crown.rarity]!.m1} /> : HT >= 1 && <path className="hf-plume" d="M120 50 Q142 24 174 34 Q154 40 144 62 Z" fill={hg} />}
+          {headgear('w', HT, hg)}
+          {crown && <path d="M92 60 L96 40 L108 54 L120 32 L132 54 L144 40 L148 60Z" fill={PAL[crown.rarity]!.m1} />}
           {P.shoulders}
           <path className="hf-ar2" d="M80 140 L58 186 L76 196 L96 150 Z" /><circle cx="58" cy="196" r="9" fill={SKIN} />
         </g>
@@ -139,10 +127,7 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
           <g className="hf-sway">{P.torso}</g>
           <rect x="110" y="112" width="20" height="20" fill="#e8b48c" />
           <Head face={face} hair={<path d="M94 100 Q92 78 120 76 Q148 78 146 100 Q138 88 120 88 Q102 88 94 100Z" fill="#6b3b22" />} />
-          <ellipse className="hf-hm2" cx="120" cy="76" rx="48" ry="10" />
-          <path className="hf-hm1" d="M86 76 Q100 46 114 20 Q122 2 140 8 Q130 12 130 26 Q132 54 154 76 Z" />
-          <path d="M92 68 Q120 78 148 68 L151 76 Q120 87 89 76Z" fill="#f2c46b" />
-          <path d="M118 36 l2.600 7.400 7.400 2.600-7.400 2.600-2.600 7.400-2.600-7.400-7.400-2.600 7.400-2.600z" fill={helm ? hg : '#ffe39a'} />
+          {headgear('m', HT, hg)}
           {crown && <path d="M96 70 L100 52 L110 64 L120 46 L130 64 L140 52 L144 70Z" fill={PAL[crown.rarity]!.m1} />}
           {P.shoulders}
         </g>
@@ -162,9 +147,7 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
           <rect x="110" y="110" width="20" height="22" fill="#e8b48c" />
           {P.torso}
           <Head face={face} hair={<><path d="M93 96 Q88 66 120 64 Q152 66 147 96 Q146 78 120 76 Q96 78 93 96Z" fill="#c0613a" /><path d="M93 96 Q86 112 92 124 Q98 112 96 98Z" fill="#c0613a" /><path d="M147 96 Q154 112 148 124 Q142 112 144 98Z" fill="#c0613a" /></>} />
-          <ellipse className="hf-hm2" cx="118" cy="68" rx="36" ry="14" transform="rotate(-12 118 68)" />
-          <path className="hf-hm1" d="M86 78 Q116 90 148 70 L150 78 Q118 98 84 86Z" />
-          <path className="hf-plume" d="M142 62 Q180 36 196 6 Q192 44 154 76 Z" fill={helm ? hg : '#f2c46b'} />
+          {headgear('b', HT, hg)}
           {crown && <path d="M96 66 L100 48 L110 60 L120 42 L130 60 L140 48 L144 66Z" fill={PAL[crown.rarity]!.m1} />}
           {P.shoulders}
         </g>
@@ -185,10 +168,8 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
           <rect x="110" y="110" width="20" height="26" fill="#e8b48c" />
           {P.torso}
           <Head face={face} />
-          <path className="hf-hm1" d="M88 98 Q84 54 120 50 Q156 54 152 98 L144 98 L142 78 H98 L96 98 Z" /><path className="hf-hm2" d="M120 50 Q156 54 152 98 L144 98 L142 78 H120Z" />
-          <path d="M92 66 Q70 54 56 28 Q84 32 100 56Z" fill="#fff1c2" /><path d="M148 66 Q170 54 184 28 Q156 32 140 56Z" fill="#fff1c2" />
+          {headgear('p', HT, helm ? hg : '#ffe39a')}
           {crown && <path d="M96 56 L100 38 L110 50 L120 32 L130 50 L140 38 L144 56Z" fill={PAL[crown.rarity]!.m1} />}
-          <ellipse className="hf-halo" cx="120" cy="34" rx="36" ry="9" fill="none" stroke={helm ? hg : '#ffe39a'} strokeWidth="3.500" />
           {P.shoulders}
           <path className="hf-ar2" d="M80 140 L62 184 L80 192 L96 150Z" />
         </g>

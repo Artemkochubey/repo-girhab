@@ -52,4 +52,16 @@ describe('фигура героя в бою', () => {
     expect(m).toContain('M96 250 H118 L116 338 H94Z');
     expect(m).toContain('hf-bt1');
   });
+  it('шлем и оружие у каждого класса свои, а вид меняется с редкостью', () => {
+    const strip = (x: string) => x.replace(/--[a-z0-9]+:#[0-9a-f]{6}/gi, '').replace(/fill="#[0-9a-f]{6}"/gi, '');
+    for (const c of ['w', 'm', 'b', 'p'] as const) {
+      const helms = new Set(['common', 'rare', 'epic', 'legend'].map((r) => strip(draw(c, { helm: `helm-${r}` }))));
+      expect(helms.size, `шлем ${c}`).toBe(4);
+      const weapons = new Set(['common', 'rare', 'epic', 'legend'].map((r) => strip(draw(c, { weapon: `sword-${r}` }))));
+      expect(weapons.size, `оружие ${c}`).toBe(4);
+    }
+    for (const r of ['common', 'legend']) {
+      expect(new Set((['w', 'm', 'b', 'p'] as const).map((c) => draw(c, { weapon: `sword-${r}` }))).size).toBe(4);
+    }
+  });
 });
