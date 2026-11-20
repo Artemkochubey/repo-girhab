@@ -247,3 +247,11 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 @keyframes lunge-up { 0% { transform: translateY(0); } 35% { transform: translateY(-14px); } 100% { transform: translateY(0); } }
 @keyframes victory-pop { 0% { opacity: 0; transform: scale(.3); } 100% { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .scene .dmg-float, .scene .slash, .scene .kill-burst line, .scene .kill-text, .scene .enemy.hurt, .scene .boss-hurt, .scene .scene-hero.hit, .scene .lunge-up, .scene .victory-pop { animation: none; } .scene .slash { opacity: 0; } .scene .dmg-float { opacity: 1; } }
+
+/* Правила */
+.rules-toc { display: flex; flex-wrap: wrap; gap: 6px; } .rules-toc a { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: .9rem; text-decoration: none; color: var(--text); }
+.rules-sec { scroll-margin-top: 150px; } .rules-sec summary { cursor: pointer; display: grid; gap: 2px; list-style: none; } .rules-sec summary::-webkit-details-marker { display: none; } .rules-sec summary h2 { font-size: 1.15rem; }
+.rules-body { display: grid; gap: 10px; margin-top: 10px; } .rules-body p { margin: 0; } .rules-list { margin: 0; padding-left: 1.2rem; display: grid; gap: 6px; }
+.rules-table-wrap { overflow-x: auto; } .rules-table { border-collapse: collapse; width: 100%; font-size: .9rem; } .rules-table th, .rules-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; } .rules-table th { background: var(--panel2); }
+.rules-body code { background: var(--panel2); padding: 1px 6px; border-radius: 6px; font-size: .85em; }
+@media print { .top, .toast, nav.rules-toc { display: none; } .rules-sec details { display: block; } .rules-sec details > * { display: block; } }

@@ -15,7 +15,7 @@ interface Ctx {
 const C = createContext<Ctx | null>(null);
 export const useGame = () => useContext(C)!;
 
-const NAV: readonly (readonly [string, string])[] = [['/', '🏠 Сегодня'], ['/hero', '🛡 Герой'], ['/battle', '⚔️ Бой'], ['/bag', '🎒 Сумка'], ['/body', '💪 Тело'], ['/mind', '🧠 Ум'], ['/season', '🏆 Сезон'], ['/shop', '🛍 Магазин'], ['/settings', '⚙️ Настройки']] as const;
+const NAV: readonly (readonly [string, string])[] = [['/', '🏠 Сегодня'], ['/hero', '🛡 Герой'], ['/battle', '⚔️ Бой'], ['/bag', '🎒 Сумка'], ['/body', '💪 Тело'], ['/mind', '🧠 Ум'], ['/season', '🏆 Сезон'], ['/shop', '🛍 Магазин'], ['/rules', '📖 Правила'], ['/settings', '⚙️ Настройки']] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<State | null>(null);
