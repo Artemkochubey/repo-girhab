@@ -2,6 +2,7 @@
 import { FamilyQuests } from '@/components/FamilyQuests';
 import { EveningReminder } from '@/components/EveningReminder';
 import { BattleCard } from '@/components/BattleCard';
+import { BossScene } from '@/components/BossScene';
 import { WeeklyGoal } from '@/components/WeeklyGoal';
 import { MvpCard } from '@/components/MvpCard';
 import { QuestsBlock } from '@/components/Quests';
@@ -70,6 +71,7 @@ export default function Today() {
 
       <Section title={`${b.boss.emoji} Босс недели: ${b.boss.name}`}>
         <Bar value={Math.max(0, b.hp - b.damage)} max={b.hp} color="var(--danger)" label={`${Math.max(0, b.hp - b.damage)} / ${b.hp} HP`} />
+        <BossScene boss={b.boss} hp={b.hp} damage={b.damage} defeated={b.defeated} party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, damage: b.byMember[m.id] ?? 0 }))} meId={s.me} />
         <p className="muted">{b.defeated ? '🏆 Босс повержен!' : 'Вся семья бьёт босса своими очками.'}</p>
       </Section>
     </>

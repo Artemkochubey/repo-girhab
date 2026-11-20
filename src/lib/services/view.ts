@@ -19,7 +19,9 @@ const summary = (raw: Raw, fam: Family) =>
     const st = fam.members.get(m.id)!;
     return { id: m.id, name: m.name, emoji: m.emoji, color: m.color, isParent: m.isParent, goal: m.goal, superGoal: m.superGoal,
       badges: st.achievements.filter((a) => a.earnedOn).length, xp: st.xp, level: st.level, cls: st.hero.cls, sub: st.hero.sub, pointsToday: st.days.get(fam.today)?.total ?? 0,
-      damageThisWeek: fam.boss.byMember[m.id] ?? 0 };
+      damageThisWeek: fam.boss.byMember[m.id] ?? 0,
+      // что надето (id предмета по слотам): для фигур героев в боях
+      look: Object.fromEntries(st.equipped.map((e) => [e.item.slot, e.item.id])) as Record<string, string> };
   });
 
 const RADAR = [

@@ -44,6 +44,10 @@ export interface LiveBattleDto {
 export interface GearItemDto { id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; name: string; emoji: string; text: string }
 export interface GearBonusDto { dmg: number; dmgDomain: Record<DomainId, number>; guard: number; hordeHp: number; weak: number; heal: number; streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number }
 
+/** Что надето на герое (id предмета по слотам) по данным экрана героя. */
+export const lookOf = (g: { items: { key: string; itemId: string }[]; slots: Record<string, string | null> }): Record<string, string | null> =>
+  Object.fromEntries(Object.entries(g.slots).map(([sl, k]) => [sl, g.items.find((x) => x.key === k)?.itemId ?? null]));
+
 export interface State {
   season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
   familyQuests: FamilyQuestDto[];
@@ -51,7 +55,7 @@ export interface State {
   shop: { items: ShopItemDto[]; allItems: ShopItemDto[]; purchases: PurchaseDto[] };
   today: string; pinSet: boolean; parent: boolean; me: number | null;
   config: { minutes: number; superMinutes: number; timezone: string; reminderHour: number };
-  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number }[];
+  members: { id: number; name: string; emoji: string; color: string; isParent: boolean; goal: number; superGoal: number; badges: number; xp: number; level: number; cls: string | null; sub: string | null; pointsToday: number; damageThisWeek: number; look: Record<string, string> }[];
   boss: { weekStart: string; hp: number; damage: number; defeated: boolean; finished: boolean; byMember: Record<number, number>; mvp: number | null; boss: { id: number; name: string; emoji: string; weak: readonly string[] } };
   admin: null | {
     pending: { memberId: number; date: string; index: number; t: string; xp: number }[];

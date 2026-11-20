@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { DOMAIN_INFO } from '@/lib/game/gear';
 import { Bar, Section } from './ui';
 import { useGame } from './Shell';
+import { BattleScene } from './BattleScene';
+import { lookOf } from '@/lib/client';
 
 /** «Сражение дня» на экране «Сегодня»: орда, три волны, здоровье героя и подсказка, куда бить. */
 export function BattleCard() {
@@ -12,9 +14,11 @@ export function BattleCard() {
   if (date !== s.today) return null;
   const f = l.fight;
   const nextWave = f.waves.find((w) => !w.cleared);
+  const me = s.members.find((m) => m.id === s.me)!;
   const verdict = f.outcome === 'victory' ? '🏆 Орда разбита!' : f.outcome === 'held' ? '🛡 Отбились: ещё одна волна' : `⚔️ Волн отбито: ${f.cleared} из 3`;
   return (
     <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<Link className="btn ghost sm" href="/battle">Подробнее</Link>}>
+      <BattleScene look={lookOf(s.detail!.gear)} color={me.color} emoji={me.emoji} name={me.name} live={l} />
       <div className="waves">
         {f.waves.map((w, i) => (
           <div key={i} className={`wave ${w.cleared ? 'done' : w === nextWave ? 'now' : ''}`}>

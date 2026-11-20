@@ -58,3 +58,5 @@
 .tv-remind div { display: flex; flex-wrap: wrap; gap: 22px; } .tv-remind b { color: #ffd24a; }
 
 .tv-goal { margin-top: 8px; display: grid; gap: 4px; font-size: .62em; color: #d7cffb; } .tv-goal.done { color: #8be3a3; } .tv-goal .tv-pts { height: 14px; }
+
+.tv-boss .scene.scene-tv { margin: 12px auto 0; display: block; height: 44vh; width: auto; max-width: 100%; aspect-ratio: 360 / 270; }

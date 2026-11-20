@@ -12,7 +12,7 @@ import { buildSeasons, type SeasonsResult } from '../game/seasons';
 import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/artifacts';
 import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
 import { MAX_HP, liveBattle, simulate, type BattleRow, type LiveBattle } from '../game/battle';
-import { BOSS_DROP, deriveGear, gearBonus, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
+import { BOSS_DROP, deriveGear, domainOf, gearBonus, resolveEquipped, resolveGearKey, type GearBonus, type GearOwned } from '../game/gear';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
@@ -66,6 +66,7 @@ export interface MemberState {
   battle: { live: LiveBattle; hp: number; streak: number; rows: BattleRow[]; xp: number };
   gear: GearOwned[];
   gearBonus: GearBonus;
+  equipped: ReturnType<typeof resolveEquipped>;   // надетое с датами получения: для урона по боссу
   goals: { current: GoalState | null; history: GoalState[]; xp: number; chests: number; hardWeeks: string[] };
 }
 
@@ -210,7 +211,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
-      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb,
+      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [], gear: [], gearBonus: gb, equipped: resolveEquipped(raw.gearEquipped.filter((e) => e.memberId === m.id), { battles: myBattles, chests: raw.chestsOpened.filter((c) => c.memberId === m.id).map((c) => ({ n: c.n, date: c.date ?? '', gear: c.gear ?? null })) }),
       battle: { live, hp: sim.hp, streak: sim.streak, rows: sim.rows, xp: battleXp },
       goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
     });
@@ -221,6 +222,7 @@ export function buildFamily(raw: Raw, today: string): Family {
   const firstDate = raw.members.map((m) => todayIn(tz, new Date(m.createdAt))).sort()[0] ?? today;
   const bossHistory: BossWeek[] = [];
   const bossChests = new Map<number, number>();
+  const wonWeekEnds = new Set<string>();   // воскресенья недель, в которых босс побеждён: от них зависит снаряжение за боссов
   const curWeek = weekStart(today);
   for (let w = weekStart(firstDate); w <= curWeek; w = addDays(w, 7)) {
     let parts = raw.members.filter((m) => todayIn(tz, new Date(m.createdAt)) < w);
@@ -230,23 +232,32 @@ export function buildFamily(raw: Raw, today: string): Family {
     const byMember: Record<number, number> = {};
     let total = 0, weakExtra = 0;
     for (const m of parts) {
-      let sum = 0, weakPts = 0;
+      let sum = 0, weakPts = 0, domainExtra = 0;
+      // снаряжение: оружие и бонусы к урону действуют на дни недели, если предмет получен раньше этой недели
+      // (предметы за боссов считаются, только если та победа настоящая): так бонус не зависит от собственной победы
+      const gx = gearBonus((members.get(m.id)?.equipped ?? [])
+        .filter((e) => e.date < w && (e.source !== 'boss' || (!!raw.battleSince && e.date >= raw.battleSince && wonWeekEnds.has(e.date))))
+        .map((e) => e.item));
       for (const d of dateRange(w, addDays(w, 6))) {
         const dc = members.get(m.id)?.days.get(d);
         if (!dc) continue;
         sum += dc.total;
-        for (const [s, v] of Object.entries(dc.bySphere)) if (weak.has(s)) weakPts += v ?? 0;
+        for (const [s, v] of Object.entries(dc.bySphere)) {
+          if (weak.has(s)) weakPts += v ?? 0;
+          const dom = domainOf(s);
+          if (dom) domainExtra += (v ?? 0) * gx.dmgDomain[dom];
+        }
       }
       const bb = bossBonuses(members.get(m.id)?.hero.talents ?? [], members.get(m.id)?.hero.cls ?? null);
-      byMember[m.id] = Math.round(sum * (1 + bb.boss)); total += byMember[m.id];
-      weakExtra += weakPts * (WEAK_BONUS + bb.weak);
+      byMember[m.id] = Math.round(sum * (1 + bb.boss + gx.dmg) + domainExtra); total += byMember[m.id];
+      weakExtra += weakPts * (WEAK_BONUS + bb.weak + gx.weak);
     }
     const hp = bossHp(parts.map((m) => m.goal));
     const damage = Math.round(total + weakExtra);
     const finished = w < curWeek;
     const defeated = damage >= hp;
     const res = defeated ? bossRewards(byMember) : { chests: {}, mvp: null };
-    if (defeated && finished) for (const [id, n] of Object.entries(res.chests)) bossChests.set(+id, (bossChests.get(+id) ?? 0) + n);
+    if (defeated && finished) { wonWeekEnds.add(addDays(w, 6)); for (const [id, n] of Object.entries(res.chests)) bossChests.set(+id, (bossChests.get(+id) ?? 0) + n); }
     bossHistory.push({ weekStart: w, bossId: boss.id, hp, damage, defeated, finished, byMember, mvp: res.mvp, participants: parts.map((m) => m.id) });
   }
 

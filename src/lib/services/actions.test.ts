@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import * as s from '../db/schema';
 import { HttpError, runAction, type Ctx } from './actions';
 import { loadFamily } from './load';
-import { adminView, memberDetail } from './view';
+import { adminView, memberDetail, tvState } from './view';
 
 const NOW = new Date('2026-11-19T05:00:00Z'); // 12:00 в Новосибирске
 let db: Db;
@@ -269,6 +269,8 @@ describe('действия', () => {
     runAction(db, kid, 'equipGear', { key: 'chest:2' });                // заменяет предыдущий меч
     expect(detail().gear.slots.weapon).toBe('chest:2');
     expect(detail().gear.bonus.dmg).toBeCloseTo(0.12);
+    const { raw: r0, family: f0 } = loadFamily(db, NOW);
+    expect(tvState(r0, f0).members.find((m) => m.id === 2)!.look).toEqual({ weapon: 'sword-epic' });   // для фигур героев в бою с боссом
     runAction(db, kid, 'equipGear', { key: 'chest:3' });
     expect(detail().gear.slots.armor).toBe('chest:3');
     expect(detail().gear.bonus.guard).toBeCloseTo(0.35);

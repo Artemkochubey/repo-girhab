@@ -5,6 +5,7 @@ import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { hourIn } from '@/lib/clock';
+import { BossScene } from '@/components/BossScene';
 import { seasonName } from '@/lib/game/seasons';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import './tv.css';
@@ -17,8 +18,8 @@ interface Tv {
   battles: Record<number, { horde: string; emoji: string; cleared: number; hp: number; maxHp: number; outcome: string }>;
   goals: Record<number, { title: string; emoji: string; progress: number; target: number; done: boolean; manual: boolean; tier: string } | null>;
   season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
-  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
-  boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
+  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string> }[];
+  boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string; weak: readonly string[] } };
   record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
   quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
 }
@@ -78,31 +79,17 @@ export default function TvPage() {
       <div className="tv-top">
         <div className="tv-left">
       <section className="tv-boss">
-        <div className="tv-boss-emoji">{boss.defeated ? '🏆' : boss.boss.emoji}</div>
         <div className="tv-boss-main">
           <h1>{boss.defeated ? `${boss.boss.name} повержен!` : `Босс недели: ${boss.boss.name}`}</h1>
           <div className="tv-hp" role="progressbar" aria-valuenow={hpLeft} aria-valuemax={boss.hp}>
             <div style={{ width: `${pct}%` }} />
             <span>{hpLeft} / {boss.hp} HP</span>
           </div>
-          <div className="tv-dmg">
-            {d.members.map((m) => (
-              <span key={m.id} style={{ color: m.color }}>{m.emoji} {m.name}: <b>{boss.byMember[m.id] ?? 0}</b></span>
-            ))}
-          </div>
+          <BossScene tv boss={boss.boss} hp={boss.hp} damage={boss.damage} defeated={boss.defeated}
+            party={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, damage: boss.byMember[m.id] ?? 0 }))} />
           {boss.defeated && mvp && <p className="tv-mvp">⭐ MVP недели: {mvp.emoji} {mvp.name}</p>}
         </div>
       </section>
-
-      {(() => {
-        const late = d.reminderHour >= 0 && hourIn(d.timezone) >= d.reminderHour ? d.members.filter((m) => m.pointsToday < m.goal) : [];
-        return late.length > 0 && (
-          <section className="tv-remind" role="status">
-            <b>🌙 Вечер: успейте набрать норму!</b>
-            <div>{late.map((m) => <span key={m.id} style={{ color: m.color }}>{m.emoji} {m.name}: ещё <b>{m.goal - m.pointsToday}</b></span>)}</div>
-          </section>
-        );
-      })()}
 
       <section className="tv-mvp-row">
         <div className="tv-mvpi"><span>🏆</span><div><small>MVP вчера</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.yesterday?.memberId); return m ? `${m.emoji} ${m.name} +1 🎁` : 'не было'; })()}</b></div></div>

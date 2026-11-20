@@ -209,3 +209,19 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; } .slot { display: grid; gap: 3px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid #4a3d7a; border-radius: 12px; padding: 8px 10px; align-content: start; } .slot.empty { opacity: .6; border-style: dashed; }
 .gearlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .gearlist li { display: flex; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid #4a3d7a; border-radius: 12px; padding: 8px 10px; } .gearlist li.on { border-color: var(--accent); } .gi { font-size: 1.8rem; }
 .gr-common { border-left-color: #8d8aa8 !important; } .gr-rare { border-left-color: #6aa8ff !important; } .gr-epic { border-left-color: #b46bff !important; } .gr-legend { border-left-color: #ffd24a !important; box-shadow: 0 0 10px #ffd24a33; }
+
+/* Визуал боёв */
+.scene { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); background: #120d22; }
+.scene .enemy { animation: enemy-bob 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; } .scene .enemy.now { animation: enemy-bob 1.2s ease-in-out infinite; filter: drop-shadow(0 0 5px #ffb74d); }
+.scene .boss-idle { animation: boss-breathe 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.scene .beam { animation: beam-flow 1s linear infinite; }
+.scene .scene-hero { animation: hero-bob 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; } .scene .scene-hero.hit { animation: hero-bob 1.2s ease-in-out infinite; }
+.hf-swing { animation: hf-swing .9s ease-in-out infinite; } .hf-hold { transform: rotate(0deg); }
+.hero-fig { overflow: visible; }
+@keyframes enemy-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes boss-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@keyframes beam-flow { to { stroke-dashoffset: -12; } }
+@keyframes hero-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes hf-swing { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(26deg); } }
+@media (prefers-reduced-motion: reduce) { .scene .enemy, .scene .boss-idle, .scene .beam, .scene .scene-hero, .hf-swing { animation: none; } }
+.scene-wrap { display: grid; gap: 8px; }

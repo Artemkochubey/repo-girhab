@@ -1,5 +1,8 @@
 'use client';
 import { useGame } from '@/components/Shell';
+import { BattleScene } from '@/components/BattleScene';
+import { BossScene } from '@/components/BossScene';
+import { lookOf } from '@/lib/client';
 import { Bar, Section } from '@/components/ui';
 import { DOMAIN_INFO, RARITY_NAMES, SLOTS, SLOT_INFO, type Slot } from '@/lib/game/gear';
 import { HORDES, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
@@ -22,6 +25,7 @@ export default function Battle() {
       <h1 className="title">⚔️ Бой: {me.emoji} {me.name}</h1>
 
       <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
+        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} />
         <p className="muted small">Каждый день приходит новая орда из трёх волн. Урон наносят очки, которые вы и так зарабатываете. Очки слабой сферы волны бьют ×1,5. Убейте все три волны за день, чтобы победить.</p>
         <div className="waves">
           {f.waves.map((w, i) => {
@@ -39,6 +43,12 @@ export default function Battle() {
         </div>
         <p><b>{f.outcome === 'victory' ? '🏆 Победа!' : f.outcome === 'held' ? '🛡 Отбились (2 волны)' : `⚔️ Убито волн: ${f.cleared} из 3`}</b></p>
         <p className="muted small">Победа: +{l.xp} опыта, шанс снаряжения {pct(l.winChance)}{l.weekend ? ' (по выходным выше)' : ''}, +{WIN_HP + g.bonus.winHeal} здоровья. Поражение (0–1 волна): −{Math.round(LOSS_HP * (1 - Math.min(0.9, g.bonus.guard)))} здоровья. Итог подводится в конце дня.</p>
+      </Section>
+
+      <Section title={`${s.boss.boss.emoji} Босс недели: все герои вместе`}>
+        <BossScene boss={s.boss.boss} hp={s.boss.hp} damage={s.boss.damage} defeated={s.boss.defeated}
+          party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
+        <p className="muted small">Снаряжение усиливает удар по боссу: оружие и «слабость» от шлема добавляют урон, молот и подобное усиливают свою сферу. Предмет работает на недели после того дня, когда он получен.</p>
       </Section>
 
       <Section title="❤️ Здоровье героя" right={<b>🔥 побед подряд: {b.streak}</b>}>

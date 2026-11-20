@@ -180,6 +180,47 @@ describe('движок семьи', () => {
     expect(f.gearBonus.dmg).toBeCloseTo(0.12);                                   // «Эпический меч» из добычи того дня надет
     expect(f.gear.find((g) => g.key === 'battle:2026-11-17')).toMatchObject({ itemId: 'sword-epic', equipped: true });
   });
+  it('снаряжение усиливает урон по боссу, но только на недели после получения предмета', () => {
+    const mk = (equip: boolean) => {
+      const raw = base(); manualQ(raw); raw.battleSince = '2026-11-01';
+      for (const d of ['2026-11-10', '2026-11-17']) raw.workouts.push({ memberId: 1, date: d, minutes: 100 });
+      raw.chestsOpened.push({ memberId: 1, n: 1, date: '2026-11-12', rarity: 'common', reward: 'a', gear: 'sword-epic' });
+      if (equip) raw.gearEquipped.push({ memberId: 1, slot: 'weapon', key: 'chest:1' });
+      const f = buildFamily(raw, '2026-11-19');
+      const week = (ws: string) => f.bossHistory.find((w) => w.weekStart === ws)!.byMember[1]!;
+      return { before: week('2026-11-09'), after: week('2026-11-16') };
+    };
+    const off = mk(false), on = mk(true);
+    expect(on.before).toBe(off.before);                         // предмет получен 12-го: на ту неделю не действует
+    expect(on.after).toBeCloseTo(off.after * 1.12, 0);          // эпический меч: +12% урона
+    expect(on.after).toBeGreaterThan(off.after);
+  });
+  it('оружие сферы и «слабость» из снаряжения усиливают удар по боссу', () => {
+    const mk = (gear: string | null) => {
+      const raw = base(); manualQ(raw); raw.battleSince = '2026-11-01';
+      for (const d of ['2026-11-17', '2026-11-18']) raw.workouts.push({ memberId: 1, date: d, minutes: 100 });
+      if (gear) { raw.chestsOpened.push({ memberId: 1, n: 1, date: '2026-11-05', rarity: 'common', reward: 'a', gear }); raw.gearEquipped.push({ memberId: 1, slot: gear.startsWith('helm') ? 'helm' : 'weapon', key: 'chest:1' }); }
+      const f = buildFamily(raw, '2026-11-19');
+      return f.bossHistory.find((w) => w.weekStart === '2026-11-16')!.byMember[1]!;
+    };
+    const base0 = mk(null);
+    expect(mk('hammer-epic')).toBeGreaterThan(base0);            // молот: +24% очков Тела
+    expect(mk('sword-common')).toBeGreaterThan(base0);
+  });
+  it('предмет за босса действует только после той победы (она должна быть настоящей) и не влияет на неё саму', () => {
+    const mk = (won: boolean, equip = true) => {
+      const raw = base(); manualQ(raw); raw.battleSince = '2026-11-01';
+      if (won) for (const d of ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06']) raw.workouts.push({ memberId: 1, date: d, minutes: 200 });
+      raw.workouts.push({ memberId: 1, date: '2026-11-10', minutes: 100 });
+      if (equip) raw.gearEquipped.push({ memberId: 1, slot: 'weapon', key: 'boss:2026-11-08' });   // «Крепкий меч» за босса недели с 2 ноября
+      const f = buildFamily(raw, '2026-11-19');
+      return { next: f.bossHistory.find((w) => w.weekStart === '2026-11-09')!.byMember[1]!, own: f.bossHistory.find((w) => w.weekStart === '2026-11-02')!.byMember[1]! };
+    };
+    const won = mk(true), noGear = mk(true, false), lost = mk(false);
+    expect(won.next).toBeGreaterThan(noGear.next);              // меч за ту победу усиливает следующую неделю (+8%)
+    expect(won.own).toBe(noGear.own);                           // а саму победу не меняет
+    expect(lost.next).toBe(mk(false, false).next);              // победы не было: предмета нет и бонуса тоже
+  });
   it('снаряжение за победу над боссом выдаётся по ключу и только после даты старта', () => {
     const mk = (since: string | null) => {
       const raw = base(); manualQ(raw); raw.battleSince = since;

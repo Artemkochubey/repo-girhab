@@ -140,6 +140,19 @@ export function resolveGearKey(key: string, ctx: { battles: { date: string; drop
   return null;
 }
 
+/** Надетый предмет с датой получения (для боссов: бонус действует только на дни после неё). */
+export function resolveEquipped(equipped: { key: string }[], ctx: { battles: { date: string; drop: string | null }[]; chests: { n: number; date: string; gear: string | null }[] }): { key: string; item: GearItem; source: 'battle' | 'boss' | 'chest'; date: string }[] {
+  const out: { key: string; item: GearItem; source: 'battle' | 'boss' | 'chest'; date: string }[] = [];
+  for (const e of equipped) {
+    const item = resolveGearKey(e.key, ctx);
+    if (!item) continue;
+    const [kind = '', id = ''] = e.key.split(':');
+    const date = kind === 'chest' ? ctx.chests.find((c) => String(c.n) === id)?.date ?? '' : id;
+    out.push({ key: e.key, item, source: kind as 'battle' | 'boss' | 'chest', date });
+  }
+  return out;
+}
+
 export interface GearEntry { key: string; itemId: string; source: 'battle' | 'boss' | 'chest'; date: string }
 export interface GearOwned extends GearEntry { equipped: boolean }
 
