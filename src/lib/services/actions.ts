@@ -9,7 +9,7 @@ import { weekStart } from '../game/boss';
 import { questEnd, validFamilyQuest } from '../game/familyQuests';
 import { CUSTOM_EXERCISE, MUSCLE_IDS, exerciseById, isMuscleId } from '../game/muscles';
 import { canChangeClass, type Cls } from '../game/classes';
-import { pickReward, rollRarity } from '../game/chests';
+import { pickReward, pityCounters, rollChest, type Rarity } from '../game/chests';
 import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/talents';
 import { validQuestList, type QuestItem } from '../game/quests';
 import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
@@ -277,7 +277,12 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const st = loadFamily(db, now).family.members.get(memberId)!;
       if (st.chestsAvailable < 1) fail(400, 'Нет доступных сундуков');
       const rand = ctx.rand ?? Math.random;
-      let rarity = rollRarity(rand(), luckBonuses(st.hero.talents, st.hero.cls));
+      // гарантии и сундуки за боссов: счётчики берутся из истории открытий; сундуки за боссов открываются первыми
+      const history = db.select().from(s.chestOpened).where(eq(s.chestOpened.memberId, memberId)).all().sort((x, y) => x.n - y.n);
+      const pity = pityCounters(history.map((h) => h.rarity as Rarity));
+      const boss = st.bossChestsEarned - history.filter((h) => h.source === 'boss').length > 0;
+      const rolled = rollChest(rand(), { ...pity, boss, luck: luckBonuses(st.hero.talents, st.hero.cls) });
+      let rarity = rolled.rarity;
       // «Талисман удачи» (активированный): этот сундук будет не ниже редкого, талисман тратится
       const talisman = db.select().from(s.artifactUse).where(and(eq(s.artifactUse.memberId, memberId), eq(s.artifactUse.kind, 'luck'), eq(s.artifactUse.status, 'active'))).orderBy(s.artifactUse.id).get();
       if (talisman) {
@@ -288,8 +293,8 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       let reward = pickReward(rarity, pools, rand());
       if (rand() < doubleChance(st.hero.talents, st.hero.cls)) reward = `${reward} + ${pickReward(rarity, pools, rand())} (двойная добыча!)`;
       const artifact = rollChestArtifact(rarity, rand(), rand());
-      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact }).run();
-      return { rarity, reward, artifact, talisman: !!talisman };
+      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact, source: boss ? 'boss' : 'normal' }).run();
+      return { rarity, reward, artifact, talisman: !!talisman, boss, why: rolled.why };
     }
 
     case 'useArtifact': {

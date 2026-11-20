@@ -25,7 +25,7 @@ export interface Raw {
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null }[];
+  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null; source?: string }[];
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;
@@ -54,6 +54,7 @@ export interface MemberState {
   days: Map<string, DayCalc>;
   questDays: number;
   chestsEarned: number; chestsOpened: number; chestsAvailable: number;
+  bossChestsEarned: number;                // сундуки за победы над боссом: открываются первыми, не ниже редкого
   spentPoints: number; spentChests: number; balance: number;
   achievements: AchievementState[];
   artifacts: ArtifactState[];
@@ -183,7 +184,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, cls),
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
-      chestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
+      chestsEarned: 0, bossChestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
       spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [],
       goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
     });
@@ -252,6 +253,7 @@ export function buildFamily(raw: Raw, today: string): Family {
   const seasons = buildSeasons(today, raw.seasonSince, raw.members.map((m) => ({ id: m.id, goal: m.goal, createdOn: createdOf.get(m.id)! })), (id, d) => members.get(id)?.days.get(d)?.total ?? 0);
 
   for (const st of members.values()) {
+    st.bossChestsEarned = bossChests.get(st.id) ?? 0;
     st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0) + st.goals.chests
       + raw.artifactUse.filter((u) => u.memberId === st.id && u.kind === 'key' && u.status === 'used').length);   // «Ключ сундука» = +1 сундук
     // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.

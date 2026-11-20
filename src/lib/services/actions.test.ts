@@ -75,7 +75,7 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'openChest', {}))?.status).toBe(400);
     runAction(db, kid, 'addWorkout', { minutes: 200 });
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
-    expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, talisman: false });
+    expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, talisman: false, boss: false, why: null });
     const { raw, family } = loadFamily(db, NOW);
     expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
@@ -221,6 +221,32 @@ describe('действия', () => {
     expect(detail().chestLog[0]).toMatchObject({ artifact: 'shield' });
     expect(err(() => runAction(db, kid, 'useArtifact', { memberId: 1, key: 'chest:1' }))?.status).toBe(403);
     expect(runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { artifact: string | null }).toMatchObject({ artifact: null });
+  });
+  it('гарантия: 10-й сундук без редкого — редкий, 35-й без легендарного — легендарный', () => {
+    // сундуков в запасе: «Ключи» дают по +1 сундуку
+    for (let i = 0; i < 60; i++) db.insert(s.artifactUse).values({ memberId: 2, key: `chest:k${i}`, kind: 'key', status: 'used', usedOn: '2026-11-10' }).run();
+    const open = () => runAction(db, { ...kid, rand: () => 0.99 }, 'openChest', {}) as { rarity: string; why: string | null };
+    for (let n = 1; n <= 9; n++) db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10' }).run();
+    expect(detail().pity).toMatchObject({ untilRare: 0 });                          // следующий сундук гарантированно редкий
+    expect(open()).toMatchObject({ rarity: 'rare', why: 'pityRare' });
+    expect(detail().pity.untilRare).toBe(9);                                         // счётчик сбросился
+    expect(open()).toMatchObject({ rarity: 'common', why: null });
+    // легендарный: до 35-го сундука без легендарного
+    for (let n = 12; n <= 34; n++) db.insert(s.chestOpened).values({ memberId: 2, n, rarity: n % 5 === 0 ? 'rare' : 'common', reward: 'a', date: '2026-11-10' }).run();
+    expect(detail().pity.untilLegend).toBe(0);
+    expect(open()).toMatchObject({ rarity: 'legend', why: 'pityLegend' });
+    expect(detail().pity.untilLegend).toBe(34);
+  });
+  it('сундуки за победу над боссом открываются первыми и не ниже редкого', () => {
+    for (const d of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']) runAction(db, dad, 'addWorkout', { memberId: 2, date: d, minutes: 200 });
+    const f = loadFamily(db, NOW).family.members.get(2)!;
+    expect(f.bossChestsEarned).toBeGreaterThanOrEqual(1);
+    expect(detail().pity.bossWaiting).toBeGreaterThanOrEqual(1);
+    const r = runAction(db, { ...kid, rand: () => 0.99 }, 'openChest', {}) as { rarity: string; boss: boolean; why: string };
+    expect(r).toMatchObject({ boss: true, why: 'boss', rarity: 'rare' });            // rand 0.99 — не легендарный, но и не обычный
+    expect(db.select().from(s.chestOpened).all()[0].source).toBe('boss');
+    const after = detail().pity.bossWaiting;
+    expect(after).toBe(Math.max(0, f.bossChestsEarned - 1));
   });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];

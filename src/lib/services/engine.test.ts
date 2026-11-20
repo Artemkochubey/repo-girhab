@@ -161,6 +161,8 @@ describe('движок семьи', () => {
     expect(past.defeated).toBe(true);
     expect(past.mvp).toBe(1);
     expect(f.members.get(1)!.chestsEarned).toBeGreaterThanOrEqual(2);
+    expect(f.members.get(1)!.bossChestsEarned).toBe(2);        // 1 за урон (≥10%) и 1 за MVP недели: открываются первыми, не ниже редкого
+    expect(f.members.get(2)!.bossChestsEarned).toBe(0);
   });
 
   it('кошелёк: траты не снижают уровень, отмена возвращает цену', () => {

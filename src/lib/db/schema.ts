@@ -122,6 +122,8 @@ export const chestOpened = sqliteTable('chest_opened', {
   deliveredOn: text('delivered_on'),
   // артефакт, найденный в этом сундуке (вид), или null
   artifact: text('artifact'),
+  // normal — обычный сундук, boss — сундук за победу над боссом (открывается первым, не ниже редкого)
+  source: text('source', { enum: ['normal', 'boss'] }).notNull().default('normal'),
 }, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
 
 export const bossWeek = sqliteTable('boss_week', {

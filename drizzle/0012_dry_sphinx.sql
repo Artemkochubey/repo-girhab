@@ -1,0 +1,1 @@
+ALTER TABLE `chest_opened` ADD `source` text DEFAULT 'normal' NOT NULL;

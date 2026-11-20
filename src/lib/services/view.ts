@@ -1,6 +1,7 @@
 import { shopDiscount } from '../game/talents';
 import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
+import { PITY, pityCounters, type Rarity } from '../game/chests';
 import { basePoints } from '../game/points';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
 import { BOSSES } from '../game/boss';
@@ -81,6 +82,13 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     shopDiscount: shopDiscount(st.hero.talents, st.hero.cls),
     mvpWins: fam.mvp.wins[st.id] ?? 0,
     chests: { earned: st.chestsEarned, opened: st.chestsOpened, available: st.chestsAvailable },
+    // гарантии: сколько сундуков осталось до гарантированного редкого и легендарного, сколько сундуков за босса ждут
+    pity: (() => {
+      const mine = raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => a.n - b.n);
+      const c = pityCounters(mine.map((x) => (x.rarity ?? 'common') as Rarity));
+      const bossOpened = mine.filter((x) => x.source === 'boss').length;
+      return { untilRare: Math.max(0, PITY.rare - 1 - c.sinceRare), untilLegend: Math.max(0, PITY.legend - 1 - c.sinceLegend), bossWaiting: Math.max(0, Math.min(st.bossChestsEarned - bossOpened, st.chestsAvailable)) };
+    })(),
     // «Моя сумка»: все невыданные призы и последние выданные
     chestLog: (() => {
       const mine = raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => b.n - a.n);

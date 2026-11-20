@@ -58,6 +58,7 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
+    pity: { untilRare: number; untilLegend: number; bossWaiting: number };
     goal: { weekStart: string; weekEnd: string; canChoose: boolean; current: GoalStateDto | null; last: GoalStateDto | null; options: GoalOptionDto[] };
     artifacts: ArtifactDto[];
     artifactDates: { shield: string[]; doubler: string[] };
