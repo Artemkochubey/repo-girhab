@@ -257,3 +257,82 @@ input, textarea, select { background: rgba(8, 5, 28, .7); border-color: rgba(200
   .loadout.legend .lslot.lr-legend .lslot-box { animation: m-pulse 3.4s ease-in-out infinite; }
 }
 .setcard a.btn { text-decoration: none; text-align: center; display: grid; place-items: center; }
+
+/* ========== Режим «Малыш» ========== */
+.kid-home { gap: 16px; }
+.kid-top { padding: 14px; border-radius: 28px; background: linear-gradient(160deg, rgba(150, 100, 255, .3), rgba(255, 255, 255, .05) 60%); border: 1px solid rgba(200, 170, 255, .4); box-shadow: 0 18px 50px -22px rgba(120, 70, 255, .7); }
+.kid-fig { flex: none; padding: 6px 6px 0; border-radius: 80px 80px 18px 18px; background: radial-gradient(70% 60% at 50% 40%, rgba(255, 207, 90, .28), transparent 70%), rgba(255, 255, 255, .05); }
+.kid-say { position: relative; padding: 12px 14px; border-radius: 20px; background: rgba(0, 0, 0, .28); }
+.kid-say p { font-family: var(--serif); font-size: 1.4rem; line-height: 1.15; font-weight: 700; }
+.kid-stars { text-align: center; }
+.kid-starrow span.on { filter: drop-shadow(0 0 8px rgba(255, 210, 90, .9)); }
+.kid-starrow span:not(.on) { opacity: .35; }
+.kid-bar { height: 26px; border-radius: 999px; }
+.kid-bar > div { box-shadow: 0 0 20px rgba(91, 227, 196, .8); background-image: linear-gradient(90deg, #3fd1b0, #8ff0d9 55%, #f2c46b); }
+.kid-reward { font-family: var(--serif); font-size: 1.6rem; color: var(--accent); }
+.kid-big { border-radius: 28px; border-width: 1px; background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)); box-shadow: 0 14px 34px -20px #000; transition: transform .15s; }
+.kid-big:active { transform: scale(.96); }
+.kid-big b { font-family: var(--serif); font-size: 1.4rem; line-height: 1; }
+.kid-big.body { border-color: rgba(255, 140, 120, .7); background: linear-gradient(160deg, rgba(232, 87, 74, .35), rgba(255, 255, 255, .03)); box-shadow: 0 14px 34px -18px rgba(232, 87, 74, .9); }
+.kid-big.mind { border-color: rgba(143, 180, 255, .7); background: linear-gradient(160deg, rgba(95, 143, 255, .35), rgba(255, 255, 255, .03)); box-shadow: 0 14px 34px -18px rgba(95, 143, 255, .9); }
+.kid-big.kind { border-color: rgba(255, 220, 130, .75); background: linear-gradient(160deg, rgba(242, 196, 107, .38), rgba(255, 255, 255, .03)); box-shadow: 0 14px 34px -18px rgba(242, 196, 107, .9); }
+.kid-big.chest.ready { border-color: var(--accent); background: linear-gradient(160deg, rgba(242, 196, 107, .45), rgba(255, 255, 255, .05)); box-shadow: 0 0 34px -4px rgba(242, 196, 107, .85); }
+.kid-big.fight { background: linear-gradient(160deg, rgba(154, 99, 255, .35), rgba(255, 255, 255, .03)); border-color: rgba(200, 170, 255, .6); }
+.kid-big.hero { background: linear-gradient(160deg, rgba(91, 227, 196, .28), rgba(255, 255, 255, .03)); border-color: rgba(143, 240, 217, .6); }
+.kid-quests h2 { font-size: 1.7rem; }
+.kid-quests li { border-radius: 18px; background: rgba(0, 0, 0, .25); }
+.kid-quests li.done { opacity: .8; text-decoration: none; } .kid-quests li.done .grow { text-decoration: line-through; opacity: .7; }
+.kid-check { width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .4); display: grid; place-items: center; font-size: 1.6rem; color: #06382f; }
+.kid-quests li.done .kid-check { background: linear-gradient(145deg, #8ff0d9, #3fd1b0); border-color: #3fd1b0; box-shadow: 0 0 16px rgba(91, 227, 196, .7); }
+.kid-tabs button, .kid-pick button { border-radius: 22px; border-width: 1px; background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)); }
+.kid-pick button.done { background: linear-gradient(160deg, rgba(91, 227, 196, .35), rgba(255, 255, 255, .04)); border-color: #3fd1b0; }
+@media (prefers-reduced-motion: no-preference) { .kid-fig { animation: m-float 5s ease-in-out infinite; } }
+
+/* ========== ТВ-режим ========== */
+.tv { font-family: var(--sans); position: relative; isolation: isolate; }
+.tv::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .85; background-image: radial-gradient(1.5px 1.5px at 40px 60px, #fff, transparent), radial-gradient(1px 1px at 200px 140px, #cfc4ff, transparent), radial-gradient(1.5px 1.5px at 420px 40px, #fff, transparent), radial-gradient(1px 1px at 640px 190px, #ffe9b0, transparent), radial-gradient(1px 1px at 90px 300px, #fff, transparent), radial-gradient(1.5px 1.5px at 520px 330px, #bfeee3, transparent); background-size: 680px 400px; }
+@media (prefers-reduced-motion: no-preference) { .tv::before { animation: m-twinkle 7s ease-in-out infinite; } }
+.tv h1, .tv h2, .tv .tv-pname, .tv .tv-clock b, .tv .tv-brand b, .tv .tv-mountain h2, .tv .tv-rec h2, .tv .tv-dmgboard h2, .tv .month-goal-tv h2, .tv .tv-days b, .tv .tv-cheer.big b { font-family: var(--serif); letter-spacing: .01em; }
+.tv h1 { font-size: 2.8rem; color: #fff1c2; text-shadow: 0 0 24px rgba(242, 196, 107, .5); }
+.tv .tv-brand b { color: var(--accent); text-shadow: 0 0 16px rgba(242, 196, 107, .45); }
+.tv .tv-clock b { font-size: 2.4rem; color: #fff1c2; }
+/* стеклянные панели */
+.tv .tv-boss, .tv .tv-mountain, .tv .tv-rec, .tv .tv-dmgboard, .tv .tv-board, .tv .tv-battle, .tv .tv-mini-boss, .tv .tv-ratingbox, .tv .month-goal-tv, .tv .tv-hero, .tv .tv-portrait, .tv .tv-fqi, .tv .tv-mvpi {
+  background: linear-gradient(160deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)); border-color: rgba(255, 255, 255, .16); border-radius: 30px; box-shadow: 0 24px 60px -34px #000;
+}
+.tv .tv-hero, .tv .tv-portrait, .tv .tv-battle { border-width: 3px; }
+.tv .tv-fqi { border-color: rgba(91, 227, 196, .55); background: linear-gradient(160deg, rgba(91, 227, 196, .16), rgba(255, 255, 255, .03)); } .tv .tv-fqi.done { background: linear-gradient(160deg, rgba(91, 227, 196, .3), rgba(255, 255, 255, .05)); }
+.tv .tv-mvpi { border-color: rgba(242, 196, 107, .6); background: linear-gradient(160deg, rgba(242, 196, 107, .2), rgba(255, 255, 255, .03)); }
+.tv .month-goal-tv.ok { border-color: rgba(91, 227, 196, .7); background: linear-gradient(160deg, rgba(91, 227, 196, .2), rgba(255, 255, 255, .03)); }
+.tv .tv-boss { background: linear-gradient(160deg, rgba(255, 70, 100, .2), rgba(255, 255, 255, .03)); border-color: rgba(255, 110, 130, .45); }
+.tv .tv-av { width: 1.5em; height: 1.5em; border-radius: 50%; display: grid; place-items: center; font-size: 2.6rem; background: radial-gradient(circle at 50% 35%, #4a3a9a, #1d1450); box-shadow: 0 0 0 3px rgba(242, 196, 107, .55), 0 0 22px rgba(242, 196, 107, .35); }
+.tv .tv-ticker, .tv .tv-tab { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .18); }
+.tv .tv-tab { border-width: 2px; border-radius: 20px; }
+.tv .tv-tab.cur { background: linear-gradient(135deg, rgba(154, 99, 255, .45), rgba(242, 196, 107, .28)); border-color: var(--accent); box-shadow: 0 0 22px -4px rgba(242, 196, 107, .7); }
+.tv .tv-tab.auto.on { background: rgba(91, 227, 196, .2); border-color: #3fd1b0; }
+.tv .tv-ticker { border-radius: 999px; }
+/* полосы: светящиеся */
+.tv .tv-hp { background: rgba(255, 255, 255, .1); border: 0; box-shadow: inset 0 2px 5px rgba(0, 0, 0, .5); }
+.tv .tv-hp > div { background: linear-gradient(90deg, #c0132f, #ff5a7a); box-shadow: 0 0 22px rgba(255, 90, 122, .75); }
+.tv .tv-pts { background: rgba(255, 255, 255, .1); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .45); } .tv .tv-pts > div { box-shadow: 0 0 16px currentColor; }
+.tv .tv-timer { background: rgba(255, 255, 255, .08); } .tv .tv-timer i { background: linear-gradient(90deg, #8ff0d9, #f2c46b); box-shadow: 0 0 12px rgba(242, 196, 107, .8); }
+.tv .tv-ring::before { background: #120c33; }
+/* квесты */
+.tv .tv-q { background: rgba(0, 0, 0, .28); border-width: 3px; border-color: rgba(255, 255, 255, .16); border-radius: 22px; }
+.tv .tv-q b { color: var(--accent); }
+.tv .tv-q.done { background: linear-gradient(160deg, rgba(91, 227, 196, .28), rgba(0, 0, 0, .2)); border-color: #3fd1b0; }
+.tv .tv-q.wait { border-color: var(--accent); }
+.tv .tv-who, .tv .tv-b { background: rgba(255, 255, 255, .08); border-radius: 22px; } .tv .tv-b { border-color: rgba(255, 255, 255, .22); } .tv .tv-b.done { background: rgba(91, 227, 196, .28); border-color: #3fd1b0; }
+.tv .tv-rec-row { background: rgba(0, 0, 0, .25); border-radius: 20px; }
+.tv .tv-boardrow { background: rgba(0, 0, 0, .25); border-radius: 22px; }
+.tv .tv-days { background: linear-gradient(160deg, rgba(242, 196, 107, .28), rgba(255, 255, 255, .04)); border-color: rgba(242, 196, 107, .7); border-radius: 30px; box-shadow: 0 0 40px -10px rgba(242, 196, 107, .7); }
+.tv .tv-days b { color: #fff1c2; }
+.tv .tv-remind { background: linear-gradient(135deg, rgba(154, 99, 255, .35), rgba(255, 255, 255, .05)); border-color: rgba(200, 170, 255, .5); border-radius: 24px; }
+.tv .tv-note { background: rgba(91, 227, 196, .2); border-color: #3fd1b0; }
+.tv .scene { border-radius: 24px; border-color: rgba(160, 190, 255, .35); }
+.tv .rating-tv .rating-table tbody tr { background: rgba(0, 0, 0, .25); }
+/* поздравления */
+.tv .tv-cheer.big { background: radial-gradient(circle at 50% 40%, rgba(154, 99, 255, .6), rgba(242, 196, 107, .15) 40%, rgba(10, 7, 20, .94) 75%); }
+.tv .tv-cheer.big b { font-size: 3.4rem; color: #fff1c2; text-shadow: 0 0 30px rgba(242, 196, 107, .8); }
+.tv .tv-cheer.small { background: linear-gradient(135deg, rgba(91, 227, 196, .3), rgba(24, 16, 64, .92)); border-color: #3fd1b0; border-radius: 22px; box-shadow: 0 0 30px -6px rgba(91, 227, 196, .7); }
+.tv .tv-foot { color: var(--muted); }

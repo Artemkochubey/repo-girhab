@@ -26,7 +26,7 @@ export function KidHome() {
   return (
     <div className="kid-home">
       <section className="kid-top">
-        <HeroFigure look={lookOf(d.gear)} color={me.color} emoji={me.emoji} face={me.face} cls={d.hero.cls} size={150} />
+        <div className="kid-fig"><HeroFigure look={lookOf(d.gear)} color={me.color} emoji={me.emoji} face={me.face} cls={d.hero.cls} size={150} /></div>
         <div className="kid-say">
           <p>{say}</p>
           {canSpeak() && <button className="btn" onClick={() => speak(say)} aria-label="Прочитать вслух">🔊 Послушать</button>}
