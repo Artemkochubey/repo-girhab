@@ -1,60 +1,145 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
-import { ClimbRoster } from '@/components/ClimbRoster';
-import { MountainClimb } from '@/components/MountainClimb';
-import { rankFor } from '@/lib/game/ranks';
 import { hourIn } from '@/lib/clock';
-import { BossScene } from '@/components/BossScene';
-import { seasonName } from '@/lib/game/seasons';
-import { STUDY_KINDS } from '@/lib/db/schema';
+import { TV_AUTO, TV_INTERVALS, TV_SLIDES, dayPhase, isSlide, stepSlide, tvEvents, tvHighlights, type TvEvent, type TvSlideId } from '@/lib/tvLogic';
+import type { Tv } from '@/lib/tvTypes';
+import { BattlesSlide, BossSlide, HeroesSlide, MountainSlide, OverviewSlide, QuestsSlide, RecordSlide, SeasonSlide } from './slides';
 import './tv.css';
 
-interface TvFq { id: number; title: string; description: string; xp: number; kind: 'manual' | 'points'; target: number; period: 'day' | 'week'; done: boolean; pending: boolean; progress: number }
-interface Tv {
-  familyQuests: TvFq[];
-  mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
-  today: string; timezone: string; reminderHour: number;
-  battles: Record<number, { horde: string; emoji: string; cleared: number; hp: number; maxHp: number; outcome: string }>;
-  goals: Record<number, { title: string; emoji: string; progress: number; target: number; done: boolean; manual: boolean; tier: string } | null>;
-  season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
-  members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number; look: Record<string, string>; cls: string | null }[];
-  boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string; weak: readonly string[] } };
-  record: Record<number, { points: number; workoutMinutes: number; warmup: boolean; studyMinutes: number; studyByKind: Record<string, number>; books: number; habits: { id: number; name: string; checked: boolean }[] }>;
-  quests: { memberId: number; items: { t: string; xp: number; manual: boolean; done: boolean; pending: boolean; index: number; desc: string | null; hint: string; progress: string | null }[] }[];
-}
+const STORE = 'mr_tv';
+const SCALES = [0.8, 0.9, 1, 1.15, 1.3] as const;
+const PAUSE_MS = 45000;
+
+interface Prefs { auto: boolean; slide: TvSlideId; interval: number; scale: number }
+const DEFAULTS: Prefs = { auto: true, slide: 'overview', interval: 20, scale: 1 };
+const readPrefs = (): Prefs => {
+  try {
+    const j = JSON.parse(localStorage.getItem(STORE) ?? '{}') as Partial<Prefs>;
+    return {
+      auto: j.auto !== false, slide: isSlide(j.slide) ? j.slide : DEFAULTS.slide,
+      interval: (TV_INTERVALS as readonly number[]).includes(j.interval ?? 0) ? j.interval! : DEFAULTS.interval,
+      scale: (SCALES as readonly number[]).includes(j.scale ?? 0) ? j.scale! : DEFAULTS.scale,
+    };
+  } catch { return DEFAULTS; }
+};
 
 export default function TvPage() {
   const [d, setD] = useState<Tv | null>(null);
   const [off, setOff] = useState(false);
   const [who, setWho] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
+  const [paused, setPaused] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const [tick, setTick] = useState(0);
+  const [cheer, setCheer] = useState<TvEvent | null>(null);
+  const [idle, setIdle] = useState(false);
+  const prev = useRef<Tv | null>(null);
+  const queue = useRef<TvEvent[]>([]);
+  const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setPrefs(readPrefs()); }, []);
+  const save = (p: Partial<Prefs>) => setPrefs((cur) => { const n = { ...cur, ...p }; try { localStorage.setItem(STORE, JSON.stringify(n)); } catch { /* без хранилища настройки не запомнятся */ } return n; });
+
+  // --- загрузка данных и поздравления ---
   const load = useCallback(async () => {
-    try { const r = await fetch('/api/tv', { cache: 'no-store' }); if (!r.ok) throw 0; setD(await r.json()); setOff(false); }
-    catch { setOff(true); }
+    try {
+      const r = await fetch('/api/tv', { cache: 'no-store' });
+      if (!r.ok) throw 0;
+      const next = (await r.json()) as Tv;
+      const ev = tvEvents(prev.current, next);
+      prev.current = next;
+      if (ev.length) { queue.current.push(...ev); setTick((t) => t + 1); }
+      setD(next); setOff(false);
+    } catch { setOff(true); }
   }, []);
   useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t); }, [load]);
+  useEffect(() => {
+    if (cheer || !queue.current.length) return;
+    const ev = queue.current.shift()!;
+    setCheer(ev);
+    const t = setTimeout(() => setCheer(null), ev.big ? 6000 : 3500);
+    return () => clearTimeout(t);
+  }, [cheer, tick]);
 
-  // Навигация пультом: стрелки двигают фокус между кнопками.
+  // --- часы ---
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
+  const tz = d?.timezone ?? 'Asia/Novosibirsk';
+  const hour = hourIn(tz, now);
+  const clock = useMemo(() => {
+    try {
+      return {
+        time: new Intl.DateTimeFormat('ru', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(now),
+        date: new Intl.DateTimeFormat('ru', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' }).format(now),
+      };
+    } catch { return { time: now.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }), date: '' }; }
+  }, [now, tz]);
+
+  // --- смена экранов ---
+  const list = TV_AUTO;
+  const hasData = d !== null; // данные обновляются каждые 10 с, это не должно сбрасывать таймер смены экрана
+  const slide: TvSlideId = prefs.auto && prefs.slide === 'record' ? 'overview' : prefs.slide;
+  const stopAuto = useCallback(() => { if (pauseTimer.current) clearTimeout(pauseTimer.current); setPaused(false); }, []);
+  const go = (s: TvSlideId) => { stopAuto(); save({ slide: s, auto: false }); };
+  const step = (dir: 1 | -1) => { stopAuto(); save({ slide: stepSlide(slide, dir, prefs.auto ? list : TV_SLIDES.map((x) => x.id)) }); };
+  useEffect(() => {
+    if (!prefs.auto || paused || !hasData) return;
+    const t = setTimeout(() => setPrefs((cur) => ({ ...cur, slide: stepSlide(cur.slide === 'record' ? 'overview' : cur.slide, 1, list) })), prefs.interval * 1000);
+    return () => clearTimeout(t);
+  }, [prefs.auto, prefs.slide, prefs.interval, paused, hasData, list]);
+
+  // любое действие у экрана ставит автосмену на паузу, чтобы не уйти с экрана посреди записи
+  const touch = useCallback(() => {
+    setIdle(false);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => setIdle(true), 6000);
+    if (!prefs.auto) return;
+    setPaused(true);
+    if (pauseTimer.current) clearTimeout(pauseTimer.current);
+    pauseTimer.current = setTimeout(() => setPaused(false), PAUSE_MS);
+  }, [prefs.auto]);
+  useEffect(() => { idleTimer.current = setTimeout(() => setIdle(true), 6000); return () => { if (idleTimer.current) clearTimeout(idleTimer.current); if (pauseTimer.current) clearTimeout(pauseTimer.current); }; }, []);
+
+  // --- пульт: стрелки двигают фокус, PageUp/PageDown и N/P листают экраны, пробел переключает автосмену ---
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      touch();
+      if (e.key === 'PageDown' || e.key === 'n' || e.key === 'N' || e.key === 'MediaTrackNext') { step(1); e.preventDefault(); return; }
+      if (e.key === 'PageUp' || e.key === 'p' || e.key === 'P' || e.key === 'MediaTrackPrevious') { step(-1); e.preventDefault(); return; }
+      if (e.key === ' ' && !(document.activeElement instanceof HTMLButtonElement)) { save({ auto: !prefs.auto }); e.preventDefault(); return; }
       const keys: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
       if (!(e.key in keys)) return;
       const els = [...document.querySelectorAll<HTMLButtonElement>('button[data-tv]:not(:disabled)')];
       if (!els.length) return;
       const i = els.indexOf(document.activeElement as HTMLButtonElement);
-      els[(i + keys[e.key] + els.length) % els.length].focus();
+      els[(i + keys[e.key]! + els.length) % els.length]!.focus();
       e.preventDefault();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', touch);
+    window.addEventListener('pointermove', touch);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', touch); window.removeEventListener('pointermove', touch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [touch, slide, prefs.auto]);
+
+  // не давать экрану гаснуть
+  useEffect(() => {
+    let lock: { release: () => Promise<void> } | null = null;
+    const get = async () => { try { lock = await (navigator as unknown as { wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen') ?? null; } catch { /* не поддерживается */ } };
+    get();
+    const vis = () => { if (document.visibilityState === 'visible') get(); };
+    document.addEventListener('visibilitychange', vis);
+    return () => { document.removeEventListener('visibilitychange', vis); lock?.release().catch(() => {}); };
   }, []);
+
+  const fullscreen = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch { /* ignore */ } };
 
   const mark = async (memberId: number, index: number) => {
     await fetch('/api/tv/mark', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ memberId, index }) });
     load();
   };
-
   // Запись сделанного: зарядка, тренировка, учёба, привычка, книга
   const record = async (body: Record<string, unknown>, okText: string) => {
     try {
@@ -66,151 +151,59 @@ export default function TvPage() {
     load();
   };
 
+  // бегущая строка
+  const lines = useMemo(() => (d ? tvHighlights(d, hour) : []), [d, hour]);
+  const [li, setLi] = useState(0);
+  useEffect(() => { const t = setInterval(() => setLi((x) => x + 1), 7000); return () => clearInterval(t); }, []);
+
   if (!d) return <div className="tv"><p className="tv-load">Загрузка…</p></div>;
-  const { boss } = d;
-  const hpLeft = Math.max(0, boss.hp - boss.damage);
-  const pct = boss.hp ? (hpLeft / boss.hp) * 100 : 0;
-  const mvp = d.members.find((m) => m.id === boss.mvp);
+  const line = lines.length ? lines[li % lines.length] : '';
 
   return (
-    <div className="tv">
+    <div className={`tv ${idle ? 'idle' : ''}`} data-phase={dayPhase(hour)} style={{ ['--tv-scale' as string]: prefs.scale }}>
       {off && <div className="tv-off">Нет связи с сервером…</div>}
-      <div className="tv-brand"><b>{APP_EMOJI} {APP_NAME}</b><small>демо v{APP_VERSION}</small></div>
-      <div className="tv-top">
-        <div className="tv-left">
-      <section className="tv-boss">
-        <div className="tv-boss-main">
-          <h1>{boss.defeated ? `${boss.boss.name} повержен!` : `Босс недели: ${boss.boss.name}`}</h1>
-          <div className="tv-hp" role="progressbar" aria-valuenow={hpLeft} aria-valuemax={boss.hp}>
-            <div style={{ width: `${pct}%` }} />
-            <span>{hpLeft} / {boss.hp} HP</span>
-          </div>
-          <BossScene tv boss={boss.boss} hp={boss.hp} damage={boss.damage} defeated={boss.defeated}
-            party={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, look: m.look, cls: m.cls, damage: boss.byMember[m.id] ?? 0 }))} />
-          {boss.defeated && mvp && <p className="tv-mvp">⭐ MVP недели: {mvp.emoji} {mvp.name}</p>}
+      {cheer && (
+        <div className={`tv-cheer ${cheer.big ? 'big' : 'small'}`} role="status" aria-live="polite" key={cheer.id}>
+          {cheer.big && <div className="tv-confetti" aria-hidden>{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 6) * 0.25}s` }}>{['🎉', '✨', '⭐', '🎊'][i % 4]}</i>)}</div>}
+          <span className="tv-cheer-e">{cheer.emoji}</span><b>{cheer.text}</b>
         </div>
-      </section>
-
-      <section className="tv-mvp-row">
-        <div className="tv-mvpi"><span>🏆</span><div><small>MVP вчера</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.yesterday?.memberId); return m ? `${m.emoji} ${m.name} +1 🎁` : 'не было'; })()}</b></div></div>
-        <div className="tv-mvpi"><span>🏆</span><div><small>Сезон {seasonName(d.season.id)} · осталось {d.season.daysLeft} дн.</small><b>{(() => { const t = d.season.top.filter((r) => r.points > 0).slice(0, 3); return t.length ? t.map((r, i) => { const m = d.members.find((x) => x.id === r.memberId); return m ? `${['🥇', '🥈', '🥉'][i]} ${m.emoji} ${Math.round(r.ratio * 100)}%` : ''; }).join('  ') : 'пока никого'; })()}</b></div></div>
-        <div className="tv-mvpi"><span>⚡</span><div><small>Сегодня лидирует</small><b>{(() => { const m = d.members.find((x) => x.id === d.mvp.leader?.memberId); return m ? `${m.emoji} ${m.name} · ${Math.round(d.mvp.leader!.ratio * 100)}%` : 'пока никого'; })()}</b></div></div>
-      </section>
-
-      {d.familyQuests.length > 0 && (
-        <section className="tv-fq">
-          {d.familyQuests.map((q) => (
-            <div key={q.id} className={`tv-fqi ${q.done ? 'done' : ''}`}>
-              <div className="tv-fqt"><span>👨‍👩‍👧‍👦</span><div><b>{q.title}</b>{q.description && <small>{q.description}</small>}</div><em>+{q.xp} каждому</em></div>
-              {q.kind === 'points'
-                ? <div className="tv-pts"><div style={{ width: `${Math.min(100, (q.progress / q.target) * 100)}%`, background: '#4cae6a' }} /></div>
-                : <div className="tv-fqs">{q.done ? '✔ Выполнено!' : q.pending ? '⏳ Ждём подтверждения родителей' : 'Сделайте вместе и скажите родителям'}</div>}
-              {q.kind === 'points' && <div className="tv-pts-label">{Math.round(q.progress)} / {q.target}{q.done ? ' ✔' : ''}</div>}
-            </div>
-          ))}
-        </section>
       )}
 
-      <section className="tv-heroes">
-        {d.members.map((m) => {
-          const pct = Math.min(100, (m.pointsToday / m.superGoal) * 100);
-          return (
-            <div key={m.id} className="tv-hero" style={{ borderColor: m.color }}>
-              <div className="tv-hero-top"><span className="tv-av">{m.emoji}</span><div><b>{m.name}</b><small>уровень {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name} · 🏅 {m.badges}</small></div></div>
-              <div className="tv-pts"><div style={{ width: `${pct}%`, background: m.color }} /></div>
-              <div className="tv-pts-label">{m.pointsToday} / {m.superGoal}{m.pointsToday >= m.goal ? ' ✓' : ''}</div>
-              {(() => {
-                const bt = d.battles[m.id];
-                return bt && (
-                  <div className={`tv-goal ${bt.outcome === 'victory' ? 'done' : ''}`}>
-                    <span>{bt.emoji} {bt.horde}: волн {bt.cleared}/3{bt.outcome === 'victory' ? ' 🏆' : ''} · ❤️ {bt.hp}</span>
-                    <div className="tv-pts"><div style={{ width: `${(bt.cleared / 3) * 100}%`, background: bt.outcome === 'victory' ? '#4cae6a' : '#c0392b' }} /></div>
-                  </div>
-                );
-              })()}
-              {(() => {
-                const g = d.goals[m.id];
-                if (!g) return <div className="tv-goal muted">🎯 цель недели не выбрана</div>;
-                return (
-                  <div className={`tv-goal ${g.done ? 'done' : ''}`}>
-                    <span>{g.emoji} {g.title}</span>
-                    {g.manual ? <b>{g.done ? '✔' : '…'}</b> : <><div className="tv-pts"><div style={{ width: `${Math.min(100, (g.progress / g.target) * 100)}%`, background: g.done ? '#4cae6a' : m.color }} /></div><b>{g.progress}/{g.target}{g.done ? ' ✔' : ''}</b></>}
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })}
-      </section>
+      <header className="tv-head">
+        <div className="tv-brand"><b>{APP_EMOJI} {APP_NAME}</b><small>демо v{APP_VERSION}</small></div>
+        <div className="tv-clock"><b>{clock.time}</b><small>{clock.date}</small></div>
+      </header>
 
-        </div>
-        <section className="tv-mountain">
-          <h2>⛰ Восхождение семьи</h2>
-          <div className="tv-mountain-box">
-            <MountainClimb tv climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
-          </div>
-          <ClimbRoster climbers={d.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.level, xp: m.xp }))} />
-        </section>
-      </div>
+      <nav className="tv-tabs" aria-label="Экраны">
+        <button data-tv className={`tv-tab auto ${prefs.auto ? 'on' : ''}`} onClick={() => save({ auto: !prefs.auto, slide: prefs.slide === 'record' ? 'overview' : prefs.slide })} aria-pressed={prefs.auto}>
+          {prefs.auto ? (paused ? '⏸ Пауза' : '▶ Авто') : '▶ Авто'}
+        </button>
+        {TV_SLIDES.map((s) => (
+          <button key={s.id} data-tv className={`tv-tab ${slide === s.id ? 'cur' : ''}`} aria-current={slide === s.id ? 'page' : undefined} onClick={() => go(s.id)}>
+            <span>{s.emoji}</span><b>{s.label}</b>
+          </button>
+        ))}
+        <span className="tv-tools">
+          <button data-tv className="tv-tab sm" onClick={() => save({ interval: TV_INTERVALS[(TV_INTERVALS.indexOf(prefs.interval as (typeof TV_INTERVALS)[number]) + 1) % TV_INTERVALS.length]! })} title="Как часто меняется экран">⏱ {prefs.interval} с</button>
+          <button data-tv className="tv-tab sm" onClick={() => save({ scale: SCALES[Math.max(0, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) - 1)]! })} aria-label="Мельче">A−</button>
+          <button data-tv className="tv-tab sm" onClick={() => save({ scale: SCALES[Math.min(SCALES.length - 1, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) + 1)]! })} aria-label="Крупнее">A+</button>
+          <button data-tv className="tv-tab sm" onClick={fullscreen} aria-label="Во весь экран">⛶</button>
+        </span>
+      </nav>
+      <div className="tv-timer" aria-hidden>{prefs.auto && !paused && <i key={`${slide}:${prefs.interval}`} style={{ animationDuration: `${prefs.interval}s` }} />}</div>
 
-      <section className="tv-rec">
-        <h2>✍️ Записать сделанное</h2>
-        <div className="tv-rec-who">
-          {d.members.map((m) => (
-            <button key={m.id} data-tv className={`tv-who ${who === m.id ? 'on' : ''}`} style={{ borderColor: m.color }} onClick={() => setWho(who === m.id ? null : m.id)}>
-              <span>{m.emoji}</span><b>{m.name}</b>
-            </button>
-          ))}
-        </div>
-        {note && <div className="tv-note" role="status">{note}</div>}
-        {who === null && <p className="tv-hint">Выберите героя, чтобы записать, что он сделал сегодня.</p>}
-        {who !== null && (() => {
-          const m = d.members.find((x) => x.id === who)!;
-          const r = d.record[who];
-          const mins = [15, 30, 45, 60];
-          return (
-            <div className="tv-rec-grid">
-              <div className="tv-rec-sum">{m.emoji} {m.name} сегодня: <b>{r.points}</b> очков · тренировка {r.workoutMinutes} мин · учёба {r.studyMinutes} мин · зарядка {r.warmup ? '✔' : '—'} · привычки {r.habits.filter((h) => h.checked).length}/{r.habits.length}</div>
-              <div className="tv-rec-row"><span>🔥 Зарядка</span>
-                <button data-tv className={`tv-b ${r.warmup ? 'done' : ''}`} disabled={r.warmup} onClick={() => record({ kind: 'warmup' }, 'Зарядка записана')}>{r.warmup ? '✔ Сделана' : 'Сделал(а) зарядку'}</button></div>
-              <div className="tv-rec-row"><span>🏃 Тренировка</span>
-                {mins.map((n) => <button key={n} data-tv className="tv-b" onClick={() => record({ kind: 'workout', minutes: n }, `Тренировка +${n} мин`)}>+{n} мин</button>)}</div>
-              {STUDY_KINDS.map((k) => (
-                <div key={k} className="tv-rec-row"><span>📚 {k}{r.studyByKind[k] ? ` · ${r.studyByKind[k]}` : ''}</span>
-                  {[15, 30, 45].map((n) => <button key={n} data-tv className="tv-b" onClick={() => record({ kind: 'study', studyKind: k, minutes: n }, `${k} +${n} мин`)}>+{n} мин</button>)}</div>
-              ))}
-              <div className="tv-rec-row"><span>📖 Книга</span>
-                <button data-tv className="tv-b" onClick={() => record({ kind: 'book' }, 'Книга прочитана (+50)')}>Прочитал(а) книгу</button></div>
-              {r.habits.length > 0 && (
-                <div className="tv-rec-row wrap"><span>✅ Привычки</span>
-                  {r.habits.map((h) => (
-                    <button key={h.id} data-tv className={`tv-b ${h.checked ? 'done' : ''}`} disabled={h.checked} onClick={() => record({ kind: 'habit', habitId: h.id }, 'Привычка отмечена')}>{h.checked ? '✔ ' : ''}{h.name}</button>
-                  ))}</div>
-              )}
-              <p className="tv-hint">Записи на ТВ нельзя отменить: если ошиблись, скажите родителям.</p>
-            </div>
-          );
-        })()}
-      </section>
+      <main className="tv-stage" key={slide}>
+        {slide === 'overview' && <OverviewSlide d={d} />}
+        {slide === 'heroes' && <HeroesSlide d={d} />}
+        {slide === 'boss' && <BossSlide d={d} />}
+        {slide === 'battles' && <BattlesSlide d={d} />}
+        {slide === 'mountain' && <MountainSlide d={d} />}
+        {slide === 'season' && <SeasonSlide d={d} />}
+        {slide === 'quests' && <QuestsSlide d={d} mark={mark} />}
+        {slide === 'record' && <RecordSlide d={d} who={who} setWho={setWho} note={note} record={record} />}
+      </main>
 
-      <section className="tv-quests">
-        {d.members.map((m) => {
-          const q = d.quests.find((x) => x.memberId === m.id)?.items ?? [];
-          return (
-            <div key={m.id} className="tv-qcol">
-              <h2 style={{ color: m.color }}>{m.emoji} {m.name}</h2>
-              {q.map((it) => (
-                <button key={it.index} data-tv className={`tv-q ${it.done ? 'done' : it.pending ? 'wait' : ''}`}
-                  disabled={!it.manual || it.done} onClick={() => mark(m.id, it.index)}>
-                  <span className="tv-mark">{it.done ? '✔' : it.pending ? '⏳' : it.manual ? '○' : '⚙'}</span>
-                  <span className="tv-qt">{it.t}{it.desc && <small className="tv-desc">{it.desc}</small>}<small>{it.progress && !it.done ? `${it.progress} · ` : ''}{it.hint}</small></span><b>+{it.xp}</b>
-                </button>
-              ))}
-            </div>
-          );
-        })}
-      </section>
-      <footer className="tv-foot">⚙ — засчитывается само · ○ — нажмите, родитель подтвердит · обновление каждые 10 с</footer>
+      <footer className="tv-ticker" aria-live="off"><span key={li}>{line}</span></footer>
     </div>
   );
 }

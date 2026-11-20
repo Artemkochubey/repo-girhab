@@ -218,7 +218,7 @@ export function tvState(raw: Raw, fam: Family) {
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),
-    battles: Object.fromEntries(raw.members.map((m) => { const l = fam.members.get(m.id)!.battle.live; return [m.id, { horde: l.horde.name, emoji: l.horde.emoji, cleared: l.fight.cleared, hp: l.hp, maxHp: l.maxHp, outcome: l.fight.outcome }]; })),
+    battles: Object.fromEntries(raw.members.map((m) => { const bt = fam.members.get(m.id)!.battle, l = bt.live; return [m.id, { horde: l.horde.name, emoji: l.horde.emoji, cleared: l.fight.cleared, hp: l.hp, maxHp: l.maxHp, outcome: l.fight.outcome, live: l, active: bt.abilities.activeToday }]; })),
     goals: Object.fromEntries(raw.members.map((m) => { const g = fam.members.get(m.id)!.goals.current; return [m.id, g ? { title: g.title ?? (GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.text(g.target) ?? ''), emoji: GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.emoji ?? '🎯', progress: g.progress, target: g.target, done: g.done, manual: g.manual, tier: g.tier } : null]; })),
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;

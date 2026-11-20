@@ -1,4 +1,4 @@
-.tv { min-height: 100vh; padding: 2.2vw; background: #0a0714; color: #fff; font-size: 28px; line-height: 1.3; display: grid; gap: 2vw; align-content: start; font-family: system-ui, sans-serif; }
+.tv { --tv-scale: 1; min-height: 100vh; padding: 1.6vw 2.2vw; background: #0a0714; color: #fff; font-size: calc(28px * var(--tv-scale)); line-height: 1.3; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 1.2vw; font-family: system-ui, sans-serif; transition: background 2s; }
 .tv h1 { font: 700 2.2rem Georgia, serif; margin: 0 0 12px; color: #ffd978; } .tv h2 { margin: 0 0 10px; font-size: 1.5rem; }
 .tv-load, .tv-off { text-align: center; font-size: 1.4rem; } .tv-off { background: #a33; padding: 6px; border-radius: 8px; }
 .tv-boss { display: flex; gap: 2.5vw; align-items: center; background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 2vw; }
@@ -60,3 +60,62 @@
 .tv-goal { margin-top: 8px; display: grid; gap: 4px; font-size: .62em; color: #d7cffb; } .tv-goal.done { color: #8be3a3; } .tv-goal .tv-pts { height: 14px; }
 
 .tv-boss .scene.scene-tv { margin: 12px auto 0; display: block; height: 44vh; width: auto; max-width: 100%; aspect-ratio: 360 / 270; }
+
+/* ТВ 2: экраны, вкладки, часы, строка, поздравления */
+.tv[data-phase="morning"] { background: radial-gradient(120% 80% at 50% -10%, #3a2a1a 0%, #0a0714 55%); }
+.tv[data-phase="day"] { background: radial-gradient(120% 80% at 50% -10%, #1b2a4a 0%, #0a0714 55%); }
+.tv[data-phase="evening"] { background: radial-gradient(120% 80% at 50% -10%, #4a1f3a 0%, #0a0714 55%); }
+.tv[data-phase="night"] { background: radial-gradient(120% 80% at 50% -10%, #14123a 0%, #05030d 60%); }
+.tv.idle { cursor: none; }
+.tv-head { display: flex; align-items: center; justify-content: space-between; gap: 2vw; }
+.tv-clock { text-align: right; line-height: 1.1; } .tv-clock b { font: 700 1.9rem Georgia, serif; color: #ffd978; } .tv-clock small { display: block; color: #cbbff0; font-size: .6em; text-transform: capitalize; }
+.tv-tabs { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.tv-tab { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: .62em; color: #e6defc; background: #1a1230; border: 3px solid #3a2f63; border-radius: 16px; padding: 8px 18px; min-height: 56px; cursor: pointer; }
+.tv-tab span { font-size: 1.3em; } .tv-tab.sm { padding: 8px 14px; min-width: 56px; justify-content: center; }
+.tv-tab.cur { background: #3a2f63; border-color: #ffd978; color: #fff; } .tv-tab.auto.on { border-color: #4cae6a; background: #17301f; }
+.tv-tab:focus-visible { outline: 6px solid #fff; outline-offset: 3px; transform: scale(1.05); }
+.tv-tools { margin-left: auto; display: flex; gap: 8px; }
+.tv-timer { height: 6px; background: #1a1230; border-radius: 999px; overflow: hidden; } .tv-timer i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ffd978, #e8a33d); transform-origin: left; animation: tv-run linear forwards; }
+@keyframes tv-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.tv-stage { min-width: 0; animation: tv-in .7s ease-out; } @keyframes tv-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.tv-col { display: grid; gap: 1.4vw; align-content: start; } .tv-col > h1 { margin: 0; }
+.tv-ticker { min-height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 22px; border-radius: 999px; background: #1a1230; border: 2px solid #3a2f63; font-size: .8em; color: #f0e8ff; overflow: hidden; }
+.tv-ticker span { animation: tv-in .6s ease-out; }
+.tv-mini-boss { background: #1a1230; border: 3px solid #5b4a99; border-radius: 18px; padding: 10px 20px; font-size: .75em; display: grid; gap: 8px; } .tv-hp.slim { height: 1.3rem; border-width: 2px; }
+/* герои */
+.tv-portraits { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4vw; }
+.tv-portrait { background: linear-gradient(#1f1640, #140e2b); border: 4px solid; border-radius: 24px; padding: 16px; display: grid; gap: 4px; justify-items: center; text-align: center; }
+.tv-portrait small { color: #e6defc; font-size: .6em; } .tv-portrait small.ok { color: #8be3a3; } .tv-pname { font: 700 1.3rem Georgia, serif; } .tv-fig { display: grid; place-items: center; }
+.tv-ring { width: 6.4rem; height: 6.4rem; border-radius: 50%; display: grid; place-items: center; margin: 6px 0; position: relative; }
+.tv-ring::before { content: ''; position: absolute; inset: 10px; border-radius: 50%; background: #140e2b; } .tv-ring span { position: relative; font-weight: 800; font-size: 1.6rem; line-height: 1; text-align: center; } .tv-ring small { display: block; font-size: .4em; font-weight: 400; color: #cbbff0; }
+.tv-portrait .tv-goal { width: 100%; }
+/* босс */
+.tv-bossslide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 26vw); gap: 1.6vw; align-items: start; }
+.tv-dmgboard { background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 1.2vw; display: grid; gap: 10px; align-content: start; } .tv-dmgboard h2 { margin: 0; color: #ffd978; font: 700 1.4rem Georgia, serif; }
+.tv-dmgrow { display: grid; grid-template-columns: 2.2rem 1fr; gap: 2px 10px; align-items: center; font-size: .8em; } .tv-dmgrow .tv-pts { grid-column: 1 / -1; height: 16px; } .tv-dmgrow em { display: none; }
+.tv-dmgrow b { display: flex; justify-content: space-between; } .tv-weak { color: #cbbff0; font-size: .6em; }
+/* бои */
+.tv-battles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 1.4vw; }
+.tv-battle { background: #1a1230; border: 4px solid; border-radius: 22px; padding: 12px; display: grid; gap: 8px; } .tv-battle .scene { border-width: 0; }
+.tv-battle-info { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: .62em; color: #e6defc; } .tv-battle-info b { color: #fff; }
+/* гора и сезон */
+.tv-mtn-slide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2vw; align-items: start; } .tv-mtn-slide .tv-mountain .mountain { max-height: 66vh; margin: 0 auto; }
+.tv-season { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2vw; align-items: stretch; }
+.tv-board { display: grid; gap: 12px; align-content: start; background: #1a1230; border: 3px solid #5b4a99; border-radius: 24px; padding: 1.4vw; }
+.tv-boardrow { display: grid; grid-template-columns: 3rem 3.4rem 8rem 1fr 5rem; gap: 14px; align-items: center; background: #241b42; border: 3px solid; border-radius: 18px; padding: 10px 18px; } .tv-boardrow em { font-style: normal; font-weight: 800; text-align: right; } .tv-medal { font-size: 2rem; }
+.tv-days { display: grid; place-items: center; align-content: center; gap: 0; background: #2a2210; border: 4px solid #ffd24a; border-radius: 24px; padding: 20px 40px; text-align: center; } .tv-days span { font-size: 3rem; } .tv-days b { font: 800 5rem Georgia, serif; color: #ffd978; line-height: 1; } .tv-days small { color: #f0e1a8; font-size: .6em; }
+.tv-wide { grid-column: 1 / -1; }
+/* поздравления */
+.tv-cheer { position: fixed; z-index: 50; display: flex; align-items: center; gap: 22px; font-size: 1em; }
+.tv-cheer.big { inset: 0; justify-content: center; flex-direction: column; text-align: center; background: radial-gradient(circle, #3a2a6acc, #0a0714ee); animation: cheer-in .5s ease-out; }
+.tv-cheer.big .tv-cheer-e { font-size: 9rem; animation: cheer-pop 1.2s ease-in-out infinite; } .tv-cheer.big b { font: 800 2.6rem Georgia, serif; color: #ffd978; max-width: 80vw; }
+.tv-cheer.small { top: 1.6vw; right: 2.2vw; background: #17301f; border: 3px solid #4cae6a; border-radius: 18px; padding: 10px 22px; font-size: .75em; animation: tv-in .4s ease-out; } .tv-cheer.small .tv-cheer-e { font-size: 1.6rem; }
+.tv-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; } .tv-confetti i { position: absolute; top: -10%; font-style: normal; font-size: 2.4rem; animation: confetti 3.2s linear infinite; }
+@keyframes cheer-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } } @keyframes cheer-pop { 0%, 100% { transform: scale(1) rotate(-4deg); } 50% { transform: scale(1.12) rotate(4deg); } }
+@keyframes confetti { from { transform: translateY(0) rotate(0); } to { transform: translateY(115vh) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tv-stage, .tv-ticker span, .tv-cheer, .tv-cheer-e, .tv-confetti i, .tv-timer i { animation: none; } }
+@media (max-width: 1100px) { .tv-bossslide, .tv-mtn-slide, .tv-season { grid-template-columns: 1fr; } .tv-boardrow { grid-template-columns: 2.4rem 3rem 1fr 4rem; } .tv-boardrow .tv-pts { grid-column: 1 / -1; } }
+.tv-battle .scene { max-height: 30vh; margin: 0 auto; }
+.tv-mtn-slide .tv-mountain .mountain { height: 60vh; width: auto; max-width: 100%; }
+.tv-quests .tv-q { min-height: 0; padding: 10px 16px; font-size: .78em; gap: 12px; } .tv-quests .tv-mark { font-size: 1.5rem; width: 2rem; }
+.tv-battle .scene { max-height: 24vh; } .tv-battle { padding: 8px 10px; gap: 4px; }
