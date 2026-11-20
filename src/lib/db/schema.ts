@@ -24,6 +24,8 @@ export const config = sqliteTable('config', {
   mvpSince: text('mvp_since'),
   // с какого дня идут сезоны с призами (ставится при первом запуске; призы только за сезоны, начавшиеся не раньше этого месяца)
   seasonSince: text('season_since'),
+  // с какого дня за победы (босс, сезон, MVP дня) выдаются артефакты; задним числом ничего не начисляется
+  artifactsSince: text('artifacts_since'),
   minutes: integer('minutes').notNull().default(30),
   superMinutes: integer('super_minutes').notNull().default(60),
   loot: text('loot', { mode: 'json' }).$type<string[]>().notNull(),
@@ -118,6 +120,8 @@ export const chestOpened = sqliteTable('chest_opened', {
   // «Моя сумка»: bag — лежит в сумке, requested — ребёнок попросил выдать, delivered — родитель выдал
   status: text('status', { enum: ['bag', 'requested', 'delivered'] }).notNull().default('bag'),
   deliveredOn: text('delivered_on'),
+  // артефакт, найденный в этом сундуке (вид), или null
+  artifact: text('artifact'),
 }, (t) => [unique('chest_unique').on(t.memberId, t.n)]);
 
 export const bossWeek = sqliteTable('boss_week', {
@@ -190,3 +194,30 @@ export const reviewOk = sqliteTable('review_ok', {
   points: real('points').notNull(),
   createdAt: createdAt(),
 }, (t) => [unique('review_ok_unique').on(t.memberId, t.date)]);
+
+// Использование артефактов: сами артефакты выводятся из истории по ключу (см. game/artifacts.ts)
+export const artifactUse = sqliteTable('artifact_use', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  kind: text('kind').notNull(),
+  status: text('status', { enum: ['active', 'used'] }).notNull(),
+  activeFor: text('active_for'),   // день, к которому применён «Щит дня» или «Удвоитель»
+  usedOn: text('used_on'),
+  createdAt: createdAt(),
+}, (t) => [unique('artifact_use_unique').on(t.memberId, t.key)]);
+
+// Недельная цель героя (одна на неделю). Выполнение выводится из записей, для ручной цели его отмечает родитель.
+export const weeklyGoal = sqliteTable('weekly_goal', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  weekStart: text('week_start').notNull(),
+  kind: text('kind').notNull(),
+  tier: text('tier', { enum: ['easy', 'mid', 'hard'] }).notNull(),
+  target: integer('target').notNull(),
+  title: text('title'),
+  manual: integer('manual', { mode: 'boolean' }).notNull().default(false),
+  confirmed: integer('confirmed', { mode: 'boolean' }).notNull().default(false),
+  createdBy: integer('created_by'),
+  createdAt: createdAt(),
+}, (t) => [unique('weekly_goal_unique').on(t.memberId, t.weekStart)]);

@@ -5,6 +5,7 @@ import { QuestEditor } from '@/components/QuestEditor';
 import { useGame } from '@/components/Shell';
 import { FamilyQuestAdmin } from '@/components/FamilyQuestAdmin';
 import { BackupBlock } from '@/components/BackupBlock';
+import { GoalAdmin } from '@/components/GoalAdmin';
 import { QuestSets } from '@/components/QuestSets';
 import { ReviewBlock } from '@/components/ReviewBlock';
 import { ShopAdmin } from '@/components/ShopAdmin';
@@ -144,6 +145,8 @@ function AdminSettings() {
       <FamilyQuestAdmin />
 
       <QuestSets />
+
+      <GoalAdmin />
 
       <ShopAdmin />
 

@@ -12,6 +12,7 @@ import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
 import { TalentTree } from '@/components/TalentTree';
+import { ARTIFACTS, type ArtifactKind } from '@/lib/game/artifacts';
 
 const CLS: Cls[] = ['w', 'm', 'b', 'p'];
 const SPHERE = { w: 'Тело', m: 'Ум', b: 'Творчество', p: 'Дисциплина' } as const;
@@ -21,7 +22,7 @@ export default function Hero() {
   const d = s.detail!;
   const me = s.members.find((m) => m.id === s.me)!;
   const h = d.hero;
-  const [chest, setChest] = useState<{ rarity: string; reward: string } | null>(null);
+  const [chest, setChest] = useState<{ rarity: string; reward: string; artifact?: string | null; talisman?: boolean } | null>(null);
   const [picking, setPicking] = useState<Cls | null>(null);
   const [pickAvatar, setPickAvatar] = useState(false);
   // подкласс: сразу показываем выбор (не дожидаясь ответа сервера) и играем эффект
@@ -146,7 +147,7 @@ export default function Hero() {
       <Section title="🎁 Сундуки" right={<b>{d.chests.available} доступно</b>}>
         <button className="btn" disabled={!d.chests.available} onClick={async () => setChest((await act('openChest')) as never)}>Открыть сундук</button>
         <p className="muted small">Всего заработано {d.chests.earned}, открыто {d.chests.opened}. За уровни, дни со всеми квестами, победы над боссами и звание MVP дня (сейчас побед: {d.mvpWins}).</p>
-        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}</small><b>{chest.reward}</b></div>}
+        {chest && <div className={`reward ${chest.rarity}`} onClick={() => setChest(null)}><small>{RAR[chest.rarity]}{chest.talisman ? ' · 🍀 талисман сработал' : ''}</small><b>{chest.reward}</b>{chest.artifact && <span className="gold">🔮 Найден артефакт: {ARTIFACTS[chest.artifact as ArtifactKind]?.emoji} {ARTIFACTS[chest.artifact as ArtifactKind]?.name}! Он лежит в «🎒 Сумке».</span>}</div>}
         <p className="muted small">Призы из сундуков лежат в <Link href="/bag">🎒 сумке</Link>: там их можно копить, использовать и отмечать выданными.</p>
         <details className="chestlog">
           <summary>📜 Что выпало ({d.chestLog.length})</summary>

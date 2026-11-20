@@ -13,6 +13,9 @@ import { pickReward, rollRarity } from '../game/chests';
 import { canBuyTalent, doubleChance, luckBonuses, shopDiscount } from '../game/talents';
 import { validQuestList, type QuestItem } from '../game/quests';
 import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
+import { rollChestArtifact } from '../game/artifacts';
+import { GOAL_KINDS, TIERS, canChooseGoal, goalTarget, goalWeekStart, type GoalKind, type GoalTier } from '../game/goals';
+import { basePoints } from '../game/points';
 import { loadFamily, getConfig } from './load';
 
 export class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
@@ -274,12 +277,94 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const st = loadFamily(db, now).family.members.get(memberId)!;
       if (st.chestsAvailable < 1) fail(400, 'Нет доступных сундуков');
       const rand = ctx.rand ?? Math.random;
-      const rarity = rollRarity(rand(), luckBonuses(st.hero.talents, st.hero.cls));
+      let rarity = rollRarity(rand(), luckBonuses(st.hero.talents, st.hero.cls));
+      // «Талисман удачи» (активированный): этот сундук будет не ниже редкого, талисман тратится
+      const talisman = db.select().from(s.artifactUse).where(and(eq(s.artifactUse.memberId, memberId), eq(s.artifactUse.kind, 'luck'), eq(s.artifactUse.status, 'active'))).orderBy(s.artifactUse.id).get();
+      if (talisman) {
+        if (rarity === 'common') rarity = 'rare';
+        db.update(s.artifactUse).set({ status: 'used', usedOn: today }).where(eq(s.artifactUse.id, talisman.id)).run();
+      }
       const pools = { common: cfg.loot, rare: cfg.lootRare, legend: cfg.lootLegend };
       let reward = pickReward(rarity, pools, rand());
       if (rand() < doubleChance(st.hero.talents, st.hero.cls)) reward = `${reward} + ${pickReward(rarity, pools, rand())} (двойная добыча!)`;
-      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today }).run();
-      return { rarity, reward };
+      const artifact = rollChestArtifact(rarity, rand(), rand());
+      db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact }).run();
+      return { rarity, reward, artifact, talisman: !!talisman };
+    }
+
+    case 'useArtifact': {
+      // артефакт из сумки: ключ и талисман срабатывают сразу, щит и удвоитель применяются к выбранному дню
+      const memberId = target();
+      const key = String(a.key ?? '');
+      const { family } = loadFamily(db, now);
+      const st = family.members.get(memberId)!;
+      const art = st.artifacts.find((x) => x.key === key);
+      if (!art) return fail(404, 'Нет такого артефакта');
+      if (art.status !== 'bag') fail(409, 'Артефакт уже использован');
+      const mem = db.select().from(s.member).where(eq(s.member.id, memberId)).get()!;
+      const sameDay = (kind: string, d: string) => db.select().from(s.artifactUse).where(and(eq(s.artifactUse.memberId, memberId), eq(s.artifactUse.kind, kind), eq(s.artifactUse.activeFor, d))).get();
+      let activeFor: string | null = null;
+      let status: 'active' | 'used' = 'used';
+      if (art.kind === 'shield' || art.kind === 'doubler') {
+        const date = isDate(a.date) ? a.date : fail(400, 'Выберите день');
+        if (!dateAllowed(date, today, ctx.parent)) fail(400, 'Можно выбрать сегодня или один из последних 7 дней');
+        if (art.kind === 'shield') {
+          if (date >= today) fail(400, 'Щит защищает уже прошедший пропущенный день');
+          const d = st.days.get(date);
+          if (d && basePoints(d.stats) >= mem.goal * 0.5) fail(400, 'В этот день и так была активность: серия не прерывалась');
+        }
+        if (sameDay(art.kind, date)) fail(409, art.kind === 'shield' ? 'Этот день уже защищён щитом' : 'На этот день уже есть удвоитель');
+        activeFor = date;
+        status = 'active';
+      } else if (art.kind === 'luck') status = 'active';
+      db.insert(s.artifactUse).values({ memberId, key, kind: art.kind, status: art.kind === 'key' ? 'used' : status, activeFor, usedOn: art.kind === 'luck' ? null : today }).run();
+      return { kind: art.kind, activeFor };
+    }
+
+    case 'chooseGoal': {
+      // герой выбирает цель недели из готовых (понедельник–среда); родитель может менять в любой день
+      const memberId = target();
+      const ws = goalWeekStart(today);
+      const cur = db.select().from(s.weeklyGoal).where(and(eq(s.weeklyGoal.memberId, memberId), eq(s.weeklyGoal.weekStart, ws))).get();
+      if (cur && !ctx.parent) fail(409, 'Цель недели уже выбрана');
+      if (!ctx.parent && !canChooseGoal(today, ws)) fail(403, 'Цель недели выбирают в понедельник, вторник или среду');
+      if (!GOAL_KINDS.includes(a.kind as GoalKind)) fail(400, 'Неизвестный вид цели');
+      if (!TIERS.includes(a.tier as GoalTier)) fail(400, 'Неизвестная сложность');
+      const mem = db.select().from(s.member).where(eq(s.member.id, memberId)).get()!;
+      const habits = db.select().from(s.habit).where(eq(s.habit.memberId, memberId)).all().filter((h) => !h.archived).length;
+      const target_ = goalTarget(a.kind as GoalKind, a.tier as GoalTier, mem.goal, habits);
+      if (target_ === null) fail(400, 'Для этой цели сначала добавьте привычки (вкладка «Ум»)');
+      const v = { memberId, weekStart: ws, kind: a.kind as string, tier: a.tier as GoalTier, target: target_!, title: null, manual: false, confirmed: false, createdBy: ctx.memberId };
+      if (cur) db.update(s.weeklyGoal).set(v).where(eq(s.weeklyGoal.id, cur.id)).run(); else db.insert(s.weeklyGoal).values(v).run();
+      return { target: target_ };
+    }
+    case 'setCustomGoal': {
+      // своя цель от родителя (например «прочитать 2 главы»): выполнение родитель отмечает сам
+      needParent();
+      const memberId = target();
+      const title = String(a.title ?? '').trim();
+      if (!title || title.length > 80) fail(400, 'Название цели: до 80 символов');
+      if (!TIERS.includes(a.tier as GoalTier)) fail(400, 'Неизвестная сложность');
+      const ws = goalWeekStart(today);
+      const cur = db.select().from(s.weeklyGoal).where(and(eq(s.weeklyGoal.memberId, memberId), eq(s.weeklyGoal.weekStart, ws))).get();
+      const v = { memberId, weekStart: ws, kind: 'custom', tier: a.tier as GoalTier, target: 1, title, manual: true, confirmed: false, createdBy: ctx.memberId };
+      if (cur) db.update(s.weeklyGoal).set(v).where(eq(s.weeklyGoal.id, cur.id)).run(); else db.insert(s.weeklyGoal).values(v).run();
+      return { ok: true };
+    }
+    case 'confirmGoal': {
+      needParent();
+      const memberId = target();
+      const ws = isDate(a.weekStart) ? goalWeekStart(a.weekStart) : goalWeekStart(today);
+      const cur = db.select().from(s.weeklyGoal).where(and(eq(s.weeklyGoal.memberId, memberId), eq(s.weeklyGoal.weekStart, ws))).get();
+      if (!cur) return fail(404, 'Цели на эту неделю нет');
+      if (!cur.manual) fail(400, 'Эта цель считается автоматически');
+      db.update(s.weeklyGoal).set({ confirmed: a.undo !== true }).where(eq(s.weeklyGoal.id, cur.id)).run();
+      return { ok: true };
+    }
+    case 'clearGoal': {
+      needParent();
+      db.delete(s.weeklyGoal).where(and(eq(s.weeklyGoal.memberId, target()), eq(s.weeklyGoal.weekStart, goalWeekStart(today)))).run();
+      return { ok: true };
     }
 
     case 'saveShopItem': {

@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], weeklyGoals: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -84,6 +84,74 @@ describe('движок семьи', () => {
     expect(on.members.get(2)!.chestsEarned - none.members.get(2)!.chestsEarned).toBe(1);
     expect(on.members.get(1)!.achievements.find((x) => x.id === 'seas1')!.earnedOn).toBe('2026-11-30');
     expect(on.members.get(2)!.achievements.find((x) => x.id === 'seas1')!.earnedOn).toBeNull();
+  });
+  const manualQ = (raw: Raw) => { for (const id of [1, 2]) raw.quests.push({ memberId: id, date: 'default', items: [{ t: 'x', xp: 1, k: 'manual' }] }); };
+  it('артефакт «Щит дня» не даёт серии оборваться на пропущенном дне', () => {
+    const mk = (shield: boolean) => {
+      const raw = base(); manualQ(raw);
+      for (const d of ['2026-11-10', '2026-11-11', '2026-11-13']) raw.workouts.push({ memberId: 1, date: d, minutes: 40 });
+      if (shield) raw.artifactUse.push({ memberId: 1, key: 'chest:1', kind: 'shield', status: 'active', activeFor: '2026-11-12', usedOn: '2026-11-13' });
+      return buildFamily(raw, '2026-11-13').members.get(1)!.streak;
+    };
+    expect(mk(false)).toBe(1);
+    expect(mk(true)).toBe(3);
+  });
+  it('артефакт «Удвоитель»: бонус равен очкам дня, но не больше супер-нормы', () => {
+    const mk = (min: number, on: boolean) => {
+      const raw = base(); manualQ(raw);
+      raw.workouts.push({ memberId: 1, date: '2026-11-12', minutes: min });
+      if (on) raw.artifactUse.push({ memberId: 1, key: 'k', kind: 'doubler', status: 'active', activeFor: '2026-11-12', usedOn: '2026-11-12' });
+      return buildFamily(raw, '2026-11-13').members.get(1)!.days.get('2026-11-12')!.total;
+    };
+    expect(mk(50, false)).toBe(60);
+    expect(mk(50, true)).toBe(120);      // 60 + min(60, 100)
+    expect(mk(100, true)).toBe(120 + 100);   // 120 очков дня, бонус не больше супер-нормы (100)
+  });
+  it('«Ключ сундука» даёт +1 сундук', () => {
+    const raw = base(); manualQ(raw);
+    const none = buildFamily(raw, '2026-11-13').members.get(1)!.chestsEarned;
+    raw.artifactUse.push({ memberId: 1, key: 'chest:1', kind: 'key', status: 'used', activeFor: null, usedOn: '2026-11-13' });
+    expect(buildFamily(raw, '2026-11-13').members.get(1)!.chestsEarned).toBe(none + 1);
+  });
+  it('недельная цель: за выполненную даёт опыт, сундук и (сложная) артефакт только после конца недели', () => {
+    const mk = (tier: 'mid' | 'hard', minutes: number, today: string) => {
+      const raw = base(); manualQ(raw); raw.artifactsSince = '2026-11-01';
+      raw.workouts.push({ memberId: 1, date: '2026-11-10', minutes });
+      raw.weeklyGoals.push({ memberId: 1, weekStart: '2026-11-09', kind: 'workout', tier, target: 100, title: null, manual: false, confirmed: false });
+      return buildFamily(raw, today).members.get(1)!;
+    };
+    const during = mk('hard', 100, '2026-11-12');
+    expect(during.goals.current).toMatchObject({ progress: 100, done: true, finished: false });
+    expect(during.goals.xp).toBe(0);                                           // награда после конца недели
+    const plain = mk('hard', 100, '2026-11-12').xp;
+    const after = mk('hard', 100, '2026-11-17');
+    expect(after.goals.xp).toBe(150);
+    expect(after.xp).toBe(plain + 150);
+    expect(after.goals.chests).toBe(1);
+    expect(after.artifacts.map((x) => x.key)).toContain('goal:2026-11-09');
+    expect(mk('mid', 100, '2026-11-17').artifacts.some((x) => x.key.startsWith('goal:'))).toBe(false);
+    const failed = mk('mid', 50, '2026-11-17');                                // цель не выполнена
+    expect(failed.goals.xp).toBe(0); expect(failed.goals.chests).toBe(0);
+    expect(failed.goals.history[0]).toMatchObject({ done: false, finished: true });
+  });
+  it('ручная цель засчитывается после подтверждения родителя', () => {
+    const mk = (confirmed: boolean) => {
+      const raw = base(); manualQ(raw);
+      raw.weeklyGoals.push({ memberId: 1, weekStart: '2026-11-09', kind: 'custom', tier: 'easy', target: 1, title: 'Прочитать 2 главы', manual: true, confirmed });
+      return buildFamily(raw, '2026-11-17').members.get(1)!.goals;
+    };
+    expect(mk(false).xp).toBe(0);
+    expect(mk(true).xp).toBe(40);
+  });
+  it('артефакты за победы выдаются только после даты старта функции', () => {
+    const mk = (since: string | null) => {
+      const raw = base(); manualQ(raw); raw.artifactsSince = since;
+      for (let d = 1; d <= 30; d++) raw.workouts.push({ memberId: 1, date: `2026-11-${String(d).padStart(2, '0')}`, minutes: 60 }, { memberId: 2, date: `2026-11-${String(d).padStart(2, '0')}`, minutes: 40 });
+      raw.seasonSince = '2026-11-01';
+      return buildFamily(raw, '2026-12-03').members.get(1)!.artifacts.filter((x) => x.source === 'season');
+    };
+    expect(mk(null)).toHaveLength(0);
+    expect(mk('2026-11-01')).toHaveLength(1);
   });
   it('победа над боссом прошлой недели даёт сундуки', () => {
     const raw = base();

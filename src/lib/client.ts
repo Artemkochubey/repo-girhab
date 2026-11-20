@@ -27,6 +27,13 @@ export interface MvpDto { yesterday: { date: string; memberId: number; points: n
 export interface SeasonRowDto { memberId: number; points: number; ratio: number; days: number; normDays: number; bestDay: number; eligible: boolean; rank: number; chests: number }
 export interface SeasonDto { id: string; start: string; end: string; daysLeft: number; finished: boolean; awardable: boolean; rows: SeasonRowDto[]; winner: number | null; second: number | null }
 
+export interface GoalStateDto {
+  weekStart: string; kind: string; tier: 'easy' | 'mid' | 'hard'; target: number; title: string | null; manual: boolean; confirmed: boolean;
+  progress: number; done: boolean; finished: boolean; daysLeft: number; rewardXp: number; rewardChests: number; rewardArtifact: boolean;
+}
+export interface GoalOptionDto { kind: string; name: string; emoji: string; unit: string; tiers: { tier: 'easy' | 'mid' | 'hard'; target: number | null; xp: number; chests: number; artifact: boolean }[]; texts: string[] }
+export interface ArtifactDto { key: string; kind: 'shield' | 'doubler' | 'key' | 'luck'; source: 'chest' | 'boss' | 'season' | 'mvp' | 'goal'; date: string; status: 'bag' | 'active' | 'used'; activeFor: string | null; usedOn: string | null }
+
 export interface State {
   season: { current: SeasonDto; history: SeasonDto[]; prizes: readonly number[]; wins: Record<number, number> };
   familyQuests: FamilyQuestDto[];
@@ -41,6 +48,7 @@ export interface State {
     familyQuestsAll: FamilyQuestDto[];
     quests: Record<number, { items: QuestDto[]; hasDefault: boolean }>;
     loot: string[]; lootRare: string[]; lootLegend: string[];
+    manualGoals: { memberId: number; weekStart: string; title: string; tier: 'easy' | 'mid' | 'hard'; confirmed: boolean; finished: boolean }[];
     prizesRequested: { memberId: number; n: number; date: string; rarity: string; reward: string }[];
     review: { memberId: number; date: string; points: number; reasons: string[]; entries: { id: number; minutes: number; reps: number | null; exercise: string | null; eq: number }[] }[];
     questSets: { id: string; name: string; emoji: string; items: QuestDto[] }[];
@@ -50,7 +58,10 @@ export interface State {
     hero: { cls: 'w' | 'm' | 'b' | 'p' | null; sub: 'w' | 'm' | 'b' | 'p' | null; clsChangedAt: string; talents: string[] };
     wallet: { balance: number; spent: number };
     chests: { earned: number; opened: number; available: number };
-    chestLog: { n: number; date: string; rarity: string; reward: string; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
+    goal: { weekStart: string; weekEnd: string; canChoose: boolean; current: GoalStateDto | null; last: GoalStateDto | null; options: GoalOptionDto[] };
+    artifacts: ArtifactDto[];
+    artifactDates: { shield: string[]; doubler: string[] };
+    chestLog: { n: number; date: string; rarity: string; reward: string; artifact: string | null; status: 'bag' | 'requested' | 'delivered'; deliveredOn: string | null }[];
     radar: { key: string; value: number }[];
     achievements: AchievementDto[];
     mindLog: { date: string; study: Record<string, number>; habits: number; books: number }[];

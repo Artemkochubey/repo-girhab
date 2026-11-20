@@ -193,3 +193,10 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 @keyframes sub-spark { 0% { opacity: 0; transform: translateY(8px) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
 @media (prefers-reduced-motion: reduce) { .pick.sub.burst, .pick.sub.burst::after { animation: none; } }
 .bk-warn { color: #ffb74d; }
+
+/* Цель недели и артефакты */
+.tiers3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.arts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.art { display: grid; grid-template-columns: 3rem 1fr; gap: 4px 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid #8f7bd0; border-radius: 12px; padding: 10px 12px; }
+.art.active { border-color: var(--accent); box-shadow: 0 0 12px #c9a24b33; } .art.used { opacity: .55; }
+.art .ico { font-size: 2.2rem; text-align: center; grid-row: span 2; } .art .acts { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

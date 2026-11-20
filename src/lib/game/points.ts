@@ -21,7 +21,7 @@ export function sphereMultiplier(sphere: Sphere, hero: HeroBuild, useSub = true)
 
 export interface DayBreakdown { bySphere: Partial<Record<Sphere, number>>; flat: number; quests: number; total: number }
 
-export interface DayCtx { date?: string; superGoal?: number }
+export interface DayCtx { date?: string; superGoal?: number; doubler?: boolean }
 
 const isWeekend = (date?: string) => { if (!date) return false; const w = new Date(date + 'T00:00:00Z').getUTCDay(); return w === 0 || w === 6; };
 
@@ -50,7 +50,9 @@ export function dayPoints(d: DayStats, hero: HeroBuild, streak = 0, useSub = tru
     if (e.type === 'quest') questBonus += e.pct * rank;
   }
   const quests = d.questXp * (1 + questBonus);
-  const total = Math.round(sphereTotal + flat + quests);
+  let total = Math.round(sphereTotal + flat + quests);
+  // артефакт «Удвоитель»: бонус равен очкам дня, но не больше супер-нормы
+  if (ctx.doubler) total += Math.min(total, ctx.superGoal ?? total);
   return { bySphere, flat, quests, total };
 }
 
@@ -87,7 +89,7 @@ export const basePoints = (d: DayStats): number =>
  * Пустой сегодняшний день серию не обрывает. Щит прощает один пропуск в неделю.
  */
 export function streakForward(
-  dates: string[], active: (date: string) => boolean, shield: boolean, today: string,
+  dates: string[], active: (date: string) => boolean, shield: boolean, today: string, protectedDates?: Set<string>,
 ): Map<string, number> {
   const out = new Map<string, number>();
   let streak = 0;
@@ -95,6 +97,7 @@ export function streakForward(
   for (const date of dates) {
     if (active(date)) streak++;
     else if (date === today) { /* день ещё идёт */ }
+    else if (protectedDates?.has(date)) { /* артефакт «Щит дня»: серия не прерывается и не растёт */ }
     else {
       const wk = isoWeekKey(date);
       if (shield && streak > 0 && !shieldUsed.has(wk)) shieldUsed.add(wk);

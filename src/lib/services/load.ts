@@ -29,6 +29,9 @@ export function loadRaw(db: Db): Raw {
     reminderHour: getConfig(db).reminderHour,
     seasonSince: getConfig(db).seasonSince,
     reviewOk: db.select().from(s.reviewOk).all(),
+    artifactsSince: getConfig(db).artifactsSince,
+    artifactUse: db.select().from(s.artifactUse).all() as Raw['artifactUse'],
+    weeklyGoals: db.select().from(s.weeklyGoal).all().map((g) => ({ memberId: g.memberId, weekStart: g.weekStart, kind: g.kind, tier: g.tier, target: g.target, title: g.title, manual: g.manual, confirmed: g.confirmed })),
     shopItems: db.select().from(s.shopItem).all(),
     purchases: db.select().from(s.shopPurchase).all(),
   };
@@ -42,6 +45,7 @@ export function loadFamily(db: Db, now = new Date()) {
   // итоги закончившихся дней сохраняются, чтобы поздние правки записей их не меняли.
   if (!raw.mvpSince) db.update(s.config).set({ mvpSince: today }).where(eq(s.config.id, 1)).run();
   if (!raw.seasonSince) db.update(s.config).set({ seasonSince: today }).where(eq(s.config.id, 1)).run();
+  if (!raw.artifactsSince) db.update(s.config).set({ artifactsSince: today }).where(eq(s.config.id, 1)).run();
   for (const p of family.mvp.pending) db.insert(s.dayMvp).values({ date: p.date, memberId: p.memberId, points: p.points, ratio: p.ratio }).onConflictDoNothing().run();
   return { raw, family };
 }

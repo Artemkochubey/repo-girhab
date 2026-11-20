@@ -75,9 +75,9 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'openChest', {}))?.status).toBe(400);
     runAction(db, kid, 'addWorkout', { minutes: 200 });
     const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; reward: string };
-    expect(r).toEqual({ rarity: 'common', reward: 'a' });
+    expect(r).toEqual({ rarity: 'common', reward: 'a', artifact: null, talisman: false });
     const { raw, family } = loadFamily(db, NOW);
-    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', status: 'bag', deliveredOn: null }]);   // история «что выпало»
+    expect(memberDetail(raw, family, family.members.get(2)!).chestLog).toEqual([{ n: 1, date: '2026-11-19', rarity: 'common', reward: 'a', artifact: null, status: 'bag', deliveredOn: null }]);   // история «что выпало»
     expect(db.select().from(s.chestOpened).all()).toHaveLength(1);
   });
   it('«Щедрая добыча»: второй приз из сундука', () => {
@@ -155,6 +155,72 @@ describe('действия', () => {
     expect(log().every((c) => c.status === 'delivered')).toBe(true);
     runAction(db, dad, 'deliverChestPrize', { memberId: 2, n: 2, undo: true });
     expect(err(() => runAction(db, dad, 'useChestPrize', { memberId: 2, n: 2 }))).toBeNull();                // родитель тоже может запросить за ребёнка
+  });
+  const WED = new Date('2026-11-18T05:00:00Z');
+  const detail = (id = 2, now = NOW) => { const { raw, family } = loadFamily(db, now); return memberDetail(raw, family, family.members.get(id)!); };
+  const giveChest = (n: number, artifact: string | null) => db.insert(s.chestOpened).values({ memberId: 2, n, rarity: 'common', reward: 'a', date: '2026-11-10', artifact }).run();
+
+  it('недельная цель: выбор в пн–ср, один раз, родитель может менять, свои цели и подтверждение', () => {
+    expect(err(() => runAction(db, kid, 'chooseGoal', { kind: 'workout', tier: 'mid' }))?.status).toBe(403);       // четверг: поздно
+    const wed = { ...kid, now: WED };
+    expect(err(() => runAction(db, wed, 'chooseGoal', { kind: 'nope', tier: 'mid' }))?.status).toBe(400);
+    expect(err(() => runAction(db, wed, 'chooseGoal', { kind: 'habits', tier: 'mid' }))?.status).toBe(400);        // нет привычек
+    expect(runAction(db, wed, 'chooseGoal', { kind: 'workout', tier: 'mid' })).toMatchObject({ target: 200 });
+    expect(detail(2, WED).goal.current).toMatchObject({ kind: 'workout', target: 200, weekStart: '2026-11-16' });
+    expect(err(() => runAction(db, wed, 'chooseGoal', { kind: 'study', tier: 'easy' }))?.status).toBe(409);
+    runAction(db, { ...dad, now: NOW }, 'chooseGoal', { memberId: 2, kind: 'study', tier: 'easy' });             // родитель в четверг и поверх выбранной
+    expect(detail(2).goal.current).toMatchObject({ kind: 'study', target: 120 });
+    // своя цель родителя и подтверждение
+    expect(err(() => runAction(db, kid, 'setCustomGoal', { title: 'x', tier: 'easy' }))?.status).toBe(403);
+    runAction(db, dad, 'setCustomGoal', { memberId: 2, title: 'Прочитать 2 главы', tier: 'hard' });
+    expect(detail().goal.current).toMatchObject({ title: 'Прочитать 2 главы', manual: true, done: false, tier: 'hard' });
+    expect(err(() => runAction(db, kid, 'confirmGoal', { weekStart: '2026-11-16' }))?.status).toBe(403);
+    runAction(db, dad, 'confirmGoal', { memberId: 2, weekStart: '2026-11-16' });
+    expect(detail().goal.current).toMatchObject({ done: true });
+    runAction(db, dad, 'clearGoal', { memberId: 2 });
+    expect(detail().goal.current).toBeNull();
+  });
+  it('артефакты: щит и удвоитель применяются к дню, ключ даёт сундук, талисман делает сундук редким', () => {
+    giveChest(1, 'shield'); giveChest(2, 'doubler'); giveChest(3, 'key'); giveChest(4, 'luck');
+    expect(detail().artifacts.map((x) => x.kind).sort()).toEqual(['doubler', 'key', 'luck', 'shield']);
+    expect(err(() => runAction(db, kid, 'useArtifact', { key: 'chest:99' }))?.status).toBe(404);
+    // щит: только пропущенный прошедший день
+    expect(err(() => runAction(db, kid, 'useArtifact', { key: 'chest:1' }))?.status).toBe(400);                   // не выбран день
+    expect(err(() => runAction(db, kid, 'useArtifact', { key: 'chest:1', date: '2026-11-19' }))?.status).toBe(400); // сегодня
+    runAction(db, kid, 'addWorkout', { minutes: 40, date: '2026-11-17' });
+    expect(err(() => runAction(db, kid, 'useArtifact', { key: 'chest:1', date: '2026-11-17' }))?.status).toBe(400); // в тот день была активность
+    expect(detail().artifactDates.shield).not.toContain('2026-11-17');
+    expect(detail().artifactDates.shield).toContain('2026-11-16');
+    runAction(db, kid, 'useArtifact', { key: 'chest:1', date: '2026-11-16' });
+    expect(detail().artifacts.find((x) => x.key === 'chest:1')).toMatchObject({ status: 'active', activeFor: '2026-11-16' });
+    expect(err(() => runAction(db, kid, 'useArtifact', { key: 'chest:1', date: '2026-11-15' }))?.status).toBe(409);  // уже использован
+    // удвоитель: очки сегодняшнего дня растут
+    runAction(db, kid, 'addWorkout', { minutes: 40 });
+    const before = detail().day.points;
+    runAction(db, kid, 'useArtifact', { key: 'chest:2', date: '2026-11-19' });
+    expect(detail().day.points).toBe(before + Math.min(before, 70));
+    // ключ: +1 сундук
+    const chests = detail().chests.earned;
+    runAction(db, kid, 'useArtifact', { key: 'chest:3' });
+    expect(detail().chests.earned).toBe(chests + 1);
+    // талисман: следующий сундук не обычный (rand 0.9 дал бы обычный)
+    runAction(db, kid, 'useArtifact', { key: 'chest:4' });
+    expect(detail().artifacts.find((x) => x.key === 'chest:4')).toMatchObject({ status: 'active' });
+    for (let i = 0; i < 5; i++) runAction(db, kid, 'addWorkout', { minutes: 600 });   // уровни дают сундуки
+    const r = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; talisman: boolean };
+    expect(r).toMatchObject({ rarity: 'rare', talisman: true });
+    expect(detail().artifacts.find((x) => x.key === 'chest:4')).toMatchObject({ status: 'used' });
+    const r2 = runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { rarity: string; talisman: boolean };
+    expect(r2).toMatchObject({ rarity: 'common', talisman: false });                                               // талисман потрачен
+  });
+  it('из сундука может выпасть артефакт и он попадает в сумку; чужой ребёнок не может использовать чужое', () => {
+    runAction(db, kid, 'addWorkout', { minutes: 300 });
+    const r = runAction(db, { ...kid, rand: () => 0 }, 'openChest', {}) as { artifact: string | null };
+    expect(r.artifact).toBe('shield');
+    expect(detail().artifacts).toHaveLength(1);
+    expect(detail().chestLog[0]).toMatchObject({ artifact: 'shield' });
+    expect(err(() => runAction(db, kid, 'useArtifact', { memberId: 1, key: 'chest:1' }))?.status).toBe(403);
+    expect(runAction(db, { ...kid, rand: () => 0.9 }, 'openChest', {}) as { artifact: string | null }).toMatchObject({ artifact: null });
   });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];

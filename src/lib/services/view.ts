@@ -1,6 +1,8 @@
 import { shopDiscount } from '../game/talents';
 import { SEASON_CHESTS } from '../game/seasons';
 import { reviewDay, reviewHidden } from '../game/review';
+import { basePoints } from '../game/points';
+import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, canChooseGoal, goalTarget, goalWeekStart, rewardXp, weekEnd } from '../game/goals';
 import { BOSSES } from '../game/boss';
 import { questHint, questProgress } from '../game/quests';
 import { allocateWorkouts } from '../game/reps';
@@ -44,6 +46,21 @@ export function reviewFlags(raw: Raw, fam: Family, memberId: number) {
   return out;
 }
 
+/** Недельная цель героя: текущая, прошлая, можно ли выбирать и список готовых вариантов с числами. */
+export function goalView(raw: Raw, fam: Family, st: MemberState) {
+  const m = raw.members.find((x) => x.id === st.id)!;
+  const habits = raw.habits.filter((h) => h.memberId === st.id).length;
+  const ws = goalWeekStart(fam.today);
+  const options = GOAL_KINDS.map((k) => {
+    const tiers = TIERS.map((tier) => ({ tier, target: goalTarget(k, tier, m.goal, habits), xp: rewardXp(tier, m.goal), chests: REWARD[tier].chests, artifact: REWARD[tier].artifact }));
+    return { kind: k, name: GOAL_INFO[k].name, emoji: GOAL_INFO[k].emoji, unit: GOAL_INFO[k].unit, tiers, texts: tiers.map((t) => (t.target === null ? '' : GOAL_INFO[k].text(t.target))) };
+  });
+  return {
+    weekStart: ws, weekEnd: weekEnd(ws), canChoose: canChooseGoal(fam.today, ws) && !st.goals.current,
+    current: st.goals.current, last: st.goals.history[0] ?? null, options,
+  };
+}
+
 export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: string = fam.today) {
   const myWorkouts = allocateWorkouts(raw.workouts.filter((w) => w.memberId === st.id).map((w, i) => ({ ...w, id: w.id ?? i })));
   const today = st.days.get(date) ?? st.days.get(fam.today)!;
@@ -68,7 +85,20 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     chestLog: (() => {
       const mine = raw.chestsOpened.filter((c) => c.memberId === st.id).sort((a, b) => b.n - a.n);
       return [...mine.filter((c) => (c.status ?? 'bag') !== 'delivered'), ...mine.filter((c) => c.status === 'delivered').slice(0, 100)]
-        .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
+        .map((c) => ({ n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '', artifact: c.artifact ?? null, status: (c.status ?? 'bag') as 'bag' | 'requested' | 'delivered', deliveredOn: c.deliveredOn ?? null }));
+    })(),
+    // недельная цель и артефакты
+    goal: goalView(raw, fam, st),
+    artifacts: st.artifacts.map((x) => ({ key: x.key, kind: x.kind, source: x.source, date: x.date, status: x.status, activeFor: x.activeFor, usedOn: x.usedOn })),
+    artifactDates: (() => {
+      const m = raw.members.find((x) => x.id === st.id)!;
+      const used = (kind: string) => new Set(raw.artifactUse.filter((u) => u.memberId === st.id && u.kind === kind && u.activeFor).map((u) => u.activeFor!));
+      const shield = used('shield'), doubler = used('doubler');
+      const days = dateRange(addDays(fam.today, -7), fam.today);
+      return {
+        shield: days.filter((d) => d < fam.today && !shield.has(d) && basePoints((st.days.get(d)?.stats) ?? { workoutMinutes: 0, warmups: 0, study: {}, habits: 0, books: 0, questXp: 0 }) < m.goal * 0.5),
+        doubler: days.filter((d) => !doubler.has(d)),
+      };
     })(),
     date, radar,
     reviewDates: reviewFlags(raw, fam, st.id).map((f) => f.date),
@@ -111,7 +141,11 @@ export function adminView(raw: Raw, fam: Family, loot: { loot: string[]; lootRar
   }));
   const prizesRequested = raw.chestsOpened.filter((c) => c.status === 'requested').sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
     .map((c) => ({ memberId: c.memberId, n: c.n, date: c.date ?? '', rarity: c.rarity ?? 'common', reward: c.reward ?? '' }));
-  return { pending, quests, familyQuestsAll, review, prizesRequested, ...loot };
+  // ручные цели (родитель отмечает выполнение): текущая и прошлая неделя
+  const ws = goalWeekStart(fam.today), prev = addDays(ws, -7);
+  const manualGoals = raw.weeklyGoals.filter((g) => g.manual && (g.weekStart === ws || g.weekStart === prev))
+    .map((g) => ({ memberId: g.memberId, weekStart: g.weekStart, title: g.title ?? '', tier: g.tier, confirmed: g.confirmed, finished: weekEnd(g.weekStart) < fam.today }));
+  return { pending, quests, familyQuestsAll, review, prizesRequested, manualGoals, ...loot };
 }
 
 const fqView = (q: Family['familyQuests'][number]) => ({
@@ -161,6 +195,7 @@ export function tvState(raw: Raw, fam: Family) {
     familyQuests: currentFq(fam),
     mvp: { yesterday: fam.mvp.yesterday, leader: fam.mvp.leader },
     record: Object.fromEntries(raw.members.map((m) => [m.id, record(m.id)])),
+    goals: Object.fromEntries(raw.members.map((m) => { const g = fam.members.get(m.id)!.goals.current; return [m.id, g ? { title: g.title ?? (GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.text(g.target) ?? ''), emoji: GOAL_INFO[g.kind as keyof typeof GOAL_INFO]?.emoji ?? '🎯', progress: g.progress, target: g.target, done: g.done, manual: g.manual, tier: g.tier } : null]; })),
     quests: raw.members.map((m) => {
       const d = fam.members.get(m.id)!.days.get(fam.today)!;
       return { memberId: m.id, items: d.quests.map((q, i) => { const pr = questProgress(q, d.stats); return { t: q.t, desc: q.d ?? null, xp: q.xp, manual: q.k === 'manual', done: d.questsDone[i], pending: !!q.pending, index: i, hint: questHint(q), progress: pr ? `${Math.min(pr.have, pr.need)}/${pr.need}${pr.unit ? ' ' + pr.unit : ''}` : null }; }) };

@@ -9,6 +9,8 @@ import { chestsEarned, levelFromXp, levelProgress, talentPointsTotal } from '../
 import { basePoints, dayPoints, streakForward } from '../game/points';
 import { allQuestsDone, defaultQuests, questDone, questXpEarned, type QuestItem } from '../game/quests';
 import { buildSeasons, type SeasonsResult } from '../game/seasons';
+import { deriveArtifacts, type ArtifactState, type ArtifactUse } from '../game/artifacts';
+import { resolveGoal, weekEnd, type GoalRow, type GoalState } from '../game/goals';
 import { AURA_CAP, auraOf, bossBonuses, hasShield, spentPoints } from '../game/talents';
 import { emptyDay, type DayStats, type HeroBuild, type Sphere, type StudyKind } from '../game/types';
 
@@ -23,12 +25,15 @@ export interface Raw {
   habitChecks: { habitId: number; date: string }[];
   books: { memberId: number; finishedAt: string }[];
   quests: { memberId: number; date: string; items: QuestItem[] }[];
-  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null }[];
+  chestsOpened: { memberId: number; n: number; date?: string; rarity?: string; reward?: string; status?: string; deliveredOn?: string | null; artifact?: string | null }[];
   familyQuests: FamilyQuestInput[];
   dayMvps: { date: string; memberId: number }[];   // memberId 0 — в тот день MVP не было
   mvpSince: string | null;
   reminderHour: number;
   seasonSince: string | null;
+  artifactsSince: string | null;
+  artifactUse: (ArtifactUse & { memberId: number })[];
+  weeklyGoals: (GoalRow & { memberId: number })[];
   reviewOk: { memberId: number; date: string; points: number }[];
   shopItems: ShopItemRow[];
   purchases: PurchaseRow[];
@@ -51,6 +56,8 @@ export interface MemberState {
   chestsEarned: number; chestsOpened: number; chestsAvailable: number;
   spentPoints: number; spentChests: number; balance: number;
   achievements: AchievementState[];
+  artifacts: ArtifactState[];
+  goals: { current: GoalState | null; history: GoalState[]; xp: number; chests: number; hardWeeks: string[] };
 }
 
 export interface BossWeek {
@@ -111,7 +118,7 @@ export function buildFamily(raw: Raw, today: string): Family {
     if (r.done && r.doneDate) for (const id of participants) { const mm = famXp.get(id) ?? new Map<string, number>(); mm.set(r.doneDate, (mm.get(r.doneDate) ?? 0) + q.xp); famXp.set(id, mm); }
     return { ...q, ...r, participants };
   });
-  const achIn = new Map<number, { dates: string[]; stats: DayStats[]; points: number[]; streak: number[]; questsAllDone: boolean[]; superGoal: number }>();
+  const achIn = new Map<number, { dates: string[]; stats: DayStats[]; points: number[]; streak: number[]; questsAllDone: boolean[]; superGoal: number; levelBonus: number[] }>();
 
   for (const m of raw.members) {
     const { hero, cls, stats, dates } = prep.get(m.id)!;
@@ -120,7 +127,10 @@ export function buildFamily(raw: Raw, today: string): Family {
     const questsFor = (date: string) => overrides.find((q) => q.date === date)?.items ?? tpl ?? defaultQuests(m.id, date, m.goal);
 
     const active = (d: string) => basePoints(stats.get(d)!) >= m.goal * 0.5;
-    const streaks = streakForward(dates, active, hasShield(hero.talents, cls), today);
+    const uses = raw.artifactUse.filter((u) => u.memberId === m.id);
+    const shieldDates = new Set(uses.filter((u) => u.kind === 'shield' && u.activeFor).map((u) => u.activeFor!));
+    const doublerDates = new Set(uses.filter((u) => u.kind === 'doubler' && u.activeFor).map((u) => u.activeFor!));
+    const streaks = streakForward(dates, active, hasShield(hero.talents, cls), today, shieldDates);
 
     const questXp = new Map<string, number>();
     let questDays = 0;
@@ -139,7 +149,7 @@ export function buildFamily(raw: Raw, today: string): Family {
       let xp = 0;
       for (const d of dates) {
         const st = { ...stats.get(d)!, questXp: questXp.get(d)! };
-        const r = dayPoints(st, build, streaks.get(d) ?? 0, useSub, { date: d, superGoal: m.superGoal });
+        const r = dayPoints(st, build, streaks.get(d) ?? 0, useSub, { date: d, superGoal: m.superGoal, doubler: doublerDates.has(d) });
         const qs = questsFor(d);
         days.set(d, { stats: st, total: r.total, bySphere: r.bySphere, quests: qs, questsDone: qs.map((q) => questDone(q, st)) });
         xp += r.total;
@@ -150,23 +160,34 @@ export function buildFamily(raw: Raw, today: string): Family {
     // Два прохода: уровень для бонуса подкласса берём из очков без бонуса подкласса.
     const a = calc(build, false);
     const b = calc({ ...build, level: levelFromXp(a.xp) }, true);
-    const level = levelFromXp(b.xp);
-    const prog = levelProgress(b.xp);
+    // Недельные цели: прогресс по итоговым очкам; бонус опыта начисляется в понедельник после закончившейся недели
+    const allDoneByDate = new Map(dates.map((d, k) => [d, questsAllDone[k]]));
+    const goalStates = raw.weeklyGoals.filter((g) => g.memberId === m.id).map((row) => {
+      const wk = dates.filter((d) => d >= row.weekStart && d <= weekEnd(row.weekStart));
+      return resolveGoal(row, wk.map((d) => ({ total: b.days.get(d)!.total, stats: b.days.get(d)!.stats, questsAllDone: allDoneByDate.get(d) ?? false })), today, m.goal);
+    }).sort((x, y) => (x.weekStart < y.weekStart ? 1 : -1));
+    const won = goalStates.filter((g) => g.finished && g.done);
+    const levelBonus = dates.map((d) => won.filter((g) => addDays(weekEnd(g.weekStart), 1) === d).reduce((a, g) => a + g.rewardXp, 0));
+    const goalXp = levelBonus.reduce((a, x) => a + x, 0);
+    const totalXp = b.xp + goalXp;
+    const level = levelFromXp(totalXp);
+    const prog = levelProgress(totalXp);
 
     const clsPoints: Record<Cls, number> = { w: 0, m: 0, b: 0, p: 0 };
     for (const dc of b.days.values()) for (const [s, v] of Object.entries(dc.bySphere)) { const c = CLASS_OF[s as Sphere]; if (c) clsPoints[c] += v ?? 0; }
 
     members.set(m.id, {
       id: m.id, hero: { cls, sub: hero.sub, clsChangedAt: hero.clsChangedAt, talents: hero.talents },
-      xp: b.xp, level, into: prog.into, span: prog.span,
+      xp: totalXp, level, into: prog.into, span: prog.span,
       streak: streaks.get(today) ?? 0,
       talentPointsFree: talentPointsTotal(level) - spentPoints(hero.talents, cls),
       recommendedSub: recommendSub(clsPoints, cls),
       days: b.days, questDays,
       chestsEarned: 0, chestsOpened: raw.chestsOpened.filter((c) => c.memberId === m.id).length, chestsAvailable: 0,
-      spentPoints: 0, spentChests: 0, balance: 0, achievements: [],
+      spentPoints: 0, spentChests: 0, balance: 0, achievements: [], artifacts: [],
+      goals: { current: goalStates.find((g) => !g.finished && g.weekStart === weekStart(today)) ?? null, history: goalStates.filter((g) => g.finished).slice(0, 8), xp: goalXp, chests: won.reduce((a, g) => a + g.rewardChests, 0), hardWeeks: won.filter((g) => g.tier === 'hard').map((g) => g.weekStart) },
     });
-    achIn.set(m.id, { dates, stats: dates.map((d) => stats.get(d)!), points: dates.map((d) => b.days.get(d)!.total), streak: dates.map((d) => streaks.get(d) ?? 0), questsAllDone, superGoal: m.superGoal });
+    achIn.set(m.id, { dates, stats: dates.map((d) => stats.get(d)!), points: dates.map((d) => b.days.get(d)!.total), streak: dates.map((d) => streaks.get(d) ?? 0), questsAllDone, superGoal: m.superGoal, levelBonus });
   }
 
   // Боссы: каждая неделя от первой до текущей считается чисто из записей.
@@ -231,7 +252,8 @@ export function buildFamily(raw: Raw, today: string): Family {
   const seasons = buildSeasons(today, raw.seasonSince, raw.members.map((m) => ({ id: m.id, goal: m.goal, createdOn: createdOf.get(m.id)! })), (id, d) => members.get(id)?.days.get(d)?.total ?? 0);
 
   for (const st of members.values()) {
-    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0));
+    st.chestsEarned = chestsEarned(st.level, st.questDays, (bossChests.get(st.id) ?? 0) + (mvpWins[st.id] ?? 0) * MVP_CHEST_PER_DAY + (seasons.chests[st.id] ?? 0) + st.goals.chests
+      + raw.artifactUse.filter((u) => u.memberId === st.id && u.kind === 'key' && u.status === 'used').length);   // «Ключ сундука» = +1 сундук
     // Отменённые покупки возвращают цену; опыт и уровень от трат не страдают.
     const mine = raw.purchases.filter((p) => p.memberId === st.id && p.status !== 'cancelled');
     st.spentPoints = mine.filter((p) => p.currency === 'points').reduce((a, p) => a + p.price, 0);
@@ -252,6 +274,16 @@ export function buildFamily(raw: Raw, today: string): Family {
       mvpDates: bossHistory.filter((w) => w.finished && w.defeated && w.mvp === st.id).map((w) => addDays(w.weekStart, 6)),
       dayMvpDates: mvpDatesOf.get(st.id) ?? [],
       seasonWinDates: seasons.winDates[st.id] ?? [],
+      levelBonus: a.levelBonus,
+    });
+    st.artifacts = deriveArtifacts({
+      since: raw.artifactsSince,
+      chests: raw.chestsOpened.filter((c) => c.memberId === st.id).map((c) => ({ n: c.n, date: c.date ?? '', artifact: c.artifact ?? null })),
+      bossWins: wins.map((w) => addDays(w.weekStart, 6)),
+      seasonWins: (seasons.winDates[st.id] ?? []).map((d) => ({ id: d.slice(0, 7), date: d })),
+      mvpDates: mvpDatesOf.get(st.id) ?? [],
+      goalWeeks: st.goals.hardWeeks,
+      uses: raw.artifactUse.filter((u) => u.memberId === st.id),
     });
   }
   return { today, members, boss: bossHistory[bossHistory.length - 1], bossHistory, familyQuests, mvp: { pending: pendingMvps, yesterday, leader, wins: mvpWins, byDate: Object.fromEntries(mvpByDate) }, seasons };

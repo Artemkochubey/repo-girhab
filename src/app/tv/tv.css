@@ -56,3 +56,5 @@
 
 .tv-remind { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 22px; border: 2px solid #6f58c9; border-radius: 16px; background: linear-gradient(135deg, #2a1f55, #1a1430); font-size: 28px; }
 .tv-remind div { display: flex; flex-wrap: wrap; gap: 22px; } .tv-remind b { color: #ffd24a; }
+
+.tv-goal { margin-top: 8px; display: grid; gap: 4px; font-size: .62em; color: #d7cffb; } .tv-goal.done { color: #8be3a3; } .tv-goal .tv-pts { height: 14px; }

@@ -55,6 +55,7 @@ export interface AchievementInput {
   mvpDates: string[];
   dayMvpDates: string[];
   seasonWinDates?: string[];
+  levelBonus?: number[];                 // опыт не из очков дней (бонусы недельных целей) по дням, для достижений уровней
 }
 
 export interface AchievementState extends AchievementDef { value: number; earnedOn: string | null }
@@ -72,7 +73,7 @@ export function computeAchievements(i: AchievementInput): AchievementState[] {
     warmups: cumulative(i.warmups),
     study: cumulative(i.study),
     habits: cumulative(i.habits),
-    level: cumulative(i.points).map((xp) => levelFromXp(xp)),
+    level: cumulative(i.points.map((p, k) => p + (i.levelBonus?.[k] ?? 0))).map((xp) => levelFromXp(xp)),
     questDays: cumulative(i.questsAllDone.map((x) => (x ? 1 : 0))),
     chests: cumulativeBy(i.dates, i.chestDates),
     bossWins: cumulativeBy(i.dates, i.bossWinDates),

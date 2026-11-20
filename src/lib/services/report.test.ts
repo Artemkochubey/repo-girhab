@@ -13,7 +13,7 @@ const base = (): Raw => ({
     { memberId: 2, cls: 'w', clsChosen: false, sub: null, clsChangedAt: '', talents: [] },
   ],
   workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [],
-  familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], shopItems: [], purchases: [],
+  familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], weeklyGoals: [], shopItems: [], purchases: [],
 });
 // фиксированные квесты, чтобы считать предсказуемо: один автоквест «тренировка 30 мин» и один ручной
 const withQuests = (raw: Raw) => { for (const id of [1, 2]) raw.quests.push({ memberId: id, date: 'default', items: [{ t: 'Тренировка', xp: 10, k: 'workout', m: 30 }, { t: 'Помочь по дому', xp: 10, k: 'manual' }] }); };

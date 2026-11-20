@@ -14,6 +14,7 @@ interface Tv {
   familyQuests: TvFq[];
   mvp: { yesterday: { memberId: number; points: number } | null; leader: { memberId: number; ratio: number; qualified: boolean } | null };
   today: string; timezone: string; reminderHour: number;
+  goals: Record<number, { title: string; emoji: string; progress: number; target: number; done: boolean; manual: boolean; tier: string } | null>;
   season: { id: string; daysLeft: number; top: { memberId: number; ratio: number; points: number }[] };
   members: { id: number; name: string; emoji: string; color: string; goal: number; superGoal: number; badges: number; xp: number; level: number; pointsToday: number }[];
   boss: { hp: number; damage: number; defeated: boolean; byMember: Record<number, number>; mvp: number | null; boss: { name: string; emoji: string } };
@@ -130,6 +131,16 @@ export default function TvPage() {
               <div className="tv-hero-top"><span className="tv-av">{m.emoji}</span><div><b>{m.name}</b><small>уровень {m.level} · {rankFor(m.level, m.xp).rank.emoji} {rankFor(m.level, m.xp).rank.name} · 🏅 {m.badges}</small></div></div>
               <div className="tv-pts"><div style={{ width: `${pct}%`, background: m.color }} /></div>
               <div className="tv-pts-label">{m.pointsToday} / {m.superGoal}{m.pointsToday >= m.goal ? ' ✓' : ''}</div>
+              {(() => {
+                const g = d.goals[m.id];
+                if (!g) return <div className="tv-goal muted">🎯 цель недели не выбрана</div>;
+                return (
+                  <div className={`tv-goal ${g.done ? 'done' : ''}`}>
+                    <span>{g.emoji} {g.title}</span>
+                    {g.manual ? <b>{g.done ? '✔' : '…'}</b> : <><div className="tv-pts"><div style={{ width: `${Math.min(100, (g.progress / g.target) * 100)}%`, background: g.done ? '#4cae6a' : m.color }} /></div><b>{g.progress}/{g.target}{g.done ? ' ✔' : ''}</b></>}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
