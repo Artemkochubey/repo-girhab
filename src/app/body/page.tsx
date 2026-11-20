@@ -19,7 +19,7 @@ type View = 'front' | 'back' | 'both';
 interface Row { id: number; date: string; minutes: number; reps: number | null; exercise: string | null; muscles: string[] | null; eq?: number }
 const fmt = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
 /** «30 мин» или «40 раз · +8 оч.» */
-const amount = (w: { minutes: number; reps: number | null; eq?: number }) => (w.reps ? `${w.reps} раз · +${fmt(w.eq ?? 0)} оч.` : `${w.minutes} мин`);
+const amount = (w: { minutes: number; reps: number | null; eq?: number; exercise?: string | null }) => (w.reps ? `${w.reps} раз · +${fmt(w.eq ?? 0)} оч.` : exerciseById(w.exercise)?.minute ? `${w.minutes} мин · +${fmt(w.eq ?? 0)} оч.` : `${w.minutes} мин`);
 
 const dayTitle = (date: string, today: string) => {
   if (date === today) return 'Сегодня';
@@ -111,7 +111,7 @@ export default function Body() {
 
   return (
     <>
-      <h1 className="title">💪 Тело</h1>
+      <h1 className="title">💪 Тело и здоровье</h1>
       <Hint id="body">Нажмите на упражнение и введите повторы или минуты. Чем больше работают мышцы, тем ярче они светятся на фигуре. Свечение сбрасывается каждый день.</Hint>
 
       <Section title="Нагрузка на мышцы" right={<div className="row">{RANGES.map((r) => <button key={r.id} className={`btn ${range === r.id ? '' : 'ghost'} sm`} onClick={() => setRange(r.id)}>{r.label}</button>)}</div>}>
@@ -160,6 +160,9 @@ export default function Body() {
             <b>1 раз = {fmt(ex.rep.pts)} очка.</b> До {ex.rep.soft} раз за день по полной цене, до {ex.rep.hard} — за половину, дальше за четверть. Первые {DAY_FULL} очков за повторы за день идут по полной цене, до {DAY_HALF} — за половину, дальше за четверть. Лимита нет, но чем больше накручиваешь, тем меньше выгода.
             За подход — не больше {ex.rep.max}. Сейчас следующий повтор стоит {price ? `${price.perRep.toFixed(2).replace('.', ',')} очка (${price.percent}% цены)` : fmt(ex.rep.pts)}, за все повторы сегодня: {fmt(price?.dayPoints ?? 0)} оч.
           </p>
+        )}
+        {!repMode && ex?.minute && (
+          <p className="repinfo"><b>Прогулка: 1 очко за {Math.round(1 / ex.minute.rate)} мин.</b> Засчитывается до {ex.minute.dayCap} мин в день (до {Math.round(ex.minute.dayCap * ex.minute.rate)} очков): прогулка спокойная, поэтому ценится вдвое ниже обычной тренировки.</p>
         )}
         {repMode
           ? <Chips key="reps" values={[10, 20, 30, 50]} unit="раз" onPick={(n) => addWorkout(n)} />

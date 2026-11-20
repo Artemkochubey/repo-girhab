@@ -74,8 +74,8 @@ export const allQuestsDone = (qs: QuestItem[], d: DayStats): boolean =>
 export function questHint(q: QuestItem): string {
   switch (q.k) {
     case 'manual': return 'Сделайте дело и нажмите ○ — родитель подтвердит';
-    case 'warmup': return 'Отметьте зарядку (кнопка «Зарядка» на экранах «Сегодня» и «Тело»)';
-    case 'workout': return `Запишите тренировку: ${q.m ?? 1} мин за день (экран «Тело»)`;
+    case 'warmup': return 'Отметьте зарядку (кнопка «Зарядка» на экранах «Сегодня» и «Тело и здоровье»)';
+    case 'workout': return `Запишите тренировку: ${q.m ?? 1} мин за день (экран «Тело и здоровье»)`;
     case 'habits': return `Отметьте привычек за день: ${q.m ?? 1} (экран «Ум»)`;
     case 'deeds': return `Отметьте добрых дел за день: ${q.m ?? 1} (кнопка «Отметить», раздел «Добрые дела»)`;
     case 'study': {

@@ -36,8 +36,18 @@ export function allocateWorkouts<T extends AllocInput>(entries: T[]): Allocated<
   let day = '';
   let dayRaw = 0;
   let perEx = new Map<string, number>();
+  let perMin = new Map<string, number>();
   for (const e of sorted) {
-    if (e.date !== day) { day = e.date; dayRaw = 0; perEx = new Map(); }
+    if (e.date !== day) { day = e.date; dayRaw = 0; perEx = new Map(); perMin = new Map(); }
+    // минутные тренировки с особой ценой (прогулка): очки за минуту и потолок минут в день
+    const ms = !e.reps ? exerciseById(e.exercise)?.minute : undefined;
+    if (ms) {
+      const used = perMin.get(e.exercise!) ?? 0;
+      const counted = Math.max(0, Math.min(e.minutes, ms.dayCap - used));
+      perMin.set(e.exercise!, used + e.minutes);
+      out.set(e, round2(counted * ms.rate));
+      continue;
+    }
     const spec = e.reps ? exerciseById(e.exercise)?.rep : undefined;
     if (!e.reps || !spec) { out.set(e, e.minutes); continue; }
     const cum = perEx.get(e.exercise!) ?? 0;
@@ -52,7 +62,7 @@ export function allocateWorkouts<T extends AllocInput>(entries: T[]): Allocated<
 
 /**
  * Сколько стоит следующий повтор сейчас (в очках и в % от полной цены) по записям одного дня.
- * Нужно для подсказки на экране «Тело».
+ * Нужно для подсказки на экране «Тело и здоровье».
  */
 export function nextRepPrice(todays: { id: number; exercise?: string | null; reps?: number | null }[], exercise: string): { perRep: number; percent: number; dayPoints: number } | null {
   const spec = exerciseById(exercise)?.rep;

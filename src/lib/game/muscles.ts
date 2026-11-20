@@ -25,7 +25,12 @@ export const isMuscleId = (v: unknown): v is MuscleId => typeof v === 'string' &
 export type ExerciseCategory = 'Силовые' | 'Кардио' | 'Игры и спорт' | 'Растяжка';
 /** Подсчёт «по повторам»: цена одного повтора, потолки засчёта и лимит за один подход. */
 export interface RepSpec { pts: number; soft: number; hard: number; max: number }
-export interface Exercise { id: string; name: string; emoji: string; cat: ExerciseCategory; w: Partial<Record<MuscleId, number>>; rep?: RepSpec }
+/** Минутная тренировка с особой ценой: rate — очков за минуту (у обычных 1), dayCap — сколько минут в день засчитывается. */
+export interface MinuteSpec { rate: number; dayCap: number }
+export interface Exercise { id: string; name: string; emoji: string; cat: ExerciseCategory; w: Partial<Record<MuscleId, number>>; rep?: RepSpec; minute?: MinuteSpec }
+
+/** Прогулка: спокойная нагрузка, поэтому очко за две минуты и не больше полутора часов в день. */
+export const WALK = { id: 'stroll', rate: 0.5, dayCap: 90 } as const;
 
 /** Вес — доля нагрузки на мышцу за минуту (0..1). Значения экспертные, округлённые. */
 export const EXERCISES: Exercise[] = [
@@ -44,6 +49,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'calf_raise', name: 'Подъём на носки', emoji: '🦶', cat: 'Силовые', w: { calves: 1 }, rep: { pts: 0.07, soft: 200, hard: 400, max: 200 } },
 
   { id: 'running', name: 'Бег', emoji: '🏃', cat: 'Кардио', w: { calves: 0.8, quads: 0.7, hamstrings: 0.6, glutes: 0.5, abductors: 0.3, abs: 0.2 } },
+  { id: 'stroll', name: 'Прогулка', emoji: '🌳', cat: 'Кардио', w: { calves: 0.3, quads: 0.25, glutes: 0.25, hamstrings: 0.2 }, minute: { rate: WALK.rate, dayCap: WALK.dayCap } },
   { id: 'walking', name: 'Быстрая ходьба', emoji: '🚶', cat: 'Кардио', w: { calves: 0.5, quads: 0.4, glutes: 0.4, hamstrings: 0.3 } },
   { id: 'jumprope', name: 'Скакалка', emoji: '🪢', cat: 'Кардио', w: { calves: 1, quads: 0.5, forearms: 0.4, shoulders: 0.3 } },
   { id: 'cycling', name: 'Велосипед', emoji: '🚴', cat: 'Кардио', w: { quads: 1, glutes: 0.6, hamstrings: 0.5, calves: 0.4 } },

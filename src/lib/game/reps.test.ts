@@ -60,3 +60,27 @@ describe('повторы', () => {
     expect(nextRepPrice([], 'running')).toBeNull();
   });
 });
+
+describe('прогулка', () => {
+  const walk = (id: number, minutes: number, date = 'd1') => ({ id, date, minutes, exercise: 'stroll' });
+  it('очко за две минуты', () => {
+    expect(allocateWorkouts([walk(1, 60)])[0]!.eq).toBe(30);
+    expect(allocateWorkouts([walk(1, 15)])[0]!.eq).toBe(7.5);
+  });
+  it('в день засчитывается не больше 90 минут, дальше без очков', () => {
+    expect(allocateWorkouts([walk(1, 200)])[0]!.eq).toBe(45);
+    const r = allocateWorkouts([walk(1, 60), walk(2, 60), walk(3, 30)]);
+    expect(r.map((x) => x.eq)).toEqual([30, 15, 0]);
+  });
+  it('на следующий день лимит обновляется, обычная тренировка идёт по полной цене', () => {
+    const r = allocateWorkouts([walk(1, 90), walk(2, 90, 'd2'), { id: 3, date: 'd2', minutes: 30, exercise: 'running' }, { id: 4, date: 'd2', minutes: 20, exercise: null }]);
+    expect(r.map((x) => x.eq)).toEqual([45, 45, 30, 20]);
+  });
+  it('прогулка есть в каталоге, нагружает ноги, а не руки', () => {
+    const s = exerciseById('stroll')!;
+    expect(s.cat).toBe('Кардио');
+    expect(s.minute).toEqual({ rate: 0.5, dayCap: 90 });
+    expect(s.w.calves).toBeGreaterThan(0);
+    expect(s.w.biceps).toBeUndefined();
+  });
+});

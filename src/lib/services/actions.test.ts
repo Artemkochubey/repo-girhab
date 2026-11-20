@@ -341,6 +341,15 @@ describe('действия', () => {
     const { raw, family } = loadFamily(db, NOW);
     expect(tvState(raw, family).members.find((m) => m.id === 2)!.face).toMatchObject({ hair: 'spiky', gender: 'm' });   // лицо доходит до ТВ
   });
+  it('прогулка: минуты считаются по половинной цене с потолком в день', () => {
+    const today = () => loadFamily(db, NOW).family.members.get(2)!.days.get(loadFamily(db, NOW).family.today)!;
+    runAction(db, kid, 'addWorkout', { exercise: 'stroll', minutes: 40 });
+    expect(today().stats.workoutMinutes).toBe(20);
+    runAction(db, kid, 'addWorkout', { exercise: 'stroll', minutes: 120 });     // 90 - 40 = 50 минут ещё засчитываются
+    expect(today().stats.workoutMinutes).toBe(45);
+    runAction(db, kid, 'addWorkout', { minutes: 10 });                            // обычная тренировка не ограничена прогулкой
+    expect(today().stats.workoutMinutes).toBe(55);
+  });
   it('добрые дела: очки, лимиты, своё дело, права и журнал', () => {
     const fam = () => loadFamily(db, NOW).family.members.get(2)!;
     const today = () => fam().days.get(loadFamily(db, NOW).family.today)!;

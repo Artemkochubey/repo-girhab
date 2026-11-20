@@ -14,7 +14,7 @@ export const activeTab = (path: string): string | null => TABS.find((t) => t.mat
 
 export interface MoreItem { href: string; emoji: string; title: string; text: string; parent?: boolean }
 export const MORE_ITEMS: MoreItem[] = [
-  { href: '/body', emoji: '💪', title: 'Тело', text: 'Тренировки, силуэт мышц, история и год по дням' },
+  { href: '/body', emoji: '💪', title: 'Тело и здоровье', text: 'Тренировки, прогулки, силуэт мышц, история и год по дням' },
   { href: '/mind', emoji: '🧠', title: 'Ум', text: 'Учёба, привычки, книги и мозг, который светится' },
   { href: '/deeds', emoji: '💛', title: 'Доброта', text: 'Добрые дела, звания и журнал' },
   { href: '/season', emoji: '🏆', title: 'Сезон', text: 'Рейтинг семьи за месяц и призы' },

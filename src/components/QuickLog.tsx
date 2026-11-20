@@ -2,12 +2,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { STUDY_KINDS } from '@/lib/db/schema';
+import { WALK } from '@/lib/game/muscles';
 import { CUSTOM_DEED, CUSTOM_NOTE_MAX, DEEDS, DEED_CATEGORIES, deedById, deedStatus } from '@/lib/game/deeds';
 import { useGame } from './Shell';
 import { Chips } from './ui';
 
 type Tab = 'body' | 'mind' | 'kind';
-const TABS: { id: Tab; emoji: string; name: string }[] = [{ id: 'body', emoji: '💪', name: 'Тело' }, { id: 'mind', emoji: '🧠', name: 'Ум' }, { id: 'kind', emoji: '💛', name: 'Добрые дела' }];
+const TABS: { id: Tab; emoji: string; name: string }[] = [{ id: 'body', emoji: '💪', name: 'Тело и здоровье' }, { id: 'mind', emoji: '🧠', name: 'Ум' }, { id: 'kind', emoji: '💛', name: 'Добрые дела' }];
 
 /** Открыть окно записи из любого места: openQuickLog('kind'). */
 export const openQuickLog = (tab: Tab = 'body') => window.dispatchEvent(new CustomEvent('quicklog:open', { detail: tab }));
@@ -47,6 +48,7 @@ function BodyTab({ close }: { close: () => void }) {
   const { s, act, toast } = useGame();
   const d = s.detail!;
   const warm = d.day.stats.warmups > 0;
+  const walked = d.entries.workouts.filter((w) => w.exercise === WALK.id).reduce((a, w) => a + w.minutes, 0);
   return (
     <div className="quick-body">
       <div className="quick-row">
@@ -56,6 +58,10 @@ function BodyTab({ close }: { close: () => void }) {
       <div className="quick-row col">
         <b>🏃 Тренировка <small className="muted">сегодня: {Math.round(d.day.stats.workoutMinutes)} мин</small></b>
         <Chips values={[10, 15, 30, 45, 60]} onPick={(n) => act('addWorkout', { minutes: n }).then(() => toast(`🏃 Тренировка +${n} мин`)).catch(() => {})} />
+      </div>
+      <div className="quick-row col">
+        <b>🌳 Прогулка <small className="muted">1 очко за 2 мин, до {WALK.dayCap} мин в день{walked ? ` · сегодня ${walked} мин` : ''}</small></b>
+        <Chips values={[15, 30, 45, 60, 90]} onPick={(n) => act('addWorkout', { exercise: WALK.id, minutes: n }).then(() => { const pts = Math.round(Math.max(0, Math.min(n, WALK.dayCap - walked)) * WALK.rate); toast(pts > 0 ? `🌳 Прогулка ${n} мин: +${pts} очков` : `🌳 Прогулка записана, но дневной лимит (${WALK.dayCap} мин) уже набран`); }).catch(() => {})} />
       </div>
       <Link className="btn ghost" href="/body" onClick={close}>💪 Упражнения по повторам и мышцы</Link>
     </div>
