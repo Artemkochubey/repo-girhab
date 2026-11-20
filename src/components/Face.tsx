@@ -26,6 +26,11 @@ function HairBack({ id, c }: { id: string; c: string }) {
     case 'sidebraid': return <g {...o}>{[[73, 68], [75, 79], [77, 90]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="5.2" ry="6.8" />)}<circle cx="78" cy="98" r="2.6" fill="#ff6fb0" stroke="none" /></g>;
     case 'sidepony': return <path d="M28 30 Q2 36 8 68 Q10 82 18 92 Q18 68 27 52Z" {...o} />;
     case 'dreads': return <g fill="none" stroke={c} strokeWidth="6" strokeLinecap="round">{['M22 48 L15 90', 'M28 54 L23 97', 'M72 54 L77 97', 'M78 48 L85 90'].map((d, i) => <path key={i} d={d} />)}</g>;
+    case 'mullet': return <path d="M22 54 Q14 86 30 94 Q50 98 70 94 Q86 86 78 54 Z" {...o} />;
+    case 'wolfcut': return <path d="M19 52 L12 76 L24 70 L22 88 L34 76 L42 90 L50 78 L58 90 L66 76 L78 88 L76 70 L88 76 L81 52 Q80 30 50 20 Q20 30 19 52Z" {...o} />;
+    case 'longpigtails': return <g {...o}><path d="M26 40 Q6 52 10 96 Q18 98 22 90 Q20 66 30 52Z" /><path d="M74 40 Q94 52 90 96 Q82 98 78 90 Q80 66 70 52Z" /></g>;
+    case 'highpony': return <path d="M54 16 Q82 -8 94 30 Q94 46 84 58 Q84 34 68 24Z" {...o} />;
+    case 'ringlets': return <g {...o}>{[[13, 60], [10, 73], [14, 86], [22, 95], [87, 60], [90, 73], [86, 86], [78, 95]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="7" />)}</g>;
     default: return null;
   }
 }
@@ -58,6 +63,20 @@ function HairFront({ id, c }: { id: string; c: string }) {
     case 'halfup': return <g {...o}><circle cx="50" cy="12" r="7.5" /><path d={CAP} /></g>;
     case 'curlylong': return <path d={CAP} {...o} />;
     case 'bun': return <g {...o}><circle cx="50" cy="10" r="11" /><path d="M44 8 Q50 14 56 8" fill="none" stroke={mix(c, -0.35)} strokeWidth="1" /><path d={CAP} /></g>;
+    case 'mullet': return <path d={CAP} {...o} />;
+    case 'wolfcut': return <path d="M21 54 Q16 20 50 15 Q84 20 79 54 L72 40 L64 46 L56 34 L50 38 L44 34 L36 46 L28 40Z" {...o} />;
+    case 'bowl': return <path d="M20 58 Q14 16 50 14 Q86 16 80 58 L74 46 L26 46Z" {...o} />;
+    case 'sidepart': return <g {...o}><path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 34 58 30 Q40 30 36 40 Q30 42 21 54Z" /><path d="M36 30 Q38 22 42 19" fill="none" stroke={mix(c, 0.3)} strokeWidth="1.4" /></g>;
+    case 'quiff': return <g {...o}><path d="M24 48 Q20 14 50 8 Q80 14 76 48 Q70 34 50 30 Q30 34 24 48Z" /><path d="M32 22 Q44 10 62 14" fill="none" stroke={mix(c, 0.3)} strokeWidth="1.4" /></g>;
+    case 'flattop': return <path d="M23 50 L22 22 Q50 14 78 22 L77 50 Q72 38 50 36 Q28 38 23 50Z" {...o} />;
+    case 'longpigtails': return <g {...o}><path d={CAP} /><circle cx="27" cy="43" r="3" fill="#ff6fb0" stroke="none" /><circle cx="73" cy="43" r="3" fill="#ff6fb0" stroke="none" /></g>;
+    case 'highpony': return <g {...o}><path d={CAP} /><circle cx="64" cy="19" r="3.4" fill="#ff6fb0" stroke="none" /></g>;
+    case 'curtains': return <path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q70 46 52 34 Q50 33 48 34 Q30 46 21 54Z" {...o} />;
+    case 'cornrows': return <g {...o}><path d="M23 50 Q22 24 50 23 Q78 24 77 50 Q72 38 50 36 Q28 38 23 50Z" /><path d="M36 37 Q38 26 44 19 M44 35 Q46 24 50 18 M56 35 Q54 24 50 18 M64 37 Q62 26 56 19" fill="none" stroke={mix(c, 0.35)} strokeWidth="1.4" /></g>;
+    case 'braidcrown': return <g {...o}><path d={CAP} />{[[30, 31], [36, 25], [43, 21], [50, 19], [57, 21], [64, 25], [70, 31]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="5" ry="4" />)}</g>;
+    case 'ringlets': return <path d={CAP} {...o} />;
+    case 'beehive': return <g {...o}><ellipse cx="50" cy="10" rx="24" ry="22" /><path d={CAP} /></g>;
+    case 'tuft': return <g {...o}><path d={CAP} /><path d="M48 20 Q38 4 56 2 Q50 10 54 20Z" /></g>;
     case 'braids': case 'long': case 'short': default:
       return <path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z" {...o} />;
   }
