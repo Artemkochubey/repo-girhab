@@ -7,6 +7,7 @@ import { Achievements } from '@/components/Achievements';
 import { ClimbRoster } from '@/components/ClimbRoster';
 import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
+import { xpNeed } from '@/lib/game/level';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Bar, Radar, Section } from '@/components/ui';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
@@ -94,7 +95,7 @@ export default function Hero() {
                   <b>{locked ? '🔒 ' : ''}{SUBCLASS_NAMES[h.cls!][c]}{!locked && d.recommendedSub === c ? ' ★' : ''}</b>
                   <span className="muted">{CLASS_NAMES[h.cls!]} + {SPHERE[c]}</span>
                   <small className="muted">{CLASS_INFO[c].bonus.replace('+20%', locked ? '+10%…' : `+${Math.round(subBonus(d.level) * 100)}%`)}</small>
-                  {locked && <small className="gold">Откроется на 5 уровне</small>}
+                  {locked && <small className="gold">Откроется на 5 уровне: ещё {Math.max(0, xpNeed(5) - d.xp)} опыта</small>}
                 </button>
               );
             })}
