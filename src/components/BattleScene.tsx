@@ -3,6 +3,7 @@ import { useId } from 'react';
 import { DOMAIN_INFO } from '@/lib/game/gear';
 import type { LiveBattleDto } from '@/lib/client';
 import { Defs, HeroGroup, RARITY_COLOR, type Look } from './HeroFigure';
+import { useHits } from './useHits';
 
 interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto }
 
@@ -10,7 +11,9 @@ interface Props { look: Look; color: string; emoji: string; name: string; live: 
 export function BattleScene({ look, color, emoji, name, live }: Props) {
   const uid = useId().replace(/:/g, '');
   const { fight, horde } = live;
-  const hit = fight.damage > 0;
+  // удары: когда урон волны вырос с прошлого обновления, герой атакует, враги вздрагивают, над ними всплывает число
+  const hits = useHits(Object.fromEntries(fight.waves.map((w, i) => [`w${i}`, { n: Math.min(w.damage, w.hp), flag: w.cleared }])));
+  const hit = hits.length > 0;
   // группы врагов: 3 мелких, 2 средних, 1 крупный
   const groups = [
     { x: 150, pts: [[0, 22], [28, 8], [14, 40]] as [number, number][], size: 26 },
@@ -31,9 +34,9 @@ export function BattleScene({ look, color, emoji, name, live }: Props) {
       <path d="M0 150 Q60 130 120 148 T240 146 T360 150 V200 H0 Z" fill={`url(#gr-${uid})`} />
 
       {/* герой */}
-      <g transform="translate(6 20)" className={hit ? 'scene-hero hit' : 'scene-hero'}>
+      <g transform="translate(6 20)"><g className={hit ? 'scene-hero hit' : 'scene-hero'}>
         <HeroGroup look={look} color={color} emoji={emoji} attack={hit} uid={uid} transform="scale(0.98)" />
-      </g>
+      </g></g>
       <text x="56" y="14" textAnchor="middle" fontSize="9" fill="#e9e1ff" fontWeight="700">{name}</text>
       <rect x="14" y="170" width="82" height="7" rx="3.5" fill="#120d22" /><rect x="14" y="170" width={82 * hpPct} height="7" rx="3.5" fill={live.weakened ? '#c0392b' : '#d84a6a'} />
       <text x="55" y="187" textAnchor="middle" fontSize="8.5" fill="#cfc4f5">❤️ {live.hp}/{live.maxHp}{live.streak ? `  🔥${live.streak}` : ''}</text>
@@ -48,7 +51,7 @@ export function BattleScene({ look, color, emoji, name, live }: Props) {
             {now && <ellipse cx={g.x + 24} cy="146" rx="44" ry="9" fill="#ffb74d" opacity="0.18" />}
             <g opacity={w.cleared ? 0.28 : 1}>
               {g.pts.map(([dx, dy], k) => (
-                <text key={k} x={g.x + dx} y={100 + dy + g.size * 0.5} fontSize={g.size} className={w.cleared ? '' : now ? 'enemy now' : 'enemy'} style={{ animationDelay: `${k * 0.3}s` }}>{w.cleared ? '💨' : horde.emoji}</text>
+                <text key={k} x={g.x + dx} y={100 + dy + g.size * 0.5} fontSize={g.size} className={w.cleared ? '' : `${now ? 'enemy now' : 'enemy'}${hits.some((h) => h.key === `w${i}`) ? ' hurt' : ''}`} style={{ animationDelay: `${k * 0.3}s` }}>{w.cleared ? '💨' : horde.emoji}</text>
               ))}
             </g>
             <text x={g.x + 24} y="86" textAnchor="middle" fontSize="11">{DOMAIN_INFO[w.weak].emoji}</text>
@@ -58,7 +61,27 @@ export function BattleScene({ look, color, emoji, name, live }: Props) {
           </g>
         );
       })}
-      {fight.outcome === 'victory' && <text x="200" y="60" textAnchor="middle" fontSize="22" fontWeight="800" fill="#ffd24a" stroke="#1b1405" strokeWidth="0.6">🏆 ПОБЕДА!</text>}
+      {/* вспышки ударов и цифры урона */}
+      {hits.map((h) => {
+        const i = Number(h.key.slice(1));
+        const g = groups[i]!;
+        const w = fight.waves[i]!;
+        const big = h.delta >= w.hp * 0.25;
+        return (
+          <g key={h.id}>
+            <path d={`M${g.x - 14} ${96} L${g.x + 56} ${150}`} className="slash" />
+            <path d={`M${g.x + 52} ${92} L${g.x - 8} ${146}`} className="slash s2" />
+            <text x={g.x + 24} y="84" textAnchor="middle" className={`dmg-float${big ? ' big' : ''}`}>−{h.delta}</text>
+            {h.kill && (
+              <g className="kill-burst">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => <line key={k} x1={g.x + 24} y1="120" x2={g.x + 24 + Math.cos((k * Math.PI) / 4) * 26} y2={120 + Math.sin((k * Math.PI) / 4) * 26} />)}
+                <text x={g.x + 24} y="52" textAnchor="middle" className="kill-text">✔ РАЗБИТЫ!</text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+      {fight.outcome === 'victory' && <text x="200" y="60" textAnchor="middle" fontSize="22" fontWeight="800" fill="#ffd24a" stroke="#1b1405" strokeWidth="0.6" className="victory-pop">🏆 ПОБЕДА!</text>}
       {/* значки снаряжения */}
       <g>{(['weapon', 'armor', 'helm', 'boots', 'amulet'] as const).map((s, i) => look[s] && <circle key={s} cx={118 + i * 7} cy="8" r="2.6" fill={RARITY_COLOR[(look[s] as string).split('-')[1] as keyof typeof RARITY_COLOR] ?? '#999'} />)}</g>
     </svg>
