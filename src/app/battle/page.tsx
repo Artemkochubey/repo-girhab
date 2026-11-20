@@ -1,5 +1,5 @@
 'use client';
-import { GearIcon } from '@/components/GearIcon';
+import { GearPic } from '@/components/GearPic';
 import { Hint } from '@/components/Hints';
 import Link from 'next/link';
 import { useGame } from '@/components/Shell';
@@ -106,7 +106,7 @@ export default function Battle() {
             return (
               <div key={sl} className={`slot ${it ? `gr-${it.item.rarity}` : 'empty'}`}>
                 <small className="muted">{SLOT_INFO[sl].emoji} {SLOT_INFO[sl].name}</small>
-                {it ? <><span className="slot-ico"><GearIcon family={gearIconFamily(it.item, cls)} rarity={it.item.rarity} size={56} /></span><b>{nm(it.item).name}</b><small>{it.item.text}</small>
+                {it ? <><span className="slot-ico"><GearPic item={it.item} cls={cls} size={56} /></span><b>{nm(it.item).name}</b><small>{it.item.text}</small>
                   <button className="btn ghost sm" onClick={() => act('unequipGear', { slot: sl }).then(ok('Снято')).catch(() => {})}>Снять</button></> : <span className="muted">пусто</span>}
               </div>
             );
@@ -145,7 +145,7 @@ export default function Battle() {
                 const keys = [...list].sort((a, b) => (a.equipped ? 1 : 0) - (b.equipped ? 1 : 0)).slice(0, MERGE_COUNT).map((x) => x.key);   // сначала ненадетые
                 return (
                   <div key={first.itemId} className="mergerow">
-                    <span className="grow"><GearIcon family={gearIconFamily(first.item, cls)} rarity={first.item.rarity} size={28} /> <b>{nm(first.item).name}</b> ×{list.length} → <b>{RARITY_NAMES[next].toLowerCase()}</b></span>
+                    <span className="grow"><GearPic item={first.item} cls={cls} size={28} /> <b>{nm(first.item).name}</b> ×{list.length} → <b>{RARITY_NAMES[next].toLowerCase()}</b></span>
                     <button className="btn sm" onClick={() => act('mergeGear', { keys }).then(ok(`Слито: ${nm(gearById(`${first.item.family}-${next}`)!).name}`)).catch(() => {})}>Слить три</button>
                   </div>
                 );
@@ -158,7 +158,7 @@ export default function Battle() {
         <ul className="gearlist">
           {[...g.items].sort((x, y) => (x.equipped ? 0 : 1) - (y.equipped ? 0 : 1) || (x.date < y.date ? 1 : -1)).map((x) => (
             <li key={x.key} className={`gr-${x.item.rarity} ${x.equipped ? 'on' : ''}`}>
-              <span className="gi"><GearIcon family={gearIconFamily(x.item, cls)} rarity={x.item.rarity} size={40} /></span>
+              <span className="gi"><GearPic item={x.item} cls={cls} size={40} /></span>
               <span className="grow"><b>{nm(x.item).name}</b> <small className="muted">· {SLOT_INFO[x.item.slot].name}, {RARITY_NAMES[x.item.rarity]}, {SRC[x.source]} {x.date}</small><div className="small">{x.item.text}</div></span>
               {x.equipped ? <small className="gold">✔ надето</small> : <button className="btn sm" onClick={() => act('equipGear', { key: x.key }).then(ok(`Надето: ${nm(x.item).name}`)).catch(() => {})}>Надеть</button>}
             </li>

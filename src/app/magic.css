@@ -336,3 +336,5 @@ input, textarea, select { background: rgba(8, 5, 28, .7); border-color: rgba(200
 .tv .tv-cheer.big b { font-size: 3.4rem; color: #fff1c2; text-shadow: 0 0 30px rgba(242, 196, 107, .8); }
 .tv .tv-cheer.small { background: linear-gradient(135deg, rgba(91, 227, 196, .3), rgba(24, 16, 64, .92)); border-color: #3fd1b0; border-radius: 22px; box-shadow: 0 0 30px -6px rgba(91, 227, 196, .7); }
 .tv .tv-foot { color: var(--muted); }
+.gear-pic { display: inline-block; vertical-align: middle; flex: none; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .45)); }
+.arsenal-art { min-height: 120px; } .arsenal-art svg.gear-pic { overflow: visible; }

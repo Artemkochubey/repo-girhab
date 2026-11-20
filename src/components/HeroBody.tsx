@@ -11,8 +11,8 @@ import { bardArmor, mageArmor, paladinArmor, warriorArmor } from './HeroArmor';
 
 type Look = Partial<Record<Slot, string | null>>;
 interface Pal { m1: string; m2: string }
-const PAL: Record<string, Pal> = { common: { m1: '#c3cde6', m2: '#8392b8' }, rare: { m1: '#d9e6ff', m2: '#5f8fff' }, epic: { m1: '#ecdcff', m2: '#9a63ff' }, legend: { m1: '#fff1c2', m2: '#e0a73a' } };
-const GEM: Record<string, string> = { common: '#9fb0d8', rare: '#8ff0d9', epic: '#ff7ad9', legend: '#ff9a4a' };
+export const PAL: Record<string, Pal> = { common: { m1: '#c3cde6', m2: '#8392b8' }, rare: { m1: '#d9e6ff', m2: '#5f8fff' }, epic: { m1: '#ecdcff', m2: '#9a63ff' }, legend: { m1: '#fff1c2', m2: '#e0a73a' } };
+export const GEM: Record<string, string> = { common: '#9fb0d8', rare: '#8ff0d9', epic: '#ff7ad9', legend: '#ff9a4a' };
 const GLOW: Record<string, string> = { common: '#8aa0d8', rare: '#5f8fff', epic: '#b07bff', legend: '#ffcf5a' };
 const SKIN = '#f6c9a0';
 const BOOTS_DEF: Pal = { m1: '#5a3fa8', m2: '#3b2a6e' };
@@ -25,7 +25,7 @@ const tierOf = (g: GearItem | null) => (g ? GEAR_RARITIES.indexOf(g.rarity) : -1
 interface BodyProps { look: Look; cls: Cls | null; face?: FaceConfig | null; attack?: boolean }
 
 /** Лицо героя: выбранное в «Лице героя» или простое нарисованное. Рисуется в координатах фигуры 240 × 380, голова в (120, 95). */
-function Head({ face, hair }: { face?: FaceConfig | null; hair?: ReactNode }) {
+export function Head({ face, hair }: { face?: FaceConfig | null; hair?: ReactNode }) {
   if (face) return <g transform="translate(76.4 47.9) scale(0.873)"><FaceArt face={face} /></g>;
   return (
     <g>

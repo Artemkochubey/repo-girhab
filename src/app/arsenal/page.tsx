@@ -1,5 +1,5 @@
 'use client';
-import { GearIcon } from '@/components/GearIcon';
+import { GearPic } from '@/components/GearPic';
 import { useMemo, useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { RARITY_COLOR, CLASS_COLOR } from '@/components/HeroFigure';
@@ -50,7 +50,7 @@ export default function Arsenal() {
               const nm = gearDisplay(g, cls);
               return (
                 <div key={g.id} className={`arsenal-cell gr-${g.rarity} ${owned.has(g.id) ? 'have' : ''}`}>
-                  <div className="arsenal-art"><GearIcon family={gearIconFamily(g, cls)} rarity={g.rarity} size={104} /></div>
+                  <div className="arsenal-art"><GearPic item={g} cls={cls} size={104} /></div>
                   <small style={{ color: RARITY_COLOR[g.rarity] }}>{RARITY_NAMES[g.rarity]}</small>
                   <b>{nm.name}</b>
                   <small className="muted">{g.text}</small>

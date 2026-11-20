@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { GEAR_RARITIES, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOTS, SLOT_INFO, activeSets, bonusText, gearDisplay, gearIconFamily, type Slot } from '@/lib/game/gear';
 import { lookOf } from '@/lib/client';
-import { GearIcon } from './GearIcon';
+import { GearPic } from './GearPic';
 import { HeroFigure } from './HeroFigure';
 import { useGame } from './Shell';
 
@@ -36,7 +36,7 @@ export function LoadoutStage() {
           const nm = it ? gearDisplay(it, cls).name : null;
           return (
             <Link key={sl} href="/battle" className={`lslot ${p.side} ${it ? `lr-${it.rarity} full` : 'empty'}`} style={{ top: p.top } as CSSProperties} aria-label={it ? `${SLOT_INFO[sl].name}: ${nm}` : `${SLOT_INFO[sl].name}: пусто, надеть`} title={nm ?? 'Надеть предмет'}>
-              <span className="lslot-box">{it ? <GearIcon family={gearIconFamily(it, cls)} rarity={it.rarity} size={54} /> : <span className="plus" aria-hidden="true">+</span>}</span>
+              <span className="lslot-box">{it ? <GearPic item={it} cls={cls} size={54} /> : <span className="plus" aria-hidden="true">+</span>}</span>
               <small>{SLOT_INFO[sl].name}</small>
             </Link>
           );
