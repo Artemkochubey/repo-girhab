@@ -226,3 +226,34 @@ input, textarea, select { background: rgba(8, 5, 28, .7); border-color: rgba(200
 @keyframes hf-strum { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
 @keyframes hf-flare { 0% { opacity: .85; transform: scale(.3); } 100% { opacity: 0; transform: scale(2.4); } }
 @keyframes hf-note { 0% { opacity: 0; transform: translateY(14px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-46px); } }
+
+/* экран снаряжения: герой в центре, слоты вокруг */
+.loadout { position: relative; height: 450px; border-radius: 150px 150px 28px 28px; overflow: hidden; background: radial-gradient(70% 50% at 50% 38%, rgba(154, 99, 255, .3), transparent 70%), linear-gradient(180deg, rgba(154, 99, 255, .3), rgba(255, 255, 255, .03) 75%); border: 1px solid rgba(200, 170, 255, .4); box-shadow: 0 24px 60px -28px rgba(120, 70, 255, .8); }
+.loadout.legend { background: radial-gradient(70% 50% at 50% 38%, rgba(255, 207, 90, .32), transparent 70%), linear-gradient(180deg, rgba(154, 99, 255, .3), rgba(255, 255, 255, .03) 75%); border-color: rgba(255, 225, 150, .6); box-shadow: 0 24px 60px -24px rgba(255, 207, 90, .85); }
+.loadout::after { content: ''; position: absolute; left: 50%; bottom: 62px; width: 260px; height: 36px; transform: translateX(-50%); border-radius: 50%; border: 1.5px dashed rgba(242, 196, 107, .6); pointer-events: none; }
+.loadout-fig { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); }
+.lslot { position: absolute; width: 84px; display: grid; justify-items: center; gap: 4px; text-decoration: none; color: var(--text); }
+.lslot.l { left: 10px; } .lslot.r { right: 10px; }
+.lslot small { font-size: .75rem; font-weight: 700; color: #d6cdf5; }
+.lslot-box { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, .14), rgba(24, 16, 64, .7) 75%); border: 1px solid rgba(255, 255, 255, .25); }
+.lslot.empty .lslot-box { border-style: dashed; }
+.lslot .plus { font-size: 1.8rem; color: var(--muted); }
+.lslot.lr-rare .lslot-box { background: radial-gradient(circle at 50% 45%, rgba(95, 143, 255, .38), rgba(24, 16, 64, .8) 75%); border-color: rgba(95, 143, 255, .7); }
+.lslot.lr-epic .lslot-box { background: radial-gradient(circle at 50% 45%, rgba(176, 123, 255, .4), rgba(24, 16, 64, .8) 75%); border-color: rgba(176, 123, 255, .75); }
+.lslot.lr-legend .lslot-box { background: radial-gradient(circle at 50% 45%, rgba(255, 207, 90, .4), rgba(24, 16, 64, .8) 75%); border-color: rgba(255, 207, 90, .75); }
+.lslot:hover .lslot-box, .lslot:focus-visible .lslot-box { transform: translateY(-2px); }
+.loadout-title { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; display: grid; gap: 2px; }
+.loadout-title b { font-family: var(--serif); font-size: 1.9rem; line-height: 1; color: #fff1c2; font-weight: 700; }
+.loadout-title small { color: #d6cdf5; font-size: .85rem; }
+.setcard .pips { display: flex; gap: 5px; } .setcard .pips i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .18); }
+.setcard .pips i.on { background: #ffcf5a; box-shadow: 0 0 8px #ffcf5a; }
+.setrow { display: grid; gap: 8px; padding: 12px; border-radius: 18px; background: rgba(0, 0, 0, .25); border-left: 0 !important; }
+.setline { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; background: rgba(255, 255, 255, .05); color: var(--muted); }
+.setline > span:last-child { display: grid; gap: 2px; } .setline small { color: inherit; font-size: .85rem; }
+.setline .ck { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex: none; background: rgba(255, 255, 255, .1); }
+.setline.on { color: var(--text); } .setline.on .ck { background: linear-gradient(145deg, #8ff0d9, #3fd1b0); color: #06382f; font-weight: 800; }
+@media (max-width: 380px) { .lslot { width: 72px; } .lslot-box { width: 62px; height: 62px; } .loadout-fig { transform: translateX(-50%) scale(.88); transform-origin: top center; } }
+@media (prefers-reduced-motion: no-preference) {
+  .loadout.legend .lslot.lr-legend .lslot-box { animation: m-pulse 3.4s ease-in-out infinite; }
+}
+.setcard a.btn { text-decoration: none; text-align: center; display: grid; place-items: center; }

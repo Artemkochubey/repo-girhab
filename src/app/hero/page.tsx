@@ -11,7 +11,7 @@ import { ClassHero } from '@/components/ClassHero';
 import { HeroRing } from '@/components/HeroRing';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { FacePicker } from '@/components/FacePicker';
-import { HeroFigure } from '@/components/HeroFigure';
+import { LoadoutStage } from '@/components/LoadoutStage';
 import { lookOf } from '@/lib/client';
 import { Bar, Fold, Radar } from '@/components/ui';
 import { Hint } from '@/components/Hints';
@@ -63,8 +63,9 @@ export default function Hero() {
         </div>
       </section>
 
+      <LoadoutStage />
+
       <section className="card herolook" style={{ borderColor: me.color }}>
-        <HeroFigure look={lookOf(d.gear)} color={me.color} emoji={me.emoji} face={me.face} cls={h.cls} size={104} />
         <div className="grow">
           <b>Мой герой в бою</b>
           <p className="muted small">{me.face ? 'Лицо и снаряжение видны в боях и на ТВ.' : 'Создайте лицо героя: пол, причёску, глаза. Оно видно в боях и на ТВ.'} Аватар профиля (смайлик вверху) меняется отдельно.</p>
