@@ -3,4 +3,10 @@ services:
     build: .
     restart: unless-stopped
     ports: ["3000:3000"]
-    volumes: ["./data:/data"]
+    volumes:
+      - ./data:/data
+      # Вторая копия на другом диске или в облачной папке: раскомментируйте строку с путём и две строки environment ниже (путь слева поправьте)
+      # (Windows: "D:/moy-rost-copies:/mirror", Linux: "/mnt/disk2/moy-rost:/mirror")
+      # - "D:/moy-rost-copies:/mirror"
+    # environment:
+    #   BACKUP_MIRROR_DIR: /mirror

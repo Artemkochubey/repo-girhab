@@ -14,6 +14,12 @@ import { LOOT_COMMON, LOOT_LEGEND, LOOT_RARE } from '@/lib/game/loot';
 import { BASE_CHANCE } from '@/lib/game/chests';
 
 type M = ReturnType<typeof useGame>['s']['members'][number];
+const TABS = [
+  { id: 'now', emoji: '⏳', name: 'Сейчас' }, { id: 'heroes', emoji: '👪', name: 'Герои' }, { id: 'quests', emoji: '⚔️', name: 'Квесты' },
+  { id: 'rewards', emoji: '🎁', name: 'Награды' }, { id: 'data', emoji: '💾', name: 'Данные' },
+] as const;
+type TabId = (typeof TABS)[number]['id'];
+const TAB_KEY = 'mr_settings_tab';
 
 function MemberRow({ m }: { m: M }) {
   const { act, toast } = useGame();
@@ -55,6 +61,9 @@ function AdminSettings() {
   const [pin, setPin] = useState('');
   const [nm, setNm] = useState({ name: '', emoji: '🙂', isParent: false, goal: '60', superGoal: '100' });
   const [qm, setQm] = useState<number | null>(null);
+  const [tab, setTab] = useState<TabId>(() => { try { const t = sessionStorage.getItem(TAB_KEY); return TABS.some((x) => x.id === t) ? (t as TabId) : 'now'; } catch { return 'now'; } });
+  const pickTab = (t: TabId) => { setTab(t); try { sessionStorage.setItem(TAB_KEY, t); } catch { /* без хранилища просто не запомним */ } };
+  const waiting = a.pending.length + a.prizesRequested.length;
 
   const lines = (t: string) => t.split('\n').map((x) => x.trim()).filter(Boolean);
   const saveCfg = () => act('setConfig', {
@@ -67,6 +76,12 @@ function AdminSettings() {
     <>
       <div className="row between"><h1 className="title">⚙️ Настройки</h1><Link className="btn ghost" href="/tv" target="_blank">📺 Открыть ТВ</Link></div>
 
+      <nav className="seg settings-tabs" aria-label="Разделы настроек">
+        {TABS.map((t) => <button key={t.id} className={tab === t.id ? 'on' : ''} aria-pressed={tab === t.id} onClick={() => pickTab(t.id)}>{t.emoji} {t.name}{t.id === 'now' && waiting > 0 ? <b className="tab-count">{waiting}</b> : null}</button>)}
+      </nav>
+
+      {tab === 'now' && (
+        <>
       <Section title={`⏳ Ждут подтверждения (${a.pending.length})`}>
         {a.pending.length === 0 && <p className="muted">Нет отметок, ожидающих подтверждения.</p>}
         <ul className="list">
@@ -101,6 +116,10 @@ function AdminSettings() {
 
       <ReviewBlock />
 
+        </>
+      )}
+      {tab === 'heroes' && (
+        <>
       <Section title="👪 Участники и нормы баллов">
         {s.members.map((m) => <MemberRow key={m.id} m={m} />)}
         <h3>Добавить участника</h3>
@@ -115,6 +134,33 @@ function AdminSettings() {
         <p className="muted small">Норма влияет на награду дня и на HP босса. Новый участник бьёт босса со следующей недели.</p>
       </Section>
 
+      <Section title="🔑 PIN родителей">
+        <form className="row" onSubmit={(e) => { e.preventDefault(); act('changePin', { pin }).then(() => { setPin(''); toast('PIN изменён'); }).catch(() => {}); }}>
+          <input type="password" inputMode="numeric" maxLength={8} value={pin} placeholder="Новый PIN, 4–8 цифр" onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
+          <button className="btn" disabled={pin.length < 4}>Сменить</button>
+        </form>
+      </Section>
+        </>
+      )}
+      {tab === 'quests' && (
+        <>
+      <FamilyQuestAdmin />
+
+      <QuestSets />
+
+      <GoalAdmin />
+
+      <Section title="⚔️ Редактор квестов">
+        <div className="row wrapRow">
+          {s.members.map((m) => <button key={m.id} className={`btn ${qm === m.id ? '' : 'ghost'}`} onClick={() => setQm(m.id)}>{m.emoji} {m.name}</button>)}
+        </div>
+        {qm !== null && <QuestEditor key={qm} memberId={qm} />}
+      </Section>
+
+        </>
+      )}
+      {tab === 'rewards' && (
+        <>
       <Section title="🎮 Награда дня и сундуки">
         <div className="row wrapRow">
           <label className="xpl">За цель, мин <input className="num" value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ''))} /></label>
@@ -143,29 +189,16 @@ function AdminSettings() {
         <button className="btn" onClick={saveCfg}>Сохранить</button>
       </Section>
 
-      <FamilyQuestAdmin />
-
-      <QuestSets />
-
-      <GoalAdmin />
-
       <ShopAdmin />
 
-      <Section title="⚔️ Редактор квестов">
-        <div className="row wrapRow">
-          {s.members.map((m) => <button key={m.id} className={`btn ${qm === m.id ? '' : 'ghost'}`} onClick={() => setQm(m.id)}>{m.emoji} {m.name}</button>)}
-        </div>
-        {qm !== null && <QuestEditor key={qm} memberId={qm} />}
-      </Section>
-
+        </>
+      )}
+      {tab === 'data' && (
+        <>
       <BackupBlock />
 
-      <Section title="🔑 PIN родителей">
-        <form className="row" onSubmit={(e) => { e.preventDefault(); act('changePin', { pin }).then(() => { setPin(''); toast('PIN изменён'); }).catch(() => {}); }}>
-          <input type="password" inputMode="numeric" maxLength={8} value={pin} placeholder="Новый PIN, 4–8 цифр" onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
-          <button className="btn" disabled={pin.length < 4}>Сменить</button>
-        </form>
-      </Section>
+        </>
+      )}
     </>
   );
 }

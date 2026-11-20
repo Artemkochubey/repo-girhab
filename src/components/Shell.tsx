@@ -9,6 +9,7 @@ import { ClassPicker } from './ClassPicker';
 import { SubclassPicker } from './SubclassPicker';
 import { TABS, activeTab } from '@/lib/nav';
 import { QuickLog } from './QuickLog';
+import { RELEASES } from '@/lib/changelogData';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -31,15 +32,36 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const setSubLater = (v: boolean) => { setSubLaterState(v); try { if (v) sessionStorage.setItem('mr_sub_later', '1'); else sessionStorage.removeItem('mr_sub_later'); } catch { /* без хранилища просто покажем снова */ } };
   useEffect(() => { try { if (sessionStorage.getItem('mr_sub_later')) setSubLaterState(true); } catch { /* ignore */ } }, []);
   const path = usePathname();
+  // Escape закрывает верхнее окно (нажатие на фон окна уже закрывает его)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key !== 'Escape') return; const m = [...document.querySelectorAll<HTMLElement>('.modal')].pop(); if (m) { m.click(); e.preventDefault(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  // точка на «Ещё», пока не открыта страница «Что нового» после обновления (первый запуск молча запоминаем)
+  const [newVersion, setNewVersion] = useState(false);
+  useEffect(() => {
+    try {
+      const cur = RELEASES[0]?.version ?? '';
+      const seen = localStorage.getItem('mr_seen_version');
+      if (seen === null) localStorage.setItem('mr_seen_version', cur);
+      else setNewVersion(seen !== cur && !path.startsWith('/about'));
+    } catch { /* без хранилища точку не показываем */ }
+  }, [path]);
 
   const toast = useCallback((m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3500); }, []);
+  const [offline, setOffline] = useState(false);
   const reload = useCallback(async () => {
     const q = date ? `?date=${date}` : '';
-    const r = await fetch('/api/state' + q, { cache: 'no-store' });
-    if (r.ok) setS(await r.json()); else toast('Не удалось загрузить данные');
+    try {
+      const r = await fetch('/api/state' + q, { cache: 'no-store' });
+      if (r.ok) { setS(await r.json()); setOffline(false); } else { setOffline(false); toast('Сервер не смог загрузить данные. Подождите минуту и обновите страницу.'); }
+    } catch { setOffline(true); }
   }, [date, toast]);
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => { const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
+  // пока связи нет, пробуем снова каждые 5 секунд, иначе раз в полминуты
+  useEffect(() => { const t = setInterval(reload, offline ? 5000 : 30000); return () => clearInterval(t); }, [reload, offline]);
+  useEffect(() => { const on = () => reload(); const off = () => setOffline(true); window.addEventListener('online', on); window.addEventListener('offline', off); return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); }; }, [reload]);
 
   const act = useCallback(async (action: string, args: Record<string, unknown> = {}) => {
     try { const r = await rpc(action, { date: date || undefined, ...args }); await reload(); return r; }
@@ -81,7 +103,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   };
 
   if (path.startsWith('/tv')) return <>{children}</>;
-  if (!s) return <main className="wrap"><p className="muted">Загрузка…</p></main>;
+  if (!s) return <main className="wrap"><p className="muted">{offline ? 'Нет связи с сервером. Проверьте, что сайт запущен. Пробуем снова…' : 'Загрузка…'}</p></main>;
 
   if (!s.me || !s.members.some((m) => m.id === s.me)) {
     return (
@@ -102,9 +124,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const me = s.members.find((m) => m.id === s.me)!;
   return (
     <C.Provider value={{ s, date: date || s.today, setDate: (d) => setDate(d === s.today ? '' : d), reload, act, toast, askPin: () => setPinOpen(true), askClass: () => setClassLater(false) }}>
+      <a className="skip-link" href="#main">К содержимому</a>
       <header className="top">
         <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
-        <nav className="tabs" aria-label="Разделы">{TABS.map((t) => <Link key={t.id} href={t.href} className={activeTab(path) === t.id ? 'on' : ''} aria-current={activeTab(path) === t.id ? 'page' : undefined}><span className="em">{t.emoji}</span><span className="lb">{t.label}</span></Link>)}</nav>
+        <nav className="tabs" aria-label="Разделы">{TABS.map((t) => <Link key={t.id} href={t.href} className={activeTab(path) === t.id ? 'on' : ''} aria-current={activeTab(path) === t.id ? 'page' : undefined}><span className="em">{t.emoji}</span><span className="lb">{t.label}</span>{t.id === 'more' && newVersion && <i className="new-dot" aria-label="есть новое" />}</Link>)}</nav>
         <div className="who">
           <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
           {s.parent
@@ -112,8 +135,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             : <button className="chip" onClick={() => setPinOpen(true)}>🔒 PIN</button>}
         </div>
       </header>
-      <main className="wrap">{children}</main>
-      {s.detail && s.detail.hero.cls && <QuickLog />}
+      <main className="wrap" id="main" tabIndex={-1}>{children}</main>
+      {s.detail && (s.detail.hero.cls || classLater) && <QuickLog />}
       {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
       {s.detail && s.detail.hero.cls && s.detail.level >= 5 && !s.detail.hero.sub && !subLater && newAch.length === 0 && !mvpWin && (
         <SubclassPicker memberName={me.name} cls={s.detail.hero.cls} level={s.detail.level} recommended={(s.detail.recommendedSub as 'w' | 'm' | 'b' | 'p' | null)} onClose={() => setSubLater(true)} />
@@ -140,6 +163,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       )}
       {pinOpen && <PinModal setup={!s.pinSet} onClose={() => setPinOpen(false)} onDone={() => { setPinOpen(false); reload(); }} toast={toast} />}
+      {offline && <div className="offline-bar" role="alert">⚠ Нет связи с сервером. Новые записи не сохранятся. Пробуем подключиться снова…</div>}
       {msg && <div className="toast" role="status">{msg}</div>}
     </C.Provider>
   );

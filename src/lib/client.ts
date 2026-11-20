@@ -1,14 +1,30 @@
-export async function rpc<T = unknown>(action: string, args: Record<string, unknown> = {}): Promise<T> {
-  const r = await fetch('/api/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...args }) });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.error ?? 'Ошибка');
-  return j as T;
+/** Ошибка обращения к серверу с понятным текстом. status 0 — сервер не ответил. */
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); this.name = 'ApiError'; }
 }
-export async function post(url: string, body: unknown = {}, method = 'POST') {
-  const r = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.error ?? 'Ошибка');
+export const MSG_OFFLINE = 'Нет связи с сервером. Проверьте, что сайт запущен и телефон в домашней сети, потом повторите.';
+export const MSG_SERVER = 'Сервер не смог выполнить действие. Подождите минуту и повторите. Если не проходит, откройте logs.bat на компьютере с сайтом.';
+export const MSG_UNREADABLE = 'Сервер ответил непонятно. Обновите страницу и повторите.';
+
+/** Запрос к серверу: сеть, не-JSON и ошибки сервера превращаются в понятные сообщения, текст от сервера (PIN, лимиты) сохраняется. */
+async function call(url: string, init: RequestInit): Promise<unknown> {
+  let r: Response;
+  try { r = await fetch(url, init); } catch { throw new ApiError(MSG_OFFLINE, 0); }
+  let j: unknown = null;
+  try { j = await r.json(); } catch { if (!r.ok) throw new ApiError(r.status >= 500 ? MSG_SERVER : MSG_UNREADABLE, r.status); throw new ApiError(MSG_UNREADABLE, r.status); }
+  if (!r.ok) {
+    const msg = (j as { error?: string } | null)?.error;
+    throw new ApiError(msg ?? (r.status >= 500 ? MSG_SERVER : 'Не получилось'), r.status);
+  }
   return j;
+}
+
+export async function rpc<T = unknown>(action: string, args: Record<string, unknown> = {}): Promise<T> {
+  return (await call('/api/rpc', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...args }) })) as T;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function post(url: string, body: unknown = {}, method = 'POST'): Promise<any> {
+  return call(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 }
 
 export interface QuestDto { t: string; d?: string; xp: number; k: string; m?: number; kind?: string; done?: boolean; pending?: boolean }

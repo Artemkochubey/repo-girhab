@@ -4,7 +4,7 @@ import { useStoredRange } from '@/lib/useStoredRange';
 import { useEffect, useMemo, useState } from 'react';
 import { BodyFigure, LoadLegend } from '@/components/BodyFigure';
 import { useGame } from '@/components/Shell';
-import { Chips, Section } from '@/components/ui';
+import { Chips, Section, Fold } from '@/components/ui';
 import { HeatLegend, YearHeat } from '@/components/YearHeat';
 import { rpc } from '@/lib/client';
 import { DAY_FULL, DAY_HALF, allocateWorkouts, nextRepPrice } from '@/lib/game/reps';
@@ -169,7 +169,7 @@ export default function Body() {
           : <Chips key="min" values={[15, 30, 45, 60, 90]} onPick={(n) => addWorkout(n)} />}
         <ul className="list">
           {d.entries.workouts.map((w) => (
-            <li key={w.id}>{label(w)} · {amount(w)} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })}>✕</button>}</li>
+            <li key={w.id}>{label(w)} · {amount(w)} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'workout', id: w.id })} aria-label="Удалить запись">✕</button>}</li>
           ))}
         </ul>
       </Section>
@@ -180,19 +180,19 @@ export default function Body() {
         </button>
       </Section>
 
-      <Section title="История тренировок" right={<span className="muted">{historyDays.length ? `${historyDays.length} дн. с занятиями` : ''}</span>}>
+      <Fold title="История тренировок" right={<span className="muted">{historyDays.length ? `${historyDays.length} дн. с занятиями` : ''}</span>}>
         {!all && <p className="muted">Загрузка…</p>}
         {all && historyDays.length === 0 && <p className="muted">Тренировок пока нет. Запишите первую выше — она появится здесь.</p>}
         {historyDays.slice(0, shown).map((date) => <DayBlock key={date} date={date} />)}
         {historyDays.length > shown && <button className="btn ghost" onClick={() => setShown(shown + 10)}>Показать ещё</button>}
-      </Section>
+      </Fold>
 
-      <Section title="Год по дням" right={<span className="muted">{active} активных дней</span>}>
+      <Fold title="Год по дням" right={<span className="muted">{active} активных дней</span>}>
         <YearHeat data={d.bodyHistory as [string, number][]} today={s.today} selected={sel} onSelect={(x) => setSel(sel === x ? null : x)} />
         <HeatLegend />
         <p className="muted small">Очки за тело: минуты тренировок и 10 за зарядку. Нажмите на день, чтобы увидеть, что было.</p>
         {sel && <DayBlock date={sel} always />}
-      </Section>
+      </Fold>
     </>
   );
 }

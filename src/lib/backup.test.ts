@@ -80,3 +80,34 @@ describe('резервные копии', () => {
     expect(h.lastBackup).toBeGreaterThan(0);
   });
 });
+
+import { mirrorStatus } from './backup';
+describe('вторая папка для копий', () => {
+  it('каждая копия ложится и в основную, и во вторую папку, файлы совпадают', () => {
+    const src = mk(path.join(dir, 'app.db'), 2);
+    const mirror = path.join(dir, 'disk2', 'copies');
+    const b = createBackup(src, path.join(dir, 'backups'), 'auto', new Date('2026-11-20T10:00:00Z'), 14, mirror);
+    expect(fs.existsSync(path.join(mirror, b.name))).toBe(true);
+    expect(fs.readFileSync(path.join(mirror, b.name)).equals(fs.readFileSync(path.join(dir, 'backups', b.name)))).toBe(true);
+    expect(validateDbFile(path.join(mirror, b.name))).toBeNull();
+    const st = mirrorStatus(mirror)!;
+    expect(st).toMatchObject({ dir: mirror, ok: true, files: 1, error: null });
+  });
+  it('во второй папке тоже хранятся только последние копии', () => {
+    const src = mk(path.join(dir, 'app.db'));
+    const mirror = path.join(dir, 'm');
+    for (let i = 0; i < 4; i++) createBackup(src, path.join(dir, 'b'), 'auto', new Date(`2026-11-0${i + 1}T10:00:00Z`), 2, mirror);
+    expect(listBackups(mirror)).toHaveLength(2);
+  });
+  it('если вторая папка недоступна, основная копия всё равно создаётся, а ошибка видна в статусе', () => {
+    const src = mk(path.join(dir, 'app.db'));
+    const blocked = path.join(dir, 'file-not-dir');
+    fs.writeFileSync(blocked, 'x');                                   // вместо папки обычный файл
+    const b = createBackup(src, path.join(dir, 'b'), '', new Date('2026-11-20T10:00:00Z'), 14, path.join(blocked, 'inside'));
+    expect(fs.existsSync(path.join(dir, 'b', b.name))).toBe(true);
+    const st = mirrorStatus(path.join(blocked, 'inside'))!;
+    expect(st.ok).toBe(false);
+    expect(st.error).toBeTruthy();
+  });
+  it('не настроена: статус пустой', () => { expect(mirrorStatus(null)).toBeNull(); });
+});

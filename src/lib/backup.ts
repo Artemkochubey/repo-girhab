@@ -8,6 +8,9 @@ export const KEEP_AUTO = 14;
 
 export interface BackupInfo { name: string; size: number; time: number; label: string }
 
+/** Вторая папка для копий (другой диск, облачная папка): BACKUP_MIRROR_DIR. Пусто — не используется. */
+export const mirrorDirFromEnv = (): string | null => process.env.BACKUP_MIRROR_DIR?.trim() || null;
+
 export const backupDirFor = (dbPath: string) => process.env.BACKUP_DIR ?? path.join(path.dirname(path.resolve(dbPath)), 'backups');
 
 export function listBackups(dir: string): BackupInfo[] {
@@ -25,7 +28,7 @@ const stamp = (d: Date) => d.toISOString().replace(/[:T]/g, '-').slice(0, 19);
  * Консистентная копия работающей базы (VACUUM INTO не мешает записи).
  * label: '' — обычная, 'auto' — автоматическая, 'before' — перед восстановлением. Лишние автокопии удаляются, остальные нет.
  */
-export function createBackup(sqlite: Database.Database, dir: string, label: '' | 'auto' | 'before' = '', now = new Date(), keep = KEEP_AUTO): BackupInfo {
+export function createBackup(sqlite: Database.Database, dir: string, label: '' | 'auto' | 'before' = '', now = new Date(), keep = KEEP_AUTO, mirror: string | null = mirrorDirFromEnv()): BackupInfo {
   fs.mkdirSync(dir, { recursive: true });
   const base = `app-${stamp(now)}`, tail = label ? `-${label}` : '';
   let name = `${base}${tail}.db`;
@@ -35,7 +38,36 @@ export function createBackup(sqlite: Database.Database, dir: string, label: '' |
   const rotate = listBackups(dir).filter((b) => b.label === 'auto' || b.label === '').slice(keep);
   for (const b of rotate) { try { fs.unlinkSync(path.join(dir, b.name)); } catch { /* уже удалён */ } }
   const st = fs.statSync(dest);
+  if (mirror) mirrorCopy(dest, name, mirror, keep);
   return { name, size: st.size, time: st.mtimeMs, label };
+}
+
+let lastMirrorError: string | null = null;
+/** Кладёт копию во вторую папку и подчищает старые. Ошибка не мешает основной копии: она запоминается и видна в «Настройках». */
+export function mirrorCopy(src: string, name: string, mirror: string, keep = KEEP_AUTO): boolean {
+  try {
+    fs.mkdirSync(mirror, { recursive: true });
+    fs.copyFileSync(src, path.join(mirror, name));
+    for (const b of listBackups(mirror).filter((x) => x.label === 'auto' || x.label === '').slice(keep)) { try { fs.unlinkSync(path.join(mirror, b.name)); } catch { /* уже удалён */ } }
+    lastMirrorError = null;
+    return true;
+  } catch (e) {
+    lastMirrorError = e instanceof Error ? e.message : String(e);
+    console.error('Не удалось скопировать во вторую папку:', lastMirrorError);
+    return false;
+  }
+}
+
+export interface MirrorStatus { dir: string; ok: boolean; files: number; last: number | null; error: string | null }
+/** Состояние второй папки для «Настроек»: настроена ли, пишется ли в неё, когда была последняя копия. */
+export function mirrorStatus(mirror: string | null = mirrorDirFromEnv()): MirrorStatus | null {
+  if (!mirror) return null;
+  let error = lastMirrorError;
+  if (!error) {
+    try { fs.mkdirSync(mirror, { recursive: true }); fs.accessSync(mirror, fs.constants.W_OK); } catch { error = 'Папка недоступна для записи'; }
+  }
+  const list = fs.existsSync(mirror) ? listBackups(mirror) : [];
+  return { dir: mirror, ok: !error, files: list.length, last: list[0]?.time ?? null, error };
 }
 
 /** Пора ли делать автокопию: последней копии (любой) нет или ей больше hours часов. */
@@ -82,5 +114,5 @@ export function health(dbPath: string, dir: string) {
   let free: number | null = null;
   try { const s = fs.statfsSync(path.dirname(file)); free = Number(s.bavail) * Number(s.bsize); } catch { /* платформа без statfs */ }
   const list = listBackups(dir);
-  return { dbSize: size, freeBytes: free, backups: list.length, lastBackup: list[0]?.time ?? null };
+  return { dbSize: size, freeBytes: free, backups: list.length, lastBackup: list[0]?.time ?? null, mirror: mirrorStatus() };
 }

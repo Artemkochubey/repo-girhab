@@ -4,7 +4,7 @@ import { post } from '@/lib/client';
 import { useGame } from './Shell';
 import { Section } from './ui';
 
-interface Sum { version: string; dbSize: number; freeBytes: number | null; backups: number; lastBackup: number | null; list: { name: string; size: number; time: number; label: string }[] }
+interface Sum { version: string; dbSize: number; freeBytes: number | null; backups: number; lastBackup: number | null; mirror: { dir: string; ok: boolean; files: number; last: number | null; error: string | null } | null; list: { name: string; size: number; time: number; label: string }[] }
 
 const mb = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(1).replace('.', ',')} ГБ` : n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')} МБ` : `${Math.max(1, Math.round(n / 1e3))} КБ`);
 const when = (t: number) => new Date(t).toLocaleString('ru', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -56,6 +56,9 @@ export function BackupBlock() {
             <li>Размер данных: <b>{mb(sum.dbSize)}</b>{sum.freeBytes !== null && <> · свободно на диске: <b className={sum.freeBytes < 2e9 ? 'bk-warn' : ''}>{mb(sum.freeBytes)}</b></>}</li>
             <li>Копий: <b>{sum.backups}</b> · последняя: <b className={stale ? 'bk-warn' : ''}>{sum.lastBackup ? when(sum.lastBackup) : 'нет'}</b></li>
           </ul>
+          {sum.mirror
+            ? <p className={`small ${sum.mirror.ok ? '' : 'bk-warn'}`}>{sum.mirror.ok ? '✔' : '⚠'} Вторая папка для копий (<code>{sum.mirror.dir}</code>): {sum.mirror.ok ? `копий ${sum.mirror.files}${sum.mirror.last ? `, последняя ${when(sum.mirror.last)}` : ', пока пусто'}` : `не работает (${sum.mirror.error}). Проверьте диск и права на папку.`}</p>
+            : <p className="muted small">Вторая папка для копий не настроена. Укажите её в <code>docker-compose.yml</code> (см. README, «Резервное копирование»), и каждая копия будет ложиться ещё и на другой диск.</p>}
           {stale && <p className="bk-warn small">⚠ Давно не было копий. Нажмите «Создать копию сейчас».</p>}
           {sum.freeBytes !== null && sum.freeBytes < 2e9 && <p className="bk-warn small">⚠ На диске мало места: сайт может перестать сохранять данные.</p>}
           <p className="muted small">Копия делается сама раз в сутки, когда кто-то открывает сайт, и хранится в папке <code>data\backups</code> рядом с сайтом (последние 14). Скопируйте эту папку на другой диск или в облако: при поломке диска копии рядом тоже пропадут.</p>

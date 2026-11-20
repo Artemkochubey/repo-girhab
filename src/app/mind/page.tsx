@@ -4,7 +4,7 @@ import { useStoredRange } from '@/lib/useStoredRange';
 import { useMemo, useState } from 'react';
 import { BrainFigure, BrainLegend } from '@/components/BrainFigure';
 import { useGame } from '@/components/Shell';
-import { Chips, Section } from '@/components/ui';
+import { Chips, Section, Fold } from '@/components/ui';
 import { STUDY_KINDS } from '@/lib/db/schema';
 import { addDays } from '@/lib/date';
 import { BRAIN_REGIONS, brainIntensity, brainLoads, brainOverall, type RegionId } from '@/lib/game/brain';
@@ -62,7 +62,7 @@ export default function Mind() {
         <Chips values={[10, 15, 20, 30, 45]} onPick={(n) => act('addStudy', { kind, minutes: n })} />
         <ul className="list">
           {d.entries.study.map((e) => (
-            <li key={e.id}>📚 {e.kind}: {e.minutes} мин {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'study', id: e.id })}>✕</button>}</li>
+            <li key={e.id}>📚 {e.kind}: {e.minutes} мин {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'study', id: e.id })} aria-label="Удалить запись">✕</button>}</li>
           ))}
         </ul>
       </Section>
@@ -72,7 +72,7 @@ export default function Mind() {
           {d.habits.map((h) => (
             <li key={h.id}>
               <button className={`mark ${h.checked ? 'on' : ''}`} onClick={() => act('toggleHabit', { habitId: h.id })}>{h.checked ? '✔' : '○'}</button> {h.name}
-              <button className="x" onClick={() => act('archiveHabit', { habitId: h.id })} title="Убрать привычку">✕</button>
+              <button className="x" onClick={() => act('archiveHabit', { habitId: h.id })} title="Убрать привычку" aria-label="Убрать привычку">✕</button>
             </li>
           ))}
         </ul>
@@ -95,17 +95,17 @@ export default function Mind() {
         </form>
       </Section>
 
-      <Section title="Книги (+50 за прочитанную)">
+      <Fold title="Книги (+50 за прочитанную)">
         <form className="row" onSubmit={(e) => { e.preventDefault(); if (book.trim()) { act('addBook', { title: book, date }).then(() => setBook('')).catch(() => {}); } }}>
           <input value={book} onChange={(e) => setBook(e.target.value)} placeholder="Название книги" maxLength={120} />
           <button className="btn">Прочитал(а)</button>
         </form>
         <ul className="list">
           {d.entries.books.map((b) => (
-            <li key={b.id}>📖 {b.title} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'book', id: b.id })}>✕</button>}</li>
+            <li key={b.id}>📖 {b.title} {s.parent && <button className="x" onClick={() => act('deleteEntry', { type: 'book', id: b.id })} aria-label="Удалить книгу">✕</button>}</li>
           ))}
         </ul>
-      </Section>
+      </Fold>
     </>
   );
 }

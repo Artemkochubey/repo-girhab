@@ -12,7 +12,9 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:backup": "tsx scripts/backup.ts",
-    "docs:rules": "tsx scripts/rules.ts"
+    "docs:rules": "tsx scripts/rules.ts",
+    "docs:changelog": "tsx scripts/changelog.ts",
+    "e2e": "node e2e/run.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.2.0",

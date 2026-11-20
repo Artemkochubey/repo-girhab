@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
+import { mirrorCopy, mirrorDirFromEnv } from '../src/lib/backup';
 
 // Консистентная копия БД (работает при запущенном сайте). Хранит последние KEEP копий.
 const KEEP = Number(process.env.BACKUP_KEEP ?? 14);
@@ -17,4 +18,6 @@ db.backup(dest).then(() => {
   const old = fs.readdirSync(dir).filter((f) => /^app-.*\.db$/.test(f)).sort().slice(0, -KEEP);
   for (const f of old) fs.unlinkSync(path.join(dir, f));
   console.log(`Копия: ${dest} (удалено старых: ${old.length})`);
+  const mirror = mirrorDirFromEnv();
+  if (mirror) console.log(mirrorCopy(dest, path.basename(dest), mirror, KEEP) ? `Вторая копия: ${mirror}` : 'Вторая копия НЕ сделана (см. ошибку выше)');
 }).catch((e) => { console.error('Ошибка бэкапа:', e); process.exit(1); });

@@ -6,7 +6,7 @@ import { BattleScene } from '@/components/BattleScene';
 import { AbilityBar } from '@/components/AbilityBar';
 import { BossScene } from '@/components/BossScene';
 import { lookOf } from '@/lib/client';
-import { Bar, Section } from '@/components/ui';
+import { Bar, Section, Fold } from '@/components/ui';
 import { DOMAIN_INFO, RARITY_NAMES, SLOTS, SLOT_INFO, gearDisplay, type Slot } from '@/lib/game/gear';
 import { DROP_CHANCE, HORDES, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
 
@@ -67,7 +67,7 @@ export default function Battle() {
       </Section>
 
       {ci && (
-        <Section title={`${ci.roleEmoji} Класс в бою: ${ci.role}`} right={<span className="muted">{ci.armor}</span>}>
+        <Fold title={`${ci.roleEmoji} Класс в бою: ${ci.role}`} right={<span className="muted">{ci.armor}</span>}>
           <p>{ci.summary}</p>
           <ul className="abil">
             {ci.abilities.map((a) => <li key={a.name}><span className="ai">{a.emoji}</span><span><b>{a.name}</b><small className="muted">{a.text}</small></span></li>)}
@@ -77,16 +77,16 @@ export default function Battle() {
             {rows.map(([k, v, note]) => <tr key={k}><td>{k}</td><td><b>{v}</b></td><td className="muted">{note}</td></tr>)}
           </tbody></table>
           <p className="muted small">Характеристики складываются из способностей класса и надетого снаряжения. В бою с боссом класс тоже помогает{ci.boss.party ? ': бард поёт для всей семьи, +3% урона каждому герою.' : ci.boss.weak ? ': сильнее удар по слабому месту.' : ci.boss.dmg ? `: +${Math.round(ci.boss.dmg * 100)}% урона.` : '.'}</p>
-        </Section>
+        </Fold>
       )}
 
-      <Section title={`${s.boss.boss.emoji} Босс недели: все герои вместе`}>
+      <Fold title={`${s.boss.boss.emoji} Босс недели: все герои вместе`}>
         <BossScene boss={s.boss.boss} hp={s.boss.hp} damage={s.boss.damage} defeated={s.boss.defeated}
           party={s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, look: m.look, cls: m.cls, damage: s.boss.byMember[m.id] ?? 0 }))} meId={s.me} />
         <p className="muted small">Снаряжение усиливает удар по боссу: оружие и «слабость» от шлема добавляют урон, молот и подобное усиливают свою сферу. Предмет работает на недели после того дня, когда он получен.</p>
-      </Section>
+      </Fold>
 
-      <Section title="❤️ Здоровье героя" right={<b>🔥 побед подряд: {b.streak}</b>}>
+      <Fold title="❤️ Здоровье героя" right={<b>🔥 побед подряд: {b.streak}</b>}>
         <Bar value={l.hp} max={MAX_HP} color={l.weakened ? 'var(--danger)' : '#d84a6a'} label={`${l.hp} / ${MAX_HP}`} />
         <p className="muted small">Каждый день герой восстанавливает {REGEN + g.bonus.heal} здоровья. Если оно ниже {WEAKENED_BELOW}, орда на 15% крепче{l.weakened ? ': сейчас герой ослаблен.' : '.'} Броня уменьшает потери.</p>
         {b.recent.length > 0 && (
@@ -96,7 +96,7 @@ export default function Battle() {
             ))}
           </ul>
         )}
-      </Section>
+      </Fold>
 
       <Section title="🛡 Снаряжение">
         <div className="slots">
