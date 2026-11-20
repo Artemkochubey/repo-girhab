@@ -36,4 +36,20 @@ describe('фигура героя в бою', () => {
     expect(draw('w', { armor: 'armor-legend' })).toContain('--ar2:#e0a73a');
     expect(draw('w', { armor: 'armor-rare' })).toContain('--ar2:#5f8fff');
   });
+  it('доспех у каждого класса свой, а фасон меняется с редкостью', () => {
+    const sig = (c: 'w' | 'm' | 'b' | 'p', r: string) => draw(c, { armor: `armor-${r}` });
+    for (const r of ['common', 'rare', 'epic', 'legend']) {
+      const set = new Set((['w', 'm', 'b', 'p'] as const).map((c) => sig(c, r).replace(/<ellipse[^>]*hf-aura[^>]*>/g, '')));
+      expect(set.size).toBe(4);
+    }
+    for (const c of ['w', 'm', 'b', 'p'] as const) {
+      const set = new Set(['common', 'rare', 'epic', 'legend'].map((r) => sig(c, r).replace(/--[a-z0-9]+:#[0-9a-f]{6}/gi, '').replace(/fill="#[0-9a-f]{6}"/gi, '')));
+      expect(set.size, `фасоны ${c}`).toBe(4);
+    }
+  });
+  it('у мага видны ноги и сапоги под мантией', () => {
+    const m = draw('m', {});
+    expect(m).toContain('M96 250 H118 L116 338 H94Z');
+    expect(m).toContain('hf-bt1');
+  });
 });
