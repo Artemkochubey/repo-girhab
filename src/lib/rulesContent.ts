@@ -5,7 +5,7 @@ import { ARTIFACT_KINDS } from './game/artifacts';
 import { HORDES, HP_FACTOR, LOSS_HP, MAX_HP, REGEN, WAVE_SPLIT, WEAKENED_BELOW, WEAKENED_PENALTY, WEAK_MULT, WEEKDAY_FACTOR, WIN_HP, DROP_CHANCE, victoryXp } from './game/battle';
 import { WEAK_BONUS, BOSSES } from './game/boss';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from './game/chests';
-import { CLASS_BATTLE } from './game/classBattle';
+import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY } from './game/classBattle';
 import { CLASS_FREE_WINDOW_MS, CLASS_INFO, CLASS_NAMES, CLASS_PAUSE_MS, MAIN_BONUS, SUBCLASS_NAMES, subBonus } from './game/classes';
 import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, RARITY_NAMES, SLOT_INFO, SLOTS } from './game/gear';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
@@ -118,6 +118,14 @@ export function buildRules(): Section[] {
           'Снаряжение выглядит и называется по-разному у разных классов: один и тот же предмет у воина латный меч, у мага посох, у барда лира, у паладина булава; доспех у воина латный, у мага мантия, у барда кожаный колет, у паладина латы с золотом. Эффект предмета при этом одинаковый.',
           'На странице «⚔️ Бой» видны способности класса и таблица характеристик героя (класс + снаряжение).',
         ] },
+        '**Активные способности.** Помимо постоянных у каждого класса есть три способности, которые герой нажимает сам (кнопки на «Сегодня» и на странице «Бой»). Каждая усиливает сегодняшний бой с ордой.',
+        { list: [
+          `У героя ${FOCUS_PER_DAY} единицы энергии (⚡) на день: обычная способность стоит 1, мощная 2. Энергия восстанавливается каждый день.`,
+          'Обычные способности можно применять раз в день, мощная перезаряжается 3 дня (или 2 у «Ледяной глыбы»). Каждую способность нельзя применить дважды за день.',
+          'Эффект действует до конца этого дня: усиливает урон, ослабляет первую волну, лечит, уменьшает потери или повышает шанс добычи. Использованная способность учитывается в итоге дня, когда он фиксируется.',
+          'Способности работают только в личных боях с ордой, в бою с боссом их эффект не действует. Родитель может применить способность за ребёнка.',
+        ] },
+        { table: { head: ['Класс', 'Способность', 'Цена и перезарядка', 'Эффект'], rows: (['w', 'm', 'b', 'p'] as const).flatMap((c) => ACTIVE_ABILITIES[c].map((a) => [CLASS_NAMES[c], `${a.emoji} ${a.name}`, `${'⚡'.repeat(a.cost)}, раз в ${a.cd === 1 ? 'день' : `${a.cd} дн.`}`, a.text])) } },
       ],
     },
     {
@@ -310,7 +318,7 @@ export function buildRules(): Section[] {
           ['Шансы сундуков и гарантии', 'src/lib/game/chests.ts'],
           ['Босс недели', 'src/lib/game/boss.ts'],
           ['Личное сражение, орды, здоровье', 'src/lib/game/battle.ts'],
-          ['Способности классов в бою', 'src/lib/game/classBattle.ts'],
+          ['Способности классов в бою (постоянные и активные)', 'src/lib/game/classBattle.ts'],
           ['Снаряжение и добыча', 'src/lib/game/gear.ts'],
           ['Артефакты', 'src/lib/game/artifacts.ts'],
           ['Недельные цели', 'src/lib/game/goals.ts'],

@@ -258,3 +258,14 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .cls-float { animation: cls-float 2.6s ease-in-out infinite; } @keyframes cls-float { 0%, 100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-4px); opacity: .5; } }
 @media (prefers-reduced-motion: reduce) { .cls-float { animation: none; } }
 .abil { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; } .abil li { display: flex; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; } .abil .ai { font-size: 1.6rem; } .abil li span:last-child { display: grid; }
+
+/* Активные способности */
+.abilities { display: grid; gap: 6px; margin-top: 8px; } .focus { display: inline-flex; gap: 2px; font-style: normal; } .focus i { font-style: normal; opacity: .25; } .focus i.on { opacity: 1; filter: drop-shadow(0 0 4px #ffd24a); }
+.abil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
+.abil-btn { display: grid; gap: 2px; text-align: left; align-content: start; background: var(--panel2); border: 1px solid #6f58c9; border-radius: 12px; padding: 8px 10px; color: var(--text); cursor: pointer; min-height: 64px; }
+.abil-btn:hover:not(:disabled) { border-color: #ffd24a; box-shadow: 0 0 10px #ffd24a44; } .abil-btn:disabled { opacity: .55; cursor: default; } .abil-btn.used { border-color: var(--ok); } .abil-btn.ult { border-color: var(--accent); background: linear-gradient(135deg, #2b2142, #3a2c14); }
+.abil-btn .ab-e { font-size: 1.4rem; } .abil-btn .ab-s { color: var(--accent); } .abilities.compact .abil-btn { min-height: 0; padding: 6px 8px; }
+.scene .cast-ring { fill: none; stroke: #ffd24a; stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: cast-ring 1s ease-out forwards; } .scene .cast-ring.r2 { animation-delay: .25s; stroke: #fff; }
+.scene .cast-text { fill: #ffe9a8; stroke: #1b1405; stroke-width: .8px; paint-order: stroke; font-size: 11px; font-weight: 900; animation: dmg-rise 1.8s ease-out forwards; }
+@keyframes cast-ring { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.9); } }
+@media (prefers-reduced-motion: reduce) { .scene .cast-ring, .scene .cast-text { animation: none; } .scene .cast-ring { opacity: 0; } }

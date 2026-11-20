@@ -1,6 +1,7 @@
 'use client';
 import { useGame } from '@/components/Shell';
 import { BattleScene } from '@/components/BattleScene';
+import { AbilityBar } from '@/components/AbilityBar';
 import { BossScene } from '@/components/BossScene';
 import { lookOf } from '@/lib/client';
 import { Bar, Section } from '@/components/ui';
@@ -41,7 +42,8 @@ export default function Battle() {
       <h1 className="title">⚔️ Бой: {me.emoji} {me.name}</h1>
 
       <Section title={`${l.horde.emoji} ${l.horde.name}`} right={<span className="muted">{l.weekend ? 'выходной: орда крепче' : 'сегодня'}</span>}>
-        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} />
+        <BattleScene look={lookOf(g)} color={me.color} emoji={me.emoji} name={me.name} live={l} cls={me.cls} active={b.abilities.activeToday} />
+        <AbilityBar />
         <p className="muted small">Каждый день приходит новая орда из трёх волн. Урон наносят очки, которые вы и так зарабатываете. Очки слабой сферы волны бьют ×1,5. Убейте все три волны за день, чтобы победить.</p>
         <div className="waves">
           {f.waves.map((w, i) => {

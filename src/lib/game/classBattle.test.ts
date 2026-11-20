@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fight, simulate, MAX_HP } from './battle';
-import { CLASS_BATTLE, classOnly, withClass } from './classBattle';
+import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, abilityBlocked, abilityById, abilityView, classOnly, withAbilities, withClass } from './classBattle';
 import { GEAR, NO_GEAR, gearBonus, gearById, gearDisplay, type Domain } from './gear';
 import type { Cls } from './classes';
 
@@ -70,5 +70,71 @@ describe('вид и названия снаряжения по классам', 
       const names = GEAR.map((g) => gearDisplay(g, c).name);
       expect(new Set(names).size).toBe(names.length);
     }
+  });
+});
+
+describe('активные способности', () => {
+  it('у каждого класса три способности с уникальными id; мощная стоит 2 энергии и перезаряжается 3 дня', () => {
+    const ids = CLASSES.flatMap((c) => ACTIVE_ABILITIES[c].map((a) => a.id));
+    expect(ids).toHaveLength(12);
+    expect(new Set(ids).size).toBe(12);
+    for (const c of CLASSES) {
+      const l = ACTIVE_ABILITIES[c];
+      expect(l.filter((a) => a.cost === 2)).toHaveLength(1);
+      expect(l.find((a) => a.cost === 2)!.cd).toBe(3);
+      expect(l.filter((a) => a.cost === 1).every((a) => a.cd <= 2)).toBe(true);
+      expect(l.every((a) => abilityById(a.id)!.cls === c)).toBe(true);
+    }
+    expect(FOCUS_PER_DAY).toBe(2);
+  });
+  it('withAbilities добавляет эффекты и не портит исходные бонусы', () => {
+    const b = withAbilities(NO_GEAR, ['w-whirl', 'w-reckless']);
+    expect(b.dmg).toBeCloseTo(0.75);
+    expect(b.lossMult).toBe(1);
+    expect(NO_GEAR.dmg).toBe(0);
+    expect(withAbilities(NO_GEAR, ['нет-такой'])).toEqual(NO_GEAR);
+    expect(withAbilities(withClass(NO_GEAR, 'm'), ['m-pyro']).weak).toBeCloseTo(0.35 + 0.75);
+  });
+  it('энергия: две обычные способности в день или одна мощная; перезарядка по дням', () => {
+    const today = '2026-11-20';
+    let v = abilityView('w', [], today);
+    expect(v.focusLeft).toBe(2);
+    expect(v.list.every((a) => a.ready)).toBe(true);
+    v = abilityView('w', [{ ability: 'w-charge', date: today }], today);
+    expect(v.focusLeft).toBe(1);
+    expect(v.list.find((a) => a.id === 'w-charge')).toMatchObject({ usedToday: true, ready: false });
+    expect(v.list.find((a) => a.id === 'w-reckless')!.ready).toBe(false);          // мощная стоит 2, осталась 1
+    v = abilityView('w', [{ ability: 'w-reckless', date: today }], today);
+    expect(v.focusLeft).toBe(0);
+    expect(v.list.every((a) => !a.ready)).toBe(true);
+    v = abilityView('w', [{ ability: 'w-reckless', date: '2026-11-19' }], today);     // применяли вчера: перезарядка 3 дня
+    expect(v.list.find((a) => a.id === 'w-reckless')).toMatchObject({ readyIn: 2, ready: false });
+    expect(abilityView('w', [{ ability: 'w-reckless', date: '2026-11-17' }], today).list.find((a) => a.id === 'w-reckless')!.ready).toBe(true);
+    expect(abilityView(null, [], today).list).toEqual([]);
+  });
+  it('причины отказа: чужой класс, уже применена, перезарядка, нет энергии', () => {
+    const t = '2026-11-20';
+    expect(abilityBlocked('w', 'm-pyro', [], t)).toMatch(/нет такой/);
+    expect(abilityBlocked(null, 'w-charge', [], t)).toMatch(/нет такой/);
+    expect(abilityBlocked('w', 'w-charge', [], t)).toBeNull();
+    expect(abilityBlocked('w', 'w-charge', [{ ability: 'w-charge', date: t }], t)).toMatch(/уже применена/);
+    expect(abilityBlocked('w', 'w-reckless', [{ ability: 'w-reckless', date: '2026-11-19' }], t)).toMatch(/ещё 2 дн/);
+    expect(abilityBlocked('w', 'w-reckless', [{ ability: 'w-charge', date: t }], t)).toMatch(/энергии/);
+  });
+  it('бой: «Безрассудство» бьёт сильнее, но при поражении теряется вдвое больше; «Ледяная глыба» почти убирает потери', () => {
+    const w = waves(['body', 'mind', 'will'], [30, 30, 30]);
+    expect(fight(P({ gen: 80 }), w, withAbilities(NO_GEAR, ['w-reckless'])).damage).toBeGreaterThan(fight(P({ gen: 80 }), w, NO_GEAR).damage);
+    const run = (ids: string[], c: Cls) => simulate({ memberId: 1, goal: 60, from: '2026-11-16', to: '2026-11-16', persisted: [], day: () => ({ bySphere: {}, total: 0 }), bonus: withClass(NO_GEAR, c), bonusFor: () => withAbilities(withClass(NO_GEAR, c), ids) }).rows[0]!;
+    expect(run([], 'w').hpDelta).toBe(-25);
+    expect(run(['w-reckless'], 'w').hpDelta).toBe(-50);
+    expect(run(['m-iceblock'], 'm').hpDelta).toBe(-3);            // 25 × 0,1 × 1,3
+    expect(run(['b-hymn'], 'b').regen).toBe(10 + 6 + 15);        // базовое лечение + «Песня отдыха» + «Гимн исцеления»
+  });
+  it('способность, применённая в тот день, попадает в итог дня, когда он фиксируется', () => {
+    const base = { memberId: 1, goal: 60, from: '2026-11-17', to: '2026-11-17', persisted: [], day: () => ({ bySphere: { workout: 66 }, total: 66 }), bonus: withClass(NO_GEAR, 'w') };
+    const none = simulate(base).rows[0]!;
+    const buffed = simulate({ ...base, bonusFor: () => withAbilities(withClass(NO_GEAR, 'w'), ['w-whirl', 'w-charge']) }).rows[0]!;
+    expect(buffed.cleared).toBeGreaterThanOrEqual(none.cleared);
+    expect(buffed.totalHp).toBeLessThan(none.totalHp);            // «Рывок» делает первую волну слабее
   });
 });

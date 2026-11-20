@@ -121,6 +121,7 @@ export interface DayData { bySphere: Partial<Record<string, number>>; total: num
 export interface SimInput {
   memberId: number; goal: number; from: string; to: string;     // дни от from до to (включительно) закрываются итогами
   persisted: BattleRow[]; day: (date: string) => DayData | null; bonus: GearBonus;
+  bonusFor?: (date: string) => GearBonus;   // бонусы конкретного дня (с примененными способностями); по умолчанию bonus
 }
 export interface SimResult { rows: BattleRow[]; pending: BattleRow[]; hp: number; streak: number }
 
@@ -132,17 +133,18 @@ export function simulate(i: SimInput): SimResult {
   for (let d = i.from; d <= i.to; d = addDays(d, 1)) {
     let row = known.get(d);
     if (!row) {
-      const hpDay = Math.min(MAX_HP, hp + REGEN + i.bonus.heal);
+      const bonus = i.bonusFor ? i.bonusFor(d) : i.bonus;
+      const hpDay = Math.min(MAX_HP, hp + REGEN + bonus.heal);
       const hd = hordeOfDay(d);
-      const { waves, totalHp } = wavesFor(hd, i.goal, i.bonus, hpDay < WEAKENED_BELOW);
+      const { waves, totalHp } = wavesFor(hd, i.goal, bonus, hpDay < WEAKENED_BELOW);
       const data = i.day(d) ?? { bySphere: {}, total: 0 };
-      const f = fight(poolsOf(data.bySphere, data.total), waves, i.bonus, streak, hpDay);
+      const f = fight(poolsOf(data.bySphere, data.total), waves, bonus, streak, hpDay);
       const win = f.outcome === 'victory';
-      const hpDelta = win ? WIN_HP + i.bonus.winHeal : f.outcome === 'defeat' ? -Math.round(LOSS_HP * (1 - Math.min(0.9, i.bonus.guard)) * (1 + i.bonus.lossMult)) : 0;
+      const hpDelta = win ? WIN_HP + bonus.winHeal : f.outcome === 'defeat' ? -Math.round(LOSS_HP * (1 - Math.min(0.9, bonus.guard)) * (1 + bonus.lossMult)) : 0;
       const r = seededRandom(`drop:${i.memberId}:${d}`);
-      const chance = (isWeekend(d) ? DROP_CHANCE.weekend : DROP_CHANCE.weekday) + i.bonus.loot;
+      const chance = (isWeekend(d) ? DROP_CHANCE.weekend : DROP_CHANCE.weekday) + bonus.loot;
       const drop = win && r() < chance ? pickGear(BATTLE_DROP, r(), r()).id : null;
-      row = { date: d, hordeId: hd.horde.id, totalHp, cleared: f.cleared, win, regen: REGEN + i.bonus.heal, hpDelta, xp: win ? victoryXp(i.goal) : 0, drop };
+      row = { date: d, hordeId: hd.horde.id, totalHp, cleared: f.cleared, win, regen: REGEN + bonus.heal, hpDelta, xp: win ? victoryXp(i.goal) : 0, drop };
       pending.push(row);
     }
     hp = hpAfter(hp, row);

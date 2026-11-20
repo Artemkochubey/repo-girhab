@@ -4,16 +4,33 @@ import { DOMAIN_INFO } from '@/lib/game/gear';
 import type { LiveBattleDto } from '@/lib/client';
 import { Defs, HeroGroup, RARITY_COLOR, type Look } from './HeroFigure';
 import { useHits } from './useHits';
+import { abilityById } from '@/lib/game/classBattle';
+import { useEffect, useRef, useState } from 'react';
 
-interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto; cls?: string | null }
+interface Props { look: Look; color: string; emoji: string; name: string; live: LiveBattleDto; cls?: string | null; active?: string[] }
 
 /** Бой героя с ордой: герой со своим снаряжением слева, три волны врагов справа, у каждой слабость и полоска здоровья. */
-export function BattleScene({ look, color, emoji, name, live, cls = null }: Props) {
+export function BattleScene({ look, color, emoji, name, live, cls = null, active = [] }: Props) {
   const uid = useId().replace(/:/g, '');
   const { fight, horde } = live;
   // удары: когда урон волны вырос с прошлого обновления, герой атакует, враги вздрагивают, над ними всплывает число
   const hits = useHits(Object.fromEntries(fight.waves.map((w, i) => [`w${i}`, { n: Math.min(w.damage, w.hp), flag: w.cleared }])));
   const hit = hits.length > 0;
+  // применённые способности: при новой показываем вспышку и название над героем, действующие остаются значками
+  const seen = useRef<string[] | null>(null);
+  const [casts, setCasts] = useState<{ id: string; n: number }[]>([]);
+  const activeSig = active.join(',');
+  useEffect(() => {
+    const prev = seen.current;
+    seen.current = active;
+    if (!prev) return;
+    const fresh = active.filter((a) => !prev.includes(a)).map((id, k) => ({ id, n: Date.now() + k }));
+    if (!fresh.length) return;
+    setCasts((c) => [...c, ...fresh]);
+    const t = setTimeout(() => setCasts((c) => c.filter((x) => !fresh.includes(x))), 1800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSig]);
   // группы врагов: 3 мелких, 2 средних, 1 крупный
   const groups = [
     { x: 150, pts: [[0, 22], [28, 8], [14, 40]] as [number, number][], size: 26 },
@@ -38,6 +55,14 @@ export function BattleScene({ look, color, emoji, name, live, cls = null }: Prop
         <HeroGroup look={look} color={color} emoji={emoji} cls={cls} attack={hit} uid={uid} transform="scale(0.98)" />
       </g></g>
       <text x="56" y="14" textAnchor="middle" fontSize="9" fill="#e9e1ff" fontWeight="700">{name}</text>
+      <g>{active.map((id, i) => <text key={id} x={14 + i * 14} y="28" fontSize="11">{abilityById(id)?.ability.emoji}</text>)}</g>
+      {casts.map((c, i) => { const a = abilityById(c.id)?.ability; return a && (
+        <g key={c.n}>
+          <circle cx="56" cy="100" r="30" className="cast-ring" />
+          <circle cx="56" cy="100" r="30" className="cast-ring r2" />
+          <text x="56" y={44 - i * 12} textAnchor="middle" className="cast-text">{a.emoji} {a.name}!</text>
+        </g>
+      ); })}
       <rect x="14" y="170" width="82" height="7" rx="3.5" fill="#120d22" /><rect x="14" y="170" width={82 * hpPct} height="7" rx="3.5" fill={live.weakened ? '#c0392b' : '#d84a6a'} />
       <text x="55" y="187" textAnchor="middle" fontSize="8.5" fill="#cfc4f5">❤️ {live.hp}/{live.maxHp}{live.streak ? `  🔥${live.streak}` : ''}</text>
 

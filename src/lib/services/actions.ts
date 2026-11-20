@@ -15,6 +15,7 @@ import { validQuestList, type QuestItem } from '../game/quests';
 import { MAX_CUSTOM_SETS, findSet, scaleQuests } from '../game/questSets';
 import { rollChestArtifact } from '../game/artifacts';
 import { SLOTS, gearById, rollChestGear } from '../game/gear';
+import { abilityBlocked, abilityById } from '../game/classBattle';
 import { GOAL_KINDS, TIERS, canChooseGoal, goalTarget, goalWeekStart, type GoalKind, type GoalTier } from '../game/goals';
 import { basePoints } from '../game/points';
 import { loadFamily, getConfig } from './load';
@@ -297,6 +298,20 @@ export function runAction(db: Db, ctx: Ctx, action: string, a: Args): unknown {
       const gear = rollChestGear(rarity, rand(), rand(), rand());
       db.insert(s.chestOpened).values({ memberId, n: st.chestsOpened + 1, rarity, reward, date: today, artifact, gear: gear?.id ?? null, source: boss ? 'boss' : 'normal' }).run();
       return { rarity, reward, artifact, gear: gear?.id ?? null, talisman: !!talisman, boss, why: rolled.why };
+    }
+
+    case 'useAbility': {
+      // активная способность класса: усиливает сегодняшний бой; раз в день, перезарядка и энергия (2 в день)
+      const memberId = target();
+      const id = String(a.id ?? '');
+      const { family } = loadFamily(db, now);
+      const st = family.members.get(memberId)!;
+      const uses = db.select().from(s.abilityUse).where(eq(s.abilityUse.memberId, memberId)).all().map((u) => ({ ability: u.ability, date: u.date }));
+      if (!abilityById(id)) fail(404, 'Нет такой способности');
+      const why = abilityBlocked(st.hero.cls, id, uses, today);
+      if (why) fail(400, why);
+      db.insert(s.abilityUse).values({ memberId, date: today, ability: id }).run();
+      return { ok: true };
     }
 
     case 'equipGear': {

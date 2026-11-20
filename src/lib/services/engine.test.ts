@@ -11,7 +11,7 @@ const base = (): Raw => ({
     { memberId: 1, cls: 'w', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
     { memberId: 2, cls: 'm', clsChosen: true, sub: null, clsChangedAt: '', talents: [] },
   ],
-  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], battleSince: null, battleDays: [], gearEquipped: [], weeklyGoals: [], shopItems: [], purchases: [],
+  workouts: [], warmups: [], study: [], habits: [], habitChecks: [], books: [], quests: [], chestsOpened: [], familyQuests: [], dayMvps: [], mvpSince: null, reminderHour: 19, seasonSince: null, reviewOk: [], artifactsSince: null, artifactUse: [], battleSince: null, battleDays: [], gearEquipped: [], abilityUses: [], weeklyGoals: [], shopItems: [], purchases: [],
 });
 
 describe('движок семьи', () => {
@@ -235,6 +235,20 @@ describe('движок семьи', () => {
     const aura = dmg('m', 'b');                       // второй герой бард: у первого +3% к урону
     expect(aura).toBeGreaterThan(noAura);
     expect(dmg('p', 'm')).toBeGreaterThan(noAura);    // «Возмездие»: у паладина +4%
+  });
+  it('активные способности: меняют итог закончившегося дня и сегодняшний бой, считаются из записей применений', () => {
+    const mk = (uses: { memberId: number; date: string; ability: string }[]) => {
+      const raw = base(); manualQ(raw); raw.battleSince = '2026-11-18'; raw.abilityUses = uses;
+      return buildFamily(raw, '2026-11-19').members.get(2)!;                     // у второго героя класс «маг», активности нет
+    };
+    const plain = mk([]), ice = mk([{ memberId: 2, date: '2026-11-18', ability: 'm-iceblock' }]);
+    expect(plain.battle.rows[0]!.hpDelta).toBe(-33);                             // поражение мага: 25 × 1,3
+    expect(ice.battle.rows[0]!.hpDelta).toBe(-3);                                // «Ледяная глыба»
+    expect(ice.battle.hp).toBeGreaterThan(plain.battle.hp);
+    const today = mk([{ memberId: 2, date: '2026-11-19', ability: 'm-pyro' }]);
+    expect(today.battle.abilities.activeToday).toEqual(['m-pyro']);
+    expect(today.battle.abilities.focusLeft).toBe(1);
+    expect(plain.battle.abilities.list).toHaveLength(3);
   });
   it('снаряжение за победу над боссом выдаётся по ключу и только после даты старта', () => {
     const mk = (since: string | null) => {

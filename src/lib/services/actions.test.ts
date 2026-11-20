@@ -286,6 +286,26 @@ describe('действия', () => {
     expect(detail().gear.items).toHaveLength(1);
     expect(detail().chestLog[0]!.gear).toBe(r.gear);
   });
+  it('способности класса: раз в день, энергия 2, перезарядка, только свои, родитель может за ребёнка', () => {
+    const d = (n: number) => ({ ...kid, now: new Date(Date.UTC(2026, 10, 19 + n, 5)) });
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'нет' }))?.status).toBe(404);
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'm-pyro' }))?.status).toBe(400);        // способность мага у воина
+    runAction(db, kid, 'useAbility', { id: 'w-whirl' });
+    expect(detail().battle.abilities).toMatchObject({ focusLeft: 1, activeToday: ['w-whirl'] });
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'w-whirl' }))?.message).toMatch(/уже применена/);
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'w-reckless' }))?.message).toMatch(/энергии/);   // мощная стоит 2
+    runAction(db, kid, 'useAbility', { id: 'w-charge' });
+    expect(detail().battle.abilities.focusLeft).toBe(0);
+    expect(err(() => runAction(db, kid, 'useAbility', { id: 'w-reckless' }))).not.toBeNull();
+    // на следующий день энергия снова 2, обычные способности готовы
+    runAction(db, d(1), 'useAbility', { id: 'w-reckless' });                                         // мощная: 2 энергии, перезарядка 3 дня
+    expect(detail(2, d(1).now).battle.abilities.focusLeft).toBe(0);
+    expect(err(() => runAction(db, d(2), 'useAbility', { id: 'w-reckless' }))?.message).toMatch(/ещё 2 дн/);
+    runAction(db, d(2), 'useAbility', { id: 'w-whirl' });
+    runAction(db, d(4), 'useAbility', { id: 'w-reckless' });                                         // через 3 дня готова
+    expect(err(() => runAction(db, { ...kid, memberId: 1 }, 'useAbility', { memberId: 2, id: 'w-charge' }))?.status).toBe(403);
+    runAction(db, { ...dad, now: d(5).now }, 'useAbility', { memberId: 2, id: 'w-charge' });          // родитель может за ребёнка
+  });
   it('квесты и настройки только за PIN', () => {
     const items = [{ t: 'x', xp: 10, k: 'manual' as const }];
     expect(err(() => runAction(db, kid, 'setQuests', { date: 'default', items }))?.status).toBe(403);

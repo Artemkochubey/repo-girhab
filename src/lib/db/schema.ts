@@ -250,3 +250,12 @@ export const gearEquipped = sqliteTable('gear_equipped', {
   slot: text('slot').notNull(),
   key: text('key').notNull(),
 }, (t) => [unique('gear_equipped_slot').on(t.memberId, t.slot), unique('gear_equipped_key').on(t.memberId, t.key)]);
+
+// Применённые способности класса: одна запись на способность в день (перезарядка считается по датам)
+export const abilityUse = sqliteTable('ability_use', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').notNull().references(() => member.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  ability: text('ability').notNull(),
+  createdAt: createdAt(),
+}, (t) => [unique('ability_use_unique').on(t.memberId, t.date, t.ability)]);

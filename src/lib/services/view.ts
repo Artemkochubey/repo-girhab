@@ -102,7 +102,7 @@ export function memberDetail(raw: Raw, fam: Family, st: MemberState, date: strin
     // личное сражение и снаряжение
     battle: (() => {
       const b = st.battle;
-      return { cls: st.hero.cls, classInfo: st.hero.cls ? CLASS_BATTLE[st.hero.cls] : null, live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
+      return { abilities: b.abilities, cls: st.hero.cls, classInfo: st.hero.cls ? CLASS_BATTLE[st.hero.cls] : null, live: b.live, hp: b.hp, streak: b.streak, xp: b.xp, recent: b.rows.slice(-7).reverse().map((r) => ({ date: r.date, hordeId: r.hordeId, cleared: r.cleared, win: r.win, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })) };
     })(),
     gear: {
       items: st.gear.map((g) => ({ ...g, item: gearById(g.itemId)! })).filter((g) => g.item),

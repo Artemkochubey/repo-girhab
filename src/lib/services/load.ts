@@ -33,6 +33,7 @@ export function loadRaw(db: Db): Raw {
     battleSince: getConfig(db).battleSince,
     battleDays: db.select().from(s.battleDay).all().map((r) => ({ memberId: r.memberId, date: r.date, hordeId: r.hordeId, totalHp: r.totalHp, cleared: r.cleared, win: r.win, regen: r.regen, hpDelta: r.hpDelta, xp: r.xp, drop: r.drop })),
     gearEquipped: db.select().from(s.gearEquipped).all(),
+    abilityUses: db.select().from(s.abilityUse).all().map((u) => ({ memberId: u.memberId, date: u.date, ability: u.ability })),
     artifactUse: db.select().from(s.artifactUse).all() as Raw['artifactUse'],
     weeklyGoals: db.select().from(s.weeklyGoal).all().map((g) => ({ memberId: g.memberId, weekStart: g.weekStart, kind: g.kind, tier: g.tier, target: g.target, title: g.title, manual: g.manual, confirmed: g.confirmed })),
     shopItems: db.select().from(s.shopItem).all(),
