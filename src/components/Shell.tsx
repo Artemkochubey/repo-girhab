@@ -6,6 +6,7 @@ import { post, rpc, type State } from '@/lib/client';
 import { APP_EMOJI, APP_NAME, APP_VERSION } from '@/lib/brand';
 import { rankFor } from '@/lib/game/ranks';
 import { ClassPicker } from './ClassPicker';
+import { SubclassPicker } from './SubclassPicker';
 
 interface Ctx {
   s: State; date: string; setDate: (d: string) => void; reload: () => Promise<void>;
@@ -25,6 +26,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [classLater, setClassLaterState] = useState(false);
   const setClassLater = (v: boolean) => { setClassLaterState(v); try { if (v) sessionStorage.setItem('mr_class_later', '1'); else sessionStorage.removeItem('mr_class_later'); } catch { /* без хранилища просто покажем снова */ } };
   useEffect(() => { try { if (sessionStorage.getItem('mr_class_later')) setClassLaterState(true); } catch { /* ignore */ } }, []);
+  // окно выбора подкласса (с 5 уровня): «Выберу позже» действует до закрытия вкладки
+  const [subLater, setSubLaterState] = useState(false);
+  const setSubLater = (v: boolean) => { setSubLaterState(v); try { if (v) sessionStorage.setItem('mr_sub_later', '1'); else sessionStorage.removeItem('mr_sub_later'); } catch { /* без хранилища просто покажем снова */ } };
+  useEffect(() => { try { if (sessionStorage.getItem('mr_sub_later')) setSubLaterState(true); } catch { /* ignore */ } }, []);
   const path = usePathname();
 
   const toast = useCallback((m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3500); }, []);
@@ -109,6 +114,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="wrap">{children}</main>
       {s.detail && !s.detail.hero.cls && !classLater && <ClassPicker memberName={me.name} onClose={() => setClassLater(true)} />}
+      {s.detail && s.detail.hero.cls && s.detail.level >= 5 && !s.detail.hero.sub && !subLater && newAch.length === 0 && !mvpWin && (
+        <SubclassPicker memberName={me.name} cls={s.detail.hero.cls} level={s.detail.level} recommended={(s.detail.recommendedSub as 'w' | 'm' | 'b' | 'p' | null)} onClose={() => setSubLater(true)} />
+      )}
       {mvpWin && newAch.length === 0 && (
         <div className="modal" onClick={closeMvp} role="dialog" aria-label="MVP дня">
           <div className="card celebrate" onClick={(e) => e.stopPropagation()}>

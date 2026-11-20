@@ -28,6 +28,17 @@ export default function Hero() {
   const [optSub, setOptSub] = useState<Cls | null | undefined>(undefined);
   const [burst, setBurst] = useState<Cls | null>(null);
   const curSub = optSub !== undefined ? optSub : h.sub;
+  const [pickingSub, setPickingSub] = useState<Cls | 'none' | null>(null);
+  const applySub = async (next: Cls | null) => {
+    setPickingSub(null);
+    setOptSub(next);
+    if (next) { setBurst(next); setTimeout(() => setBurst(null), 1600); }
+    try {
+      await act('setSub', { sub: next });
+      toast(next ? `🎉 Подкласс выбран: ${SUBCLASS_NAMES[h.cls!][next]}. Сфера «${SPHERE[next]}» усилена на +${Math.round(subBonus(d.level) * 100)}%` : 'Подкласс снят');
+    } catch { /* act уже показал сообщение об ошибке */ }
+    finally { setOptSub(undefined); }
+  };
   const change = h.cls ? canChangeClass(Date.parse(h.clsChangedAt), Date.now()) : { ok: true as const };
   const subName = h.cls && h.sub ? SUBCLASS_NAMES[h.cls][h.sub] : null;
   const RAR: Record<string, string> = { common: 'Обычный', rare: '✨ Редкий', legend: '🌟 Легендарный' };
@@ -88,25 +99,15 @@ export default function Hero() {
         )}
         <h3>Подкласс</h3>
         <p className="muted small">Вторая сфера усиливается дополнительно: с 5 уровня +10%, с 8 — +15%, с 12 — +20%. Сейчас у вас уровень {d.level}{d.level >= 5 ? `, бонус +${Math.round(subBonus(d.level) * 100)}%` : ''}.</p>
-        {h.cls && d.level >= 5 && <p className="sub-now">{curSub ? <>Ваш подкласс: <b className="gold">{SUBCLASS_NAMES[h.cls][curSub]}</b>. Нажмите на другую карточку, чтобы сменить, или на эту же, чтобы снять.</> : 'Подкласс не выбран: нажмите на карточку ниже.'}</p>}
+        {h.cls && d.level >= 5 && <p className="sub-now">{curSub ? <>Ваш подкласс: <b className="gold">{SUBCLASS_NAMES[h.cls][curSub]}</b>. Нажмите на другую карточку, чтобы сменить, или на эту же, чтобы снять (потребуется подтверждение).</> : 'Подкласс не выбран: нажмите на карточку ниже и подтвердите выбор.'}</p>}
         {!h.cls ? <p className="muted">Выберите класс, чтобы увидеть его подклассы.</p> : (
           <div className="grid">
             {CLS.filter((c) => c !== h.cls).map((c) => {
               const locked = d.level < 5;
               const chosen = curSub === c;
-              const pickSub = async () => {
-                const next = chosen ? null : c;
-                setOptSub(next);
-                if (next) { setBurst(c); setTimeout(() => setBurst(null), 1600); }
-                try {
-                  await act('setSub', { sub: next });
-                  toast(next ? `🎉 Подкласс выбран: ${SUBCLASS_NAMES[h.cls!][c]}. Сфера «${SPHERE[c]}» усилена на +${Math.round(subBonus(d.level) * 100)}%` : 'Подкласс снят');
-                } catch { /* act уже показал сообщение об ошибке */ }
-                finally { setOptSub(undefined); }
-              };
               return (
                 <button key={c} className={`card pick sub ${chosen ? 'sel' : ''} ${burst === c ? 'burst' : ''} ${locked ? 'locked' : ''}`} disabled={locked} aria-pressed={chosen}
-                  onClick={pickSub}>
+                  onClick={() => setPickingSub(chosen ? 'none' : c)}>
                   {chosen && <span className="sub-badge">✔ Ваш подкласс</span>}
                   <b>{locked ? '🔒 ' : ''}{SUBCLASS_NAMES[h.cls!][c]}{!locked && d.recommendedSub === c ? ' ★' : ''}</b>
                   <span className="muted">{CLASS_NAMES[h.cls!]} + {SPHERE[c]}</span>
@@ -115,6 +116,17 @@ export default function Hero() {
                 </button>
               );
             })}
+          </div>
+        )}
+        {pickingSub && h.cls && (
+          <div className="confirm">
+            {pickingSub === 'none'
+              ? <>Снять подкласс «{SUBCLASS_NAMES[h.cls][curSub!]}»? Очки пересчитаются за всю историю.</>
+              : <>{curSub ? 'Сменить подкласс' : 'Выбрать подкласс'}: {SUBCLASS_NAMES[h.cls][pickingSub]}? {CLASS_INFO[pickingSub].bonus.replace('+20%', `+${Math.round(subBonus(d.level) * 100)}%`)}. {CLASS_INFO[pickingSub].pitch}{curSub ? ' Очки пересчитаются за всю историю.' : ''}</>}
+            <div className="row">
+              <button className="btn" onClick={() => applySub(pickingSub === 'none' ? null : pickingSub)}>{pickingSub === 'none' ? 'Да, снять' : curSub ? 'Да, сменить' : 'Да, выбрать'}</button>
+              <button className="btn ghost" onClick={() => setPickingSub(null)}>Отмена</button>
+            </div>
           </div>
         )}
         <details>
