@@ -3,7 +3,7 @@ import { GearPic } from '@/components/GearPic';
 import { useMemo, useState } from 'react';
 import { useGame } from '@/components/Shell';
 import { RARITY_COLOR, CLASS_COLOR } from '@/components/HeroFigure';
-import { GEAR, GEAR_RARITIES, RARITY_NAMES, SLOTS, SLOT_INFO, gearDisplay, gearIconFamily, type Slot } from '@/lib/game/gear';
+import { GEAR, GEAR_RARITIES, RARITY_NAMES, WEAPON_VARIANTS, SLOTS, SLOT_INFO, gearDisplay, gearIconFamily, type Slot } from '@/lib/game/gear';
 import { CLASS_NAMES, type Cls } from '@/lib/game/classes';
 import { Section } from '@/components/ui';
 
@@ -34,7 +34,7 @@ export default function Arsenal() {
   return (
     <>
       <h1 className="title">🗡 Арсенал</h1>
-      <p className="muted">Всё снаряжение игры: пять видов оружия, доспехи, шлемы, сапоги и амулеты в четырёх редкостях. Внешний вид зависит от класса героя и от редкости: чем выше редкость, тем богаче предмет. У вас есть предметов: <b>{have} из {GEAR.length}</b>.</p>
+      <p className="muted">Всё снаряжение игры: пять видов оружия, у каждого по три внешних варианта (оружие у всех классов одно), доспехи, шлемы, сапоги и амулеты в четырёх редкостях. Внешний вид зависит от класса героя и от редкости: чем выше редкость, тем богаче предмет. У вас есть предметов: <b>{have} из {GEAR.length}</b>.</p>
 
       <div className="seg" role="tablist" aria-label="Класс">
         {CLS.map((c) => <button key={c} role="tab" aria-selected={cls === c} className={cls === c ? 'on' : ''} onClick={() => setCls(c)} style={cls === c ? { borderColor: CLASS_COLOR[c] } : undefined}>{CLASS_NAMES[c]}</button>)}
@@ -43,25 +43,37 @@ export default function Arsenal() {
         {SLOTS.map((sl) => <button key={sl} role="tab" aria-selected={slot === sl} className={slot === sl ? 'on' : ''} onClick={() => setSlot(sl)}>{SLOT_INFO[sl].emoji} {SLOT_INFO[sl].name}</button>)}
       </div>
 
-      {families.map(([fam, list]) => (
-        <Section key={fam} title={FAMILY_TITLE[fam] ?? fam}>
-          <div className="arsenal-row">
-            {list.map((g) => {
-              const nm = gearDisplay(g, cls);
+      {families.map(([fam, list]) => {
+        const variants = [...new Set(list.map((g) => g.variant))].sort();
+        return (
+          <Section key={fam} title={FAMILY_TITLE[fam] ?? fam} right={variants.length > 1 ? <small className="muted">{variants.length} вида</small> : undefined}>
+            {variants.map((v) => {
+              const row = list.filter((g) => g.variant === v);
+              const noun = WEAPON_VARIANTS[fam]?.[v - 1]?.[0];
               return (
-                <div key={g.id} className={`arsenal-cell gr-${g.rarity} ${owned.has(g.id) ? 'have' : ''}`}>
-                  <div className="arsenal-art"><GearPic item={g} cls={cls} size={104} /></div>
-                  <small style={{ color: RARITY_COLOR[g.rarity] }}>{RARITY_NAMES[g.rarity]}</small>
-                  <b>{nm.name}</b>
-                  <small className="muted">{g.text}</small>
-                  {equipped.has(g.id) ? <small className="gold">✔ надето</small> : owned.has(g.id) ? <small className="gold">✔ есть у вас</small> : null}
+                <div key={v}>
+                  {variants.length > 1 && noun && <h3 className="variant-title">Вид {v}: {noun[0]!.toUpperCase() + noun.slice(1)}</h3>}
+                  <div className="arsenal-row">
+                    {row.map((g) => {
+                      const nm = gearDisplay(g, cls);
+                      return (
+                        <div key={g.id} className={`arsenal-cell gr-${g.rarity} ${owned.has(g.id) ? 'have' : ''}`}>
+                          <div className="arsenal-art"><GearPic item={g} cls={cls} size={104} /></div>
+                          <small style={{ color: RARITY_COLOR[g.rarity] }}>{RARITY_NAMES[g.rarity]}</small>
+                          <b>{nm.name}</b>
+                          <small className="muted">{g.text}</small>
+                          {equipped.has(g.id) ? <small className="gold">✔ надето</small> : owned.has(g.id) ? <small className="gold">✔ есть у вас</small> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
-          </div>
-        </Section>
-      ))}
-      <p className="muted small">Снаряжение выпадает за победы над ордой (по выходным чаще), над боссом и иногда из сундуков. Надевать его можно на вкладке «⚔️ Бой». Эффект предмета у всех классов одинаковый, различается только вид и название.</p>
+          </Section>
+        );
+      })}
+      <p className="muted small">Снаряжение выпадает за победы над ордой (по выходным чаще), над боссом и иногда из сундуков. Надевать его можно на вкладке «⚔️ Бой». Эффект предмета у всех классов одинаковый. У доспехов, шлемов и сапог вид зависит от класса, у оружия нет: выбранный класс на нём не отражается.</p>
     </>
   );
 }

@@ -6,7 +6,7 @@ import type { FaceConfig } from '@/lib/game/faces';
 import { FaceArt } from './Face';
 import { RARITY_VARS } from './GearIcon';
 import { headgear } from './HeroHeadgear';
-import { weaponArt } from './HeroWeapons';
+import { WEAPON_TOP, weaponArt } from './HeroWeapons';
 import { bardArmor, mageArmor, paladinArmor, warriorArmor } from './HeroArmor';
 
 type Look = Partial<Record<Slot, string | null>>;
@@ -42,27 +42,25 @@ const Spark = ({ x, y, s = 1, c = '#fff1c2', cls = 'hf-tw' }: { x: number; y: nu
   <path className={cls} transform={`translate(${x} ${y}) scale(${s})`} d="M0 -8 L2 -2 L8 0 L2 2 L0 8 L-2 2 L-8 0 L-2 -2Z" fill={c} />
 );
 
-/** Оружие в руке: вид зависит от класса и редкости (HeroWeapons), цвета из редкости; при ударе взмах. Без оружия: простая палка. */
+/** Точка руки, в которой держат оружие, у каждого класса своя. */
+const HAND: Record<Cls, { x: number; y: number; r: number }> = { w: { x: 190, y: 194, r: 0 }, m: { x: 181, y: 182, r: 8 }, b: { x: 175, y: 222, r: 12 }, p: { x: 191.500, y: 196, r: 0 } };
+
+/** Оружие в руке: вид зависит от предмета (оружие и его вид), а не от класса; цвета из редкости; при ударе взмах. Без оружия: простая палка. */
 function Weapon({ cls, item, attack }: { cls: Cls | null; item: GearItem | null; attack?: boolean }) {
   const c = cls ?? 'w';
-  const vars = item ? (RARITY_VARS[item.rarity] as CSSProperties) : (RARITY_VARS.common as CSSProperties);
-  const cn = `hf-w hf-w-${c} ${attack ? 'hf-w-atk' : ''}`;
-  const tier = tierOf(item);
+  const h = HAND[c];
+  const place = `translate(${h.x} ${h.y}) rotate(${h.r})`;
   if (!item) {
-    return (
-      <g className={cn}>
-        {c === 'm' ? <><rect x="64" y="58" width="7" height="298" rx="3" fill="#7a4a24" /><rect x="67.500" y="58" width="3.500" height="298" fill="#5a3416" /></>
-          : c === 'b' ? <g transform="rotate(-26 150 232)"><rect x="144" y="106" width="12" height="100" rx="3" fill="#7a4a24" /><ellipse cx="150" cy="238" rx="32" ry="38" fill="#c98a1d" /><circle cx="150" cy="236" r="9" fill="#3a2400" /></g>
-          : c === 'p' ? <><rect x="187" y="92" width="9" height="140" rx="3" fill="#7a4a24" /><rect x="168" y="76" width="46" height="24" rx="6" fill="#9a97b5" /></>
-          : <rect x="186" y="96" width="9" height="100" rx="3" fill="#8a6a3b" />}
-      </g>
-    );
+    return <g className={`hf-w hf-w-stick ${attack ? 'hf-w-atk' : ''}`}><g transform={place}><rect x="-4" y="-100" width="8" height="110" rx="3" fill="#8a6a3b" /></g></g>;
   }
+  const vars = RARITY_VARS[item.rarity] as CSSProperties;
   return (
-    <g className={cn} style={vars}>
-      {weaponArt(c, tier)}
-      {attack && c === 'm' && <circle className="hf-flare" cx="67.500" cy="42" r="18" fill={GLOW[item.rarity]} />}
-      {attack && c === 'b' && <><text className="hf-note" x="40" y="150" fontSize="34" fill="#8ff0d9">♪</text><text className="hf-note n2" x="200" y="140" fontSize="30" fill="#ffe39a">♫</text></>}
+    <g className={`hf-w hf-w-${item.family} ${attack ? 'hf-w-atk' : ''}`} style={vars}>
+      <g transform={place}>
+        {weaponArt(item.family, item.variant ?? 1, tierOf(item))}
+        {attack && <circle className="hf-flare" cx="0" cy={WEAPON_TOP[item.family] ?? -100} r="18" fill={GLOW[item.rarity]} />}
+        {attack && c === 'b' && <><text className="hf-note" x="-70" y="-60" fontSize="30" fill="#8ff0d9">♪</text><text className="hf-note n2" x="30" y="-70" fontSize="26" fill="#ffe39a">♫</text></>}
+      </g>
     </g>
   );
 }
@@ -122,7 +120,6 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
         <path className="hf-bt1" d="M88 328 H118 V356 H80 Q78 338 88 328Z" /><path className="hf-bt1" d="M122 328 H152 Q162 338 160 356 H122Z" />
         <rect className="hf-bt2" x="88" y="328" width="30" height="8" /><rect className="hf-bt2" x="122" y="328" width="30" height="8" />
         {BT >= 1 && <path d="M86 334 Q66 330 58 312 Q78 314 90 326Z" fill={GEM[boots!.rarity]} />}
-        <Weapon cls="m" item={weapon} attack={attack} />
         <g className="hf-breathe">
           <g className="hf-sway">{P.torso}</g>
           <rect x="110" y="112" width="20" height="20" fill="#e8b48c" />
@@ -133,7 +130,7 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
         </g>
         {shield && <ShieldOnArm item={shield} />}
         <path className="hf-ar2" d="M92 134 L64 192 L82 202 L106 152 Z" /><circle cx="70" cy="198" r="8.500" fill={SKIN} />
-        <path className="hf-ar2" d="M148 134 L184 172 L172 186 L140 152 Z" /><circle cx="180" cy="178" r="8.500" fill={SKIN} />
+        <path className="hf-ar2" d="M148 134 L184 172 L172 186 L140 152 Z" /><Weapon cls="m" item={weapon} attack={attack} /><circle cx="180" cy="178" r="8.500" fill={SKIN} />
         <g className="hf-cls"><Spark x={206} y={150} s={1.100} c="#8ff0d9" /><Spark x={216} y={192} s={.8} c="#ffe39a" cls="hf-tw2" /><Spark x={196} y={208} s={.8} c="#d9b8ff" /></g>
       </>); })()}
 
@@ -152,9 +149,8 @@ export function HeroBody({ look, cls, face = null, attack = false }: BodyProps) 
           {P.shoulders}
         </g>
         {shield && <ShieldOnArm item={shield} />}
-        <Weapon cls="b" item={weapon} attack={attack} />
         <path className="hf-ar2" d="M88 136 L116 152 L106 168 L80 150 Z" /><circle cx="112" cy="156" r="8.500" fill={SKIN} />
-        <path className="hf-ar2" d="M150 134 L184 214 L168 224 L138 150 Z" /><circle cx="174" cy="224" r="8.500" fill={SKIN} />
+        <path className="hf-ar2" d="M150 134 L184 214 L168 224 L138 150 Z" /><Weapon cls="b" item={weapon} attack={attack} /><circle cx="174" cy="224" r="8.500" fill={SKIN} />
       </>); })()}
 
       {c === 'p' && (() => { const P = paladinArmor(AT, ag); return (<>

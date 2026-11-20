@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isWeekend, ELITE_HORDES, ELITE_DROP, EVENTS, XP_MULT, eventOf, hordeById, rewardsOfDay, MAX_HP, REGEN, WEAKENED_BELOW, fight, hordeOfDay, liveBattle, poolsOf, simulate, wavesFor, hpAfter, victoryXp, type BattleRow } from './battle';
-import { GEAR, NO_GEAR, deriveGear, gearBonus, gearById, gearFromKey, pickGear, rollChestGear, BOSS_DROP, BATTLE_DROP, type Domain } from './gear';
+import { GEAR, GEAR_RARITIES, NO_GEAR, mergeCheck, deriveGear, gearBonus, gearById, gearFromKey, pickGear, rollChestGear, BOSS_DROP, BATTLE_DROP, type Domain } from './gear';
 
 const waves = (weak: Domain[], hp = [20, 20, 20]) => weak.map((w, i) => ({ unit: 'u' + i, weak: w, hp: hp[i] as number }));
 const P = (o: Partial<Record<Domain | 'gen', number>> = {}) => ({ body: 0, mind: 0, art: 0, will: 0, gen: 0, ...o });
@@ -122,17 +122,20 @@ describe('здоровье и дни', () => {
 });
 
 describe('снаряжение', () => {
-  it('каталог: 13 семейств × 4 редкости, уникальные id, у каждого слота есть предметы, текст и название заполнены', () => {
-    expect(GEAR).toHaveLength(52);
-    expect(new Set(GEAR.map((g) => g.id)).size).toBe(52);
+  it('каталог: 13 семейств × 4 редкости (у оружия по 3 вида), уникальные id, у каждого слота есть предметы, текст и название заполнены', () => {
+    expect(GEAR).toHaveLength(8 * 4 + 5 * 3 * 4);
+    expect(new Set(GEAR.map((g) => g.id)).size).toBe(GEAR.length);
+    expect(new Set(GEAR.map((g) => g.name)).size).toBe(GEAR.length);
     for (const s of ['weapon', 'armor', 'helm', 'boots', 'amulet']) expect(GEAR.some((g) => g.slot === s)).toBe(true);
     for (const g of GEAR) { expect(g.name.length).toBeGreaterThan(3); expect(g.text).not.toMatch(/undefined|NaN/); }
   });
   it('чем реже предмет, тем сильнее эффект (по семействам)', () => {
     const val = (e: { type: string; [k: string]: unknown }) => (e.pct ?? e.hp ?? e.perDay) as number;
     for (const fam of new Set(GEAR.map((g) => g.family))) {
-      const v = GEAR.filter((g) => g.family === fam).map((g) => val(g.effect as never));
-      expect(v).toEqual([...v].sort((a, b) => a - b));
+      for (let variant = 1; variant <= 3; variant++) {
+        const v = GEAR.filter((g) => g.family === fam && g.variant === variant).map((g) => val(g.effect as never));
+        expect(v).toEqual([...v].sort((a, b) => a - b));
+      }
     }
   });
   it('бонусы суммируются по надетым предметам, один слот учитывается один раз', () => {
@@ -206,5 +209,30 @@ describe('элитные и праздничные орды', () => {
       expect(r.drop).not.toBeNull();
       expect(r.drop!.endsWith('-common')).toBe(false);
     }
+  });
+
+  it('виды оружия: три вида на оружие и редкость, с одним эффектом; старые номера предметов остаются первым видом', () => {
+    for (const fam of ['sword', 'hammer', 'staff', 'brush', 'banner']) {
+      for (const r of GEAR_RARITIES) {
+        const vs = GEAR.filter((g) => g.family === fam && g.rarity === r);
+        expect(vs.map((g) => g.variant)).toEqual([1, 2, 3]);
+        expect(new Set(vs.map((g) => JSON.stringify(g.effect))).size).toBe(1);
+        expect(vs[0]!.id).toBe(`${fam}-${r}`);
+        expect(vs[1]!.id).toBe(`${fam}-${r}-2`);
+      }
+    }
+    expect(GEAR.filter((g) => g.slot !== 'weapon').every((g) => g.variant === 1)).toBe(true);
+  });
+  it('выпадение: за много бросков выпадают все виды каждого оружия, а остальное по-прежнему по одному', () => {
+    const seen = new Set<string>();
+    let x = 12345;
+    const rnd = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
+    for (let i = 0; i < 6000; i++) seen.add(pickGear({ common: 1, rare: 1, epic: 1, legend: 1 }, rnd(), rnd()).id);
+    for (const g of GEAR) expect(seen.has(g.id), g.id).toBe(true);
+  });
+  it('слияние сохраняет вид оружия', () => {
+    const k = (n: number) => ({ key: `chest:${n}`, itemId: 'sword-common-3' });
+    expect(mergeCheck([k(1), k(2), k(3)])).toEqual({ ok: true, resultId: 'sword-rare-3' });
+    expect(mergeCheck([{ key: 'a', itemId: 'sword-common' }, { key: 'b', itemId: 'sword-common-2' }, { key: 'c', itemId: 'sword-common' }]).ok).toBe(false);
   });
 });

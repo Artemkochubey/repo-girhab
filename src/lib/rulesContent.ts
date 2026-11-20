@@ -10,7 +10,7 @@ import { WEAK_BONUS, BOSSES } from './game/boss';
 import { BASE_CHANCE, BOSS_CHEST_LEGEND, PITY } from './game/chests';
 import { ACTIVE_ABILITIES, CLASS_BATTLE, FOCUS_PER_DAY, SPECS } from './game/classBattle';
 import { CLASS_FREE_WINDOW_MS, CLASS_INFO, CLASS_NAMES, CLASS_PAUSE_MS, MAIN_BONUS, SUBCLASS_NAMES, subBonus } from './game/classes';
-import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, GEAR_RARITIES, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOT_INFO, SLOTS, TIER_NAMES as GEAR_TIER_NAMES, bonusText } from './game/gear';
+import { BATTLE_DROP, BOSS_DROP, CHEST_GEAR_CHANCE, DOMAINS, DOMAIN_INFO, GEAR, GEAR_RARITIES, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOT_INFO, SLOTS, TIER_NAMES as GEAR_TIER_NAMES, WEAPON_VARIANT_COUNT, bonusText } from './game/gear';
 import { GOAL_INFO, GOAL_KINDS, REWARD, TIERS, TIER_NAMES, goalTarget, rewardXp } from './game/goals';
 import { xpNeed } from './game/level';
 import { DAY_RATIO_CAP, MVP_CHEST_PER_DAY } from './game/mvp';
@@ -285,9 +285,9 @@ export function buildRules(): Section[] {
           'Бонусы действуют в личных боях и в бою с боссом: оружие, оружие сферы и слабость как раньше, а защита, слабость орды и лечение (броня, щит, шлем, амулет) дают в бою с боссом небольшую прибавку к урону: от защиты 10% её значения, от слабости орды 50%, от лечения 0,3% за единицу, но не больше +20% всего. На очки дня, опыт и уровень снаряжение не влияет.',
           `**Комплекты.** Если надето 3 предмета одной редкости, включается бонус комплекта, если 5 (все слоты) добавляется ещё один. ${GEAR_RARITIES.map((r) => `«${SET_NAMES[r]}» (${RARITY_NAMES[r].toLowerCase()}): 3 предмета: ${bonusText(SET_BONUS[r].three)}; 5 предметов: ${bonusText(SET_BONUS[r].five)}`).join('. ')}.`,
           '**Слияние.** Три одинаковых предмета (один вид и одна редкость, кроме легендарных) на странице «⚔️ Бой» превращаются в один предмет следующей редкости. Лишняя добыча не пропадает зря. Слитые предметы снимаются, результат можно надеть как обычный.',
-          'Вид и название предмета зависят от класса героя (см. «Классы в бою») и от редкости, эффект не зависит. Все предметы можно посмотреть на странице «🗡 Арсенал» (вкладка «Ещё»): выберите класс и тип предмета, у каждого предмета видно рисунок, редкость и бонус, а то, что уже есть у героя, отмечено.',
+          `**Оружие:** у каждого из пяти видов оружия по ${WEAPON_VARIANT_COUNT} внешних вида в каждой редкости (например, меч, палаш и рапира), всего ${GEAR.filter((g) => g.slot === 'weapon').length} предметов. Эффект у видов одной редкости одинаковый, различаются рисунок и название, а выпадает каждый вид отдельно. Оружие не зависит от класса: герой любого класса держит то, что надето. **Доспех, щит, шлем и сапоги** зависят от класса героя (см. «Классы в бою») и от редкости, эффект не зависит. Все ${GEAR.length} предметов можно посмотреть на странице «🗡 Арсенал» (вкладка «Ещё»): выберите тип предмета (и класс для доспехов), у каждого видно рисунок, редкость и бонус, а то, что уже есть у героя, отмечено.`,
         ] },
-        { table: { head: ['Класс', 'Оружие (обычное → легендарное)', 'Доспех (обычный → легендарный)', 'Шлем', 'Сапоги', 'Щит'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], GEAR_TIER_NAMES.weapon[c].join(' → '), GEAR_TIER_NAMES.armor[c].join(' → '), GEAR_TIER_NAMES.helm[c].join(' → '), GEAR_TIER_NAMES.boots[c].join(' → '), GEAR_TIER_NAMES.shield[c].join(' → ')]) } },
+        { table: { head: ['Класс', 'Доспех (обычный → легендарный)', 'Шлем', 'Сапоги', 'Щит'], rows: (['w', 'm', 'b', 'p'] as const).map((c) => [CLASS_NAMES[c], GEAR_TIER_NAMES.armor[c].join(' → '), GEAR_TIER_NAMES.helm[c].join(' → '), GEAR_TIER_NAMES.boots[c].join(' → '), GEAR_TIER_NAMES.shield[c].join(' → ')]) } },
       ],
     },
     {

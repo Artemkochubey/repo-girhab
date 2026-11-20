@@ -56,8 +56,7 @@ describe('классы в бою', () => {
 describe('вид и названия снаряжения по классам', () => {
   it('один и тот же предмет называется по-разному', () => {
     const sword = gearById('sword-epic')!;
-    expect(CLASSES.map((c) => gearDisplay(sword, c).name)).toEqual(['Фламберг', 'Посох звёздного кольца', 'Серебряная лира', 'Боевой молот']);
-    expect(gearDisplay(gearById('hammer-legend')!, 'm').name).toBe('Посох архимага силы');
+    expect(CLASSES.map((c) => gearDisplay(sword, c).name)).toEqual(['Эпический меч', 'Эпический меч', 'Эпический меч', 'Эпический меч']);   // оружие у всех классов одно
     expect(gearDisplay(gearById('armor-rare')!, 'm').name).toBe('Ряса с поясом');
     expect(gearDisplay(gearById('armor-rare')!, 'p').name).toBe('Кираса');
     expect(gearDisplay(gearById('helm-common')!, 'p').name).toBe('Кольчужный капюшон');
@@ -65,15 +64,14 @@ describe('вид и названия снаряжения по классам', 
     expect(gearDisplay(sword, null).name).toBe(sword.name);
     expect(gearDisplay(gearById('amulet-rare')!, 'm').name).toBe(gearById('amulet-rare')!.name);   // амулеты общие
   });
-  it('оружие и доспех у каждого класса бывают в четырёх разных видах по редкости', () => {
+  it('доспех у каждого класса бывает в четырёх разных видах по редкости', () => {
     for (const c of CLASSES) {
-      for (const kind of ['weapon', 'armor'] as const) {
+      for (const kind of ['armor'] as const) {
         const names = TIER_NAMES[kind][c];
         expect(names).toHaveLength(4);
         expect(new Set(names).size).toBe(4);
       }
       expect(GEAR_RARITIES.map((r) => gearDisplay(gearById(`armor-${r}`)!, c).name)).toEqual([...TIER_NAMES.armor[c]]);
-      expect(GEAR_RARITIES.map((r) => gearDisplay(gearById(`sword-${r}`)!, c).name)).toEqual([...TIER_NAMES.weapon[c]]);
     }
   });
   it('у каждого класса названия в каталоге уникальны', () => {

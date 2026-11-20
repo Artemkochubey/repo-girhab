@@ -77,7 +77,7 @@ export interface LiveBattleDto {
   hp: number; maxHp: number; streak: number; totalHp: number; weakDomains: DomainId[]; winChance: number; xp: number; weekend: boolean; elite: boolean; event: string | null;
   fight: { waves: WaveDto[]; cleared: number; damage: number; outcome: 'victory' | 'held' | 'defeat' };
 }
-export interface GearItemDto { effect: { type: string; domain?: DomainId }; id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; name: string; emoji: string; text: string }
+export interface GearItemDto { effect: { type: string; domain?: DomainId }; id: string; slot: 'weapon' | 'armor' | 'helm' | 'boots' | 'amulet'; rarity: 'common' | 'rare' | 'epic' | 'legend'; family: string; variant: number; name: string; emoji: string; text: string }
 export interface GearBonusDto { rage: number; comeback: number; lossMult: number; dmg: number; dmgDomain: Record<DomainId, number>; guard: number; hordeHp: number; weak: number; heal: number; streakPer: number; streakMax: number; wave1: number; loot: number; winHeal: number }
 
 /** Что надето на герое (id предмета по слотам) по данным экрана героя. */

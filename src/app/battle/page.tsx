@@ -8,7 +8,7 @@ import { AbilityBar } from '@/components/AbilityBar';
 import { BossScene } from '@/components/BossScene';
 import { lookOf } from '@/lib/client';
 import { Bar, Section, Fold } from '@/components/ui';
-import { DOMAIN_INFO, GEAR_RARITIES, MERGE_COUNT, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOTS, SLOT_INFO, activeSets, bonusText, gearById, gearDisplay, gearIconFamily, nextRarity, type Slot } from '@/lib/game/gear';
+import { DOMAIN_INFO, GEAR_RARITIES, MERGE_COUNT, RARITY_NAMES, SET_BONUS, SET_NAMES, SLOTS, SLOT_INFO, activeSets, bonusText, gearById, gearDisplay, gearId, gearIconFamily, nextRarity, type Slot } from '@/lib/game/gear';
 import { hordeById, DROP_CHANCE, EVENTS, LOSS_HP, MAX_HP, REGEN, WEAKENED_BELOW, WIN_HP, WEAK_MULT } from '@/lib/game/battle';
 
 const hordeName = (id: string) => hordeById(id);
@@ -146,7 +146,7 @@ export default function Battle() {
                 return (
                   <div key={first.itemId} className="mergerow">
                     <span className="grow"><GearPic item={first.item} cls={cls} size={28} /> <b>{nm(first.item).name}</b> ×{list.length} → <b>{RARITY_NAMES[next].toLowerCase()}</b></span>
-                    <button className="btn sm" onClick={() => act('mergeGear', { keys }).then(ok(`Слито: ${nm(gearById(`${first.item.family}-${next}`)!).name}`)).catch(() => {})}>Слить три</button>
+                    <button className="btn sm" onClick={() => act('mergeGear', { keys }).then(ok(`Слито: ${nm(gearById(gearId(first.item.family, next, first.item.variant))!).name}`)).catch(() => {})}>Слить три</button>
                   </div>
                 );
               })}

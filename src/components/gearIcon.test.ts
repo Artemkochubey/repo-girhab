@@ -7,12 +7,9 @@ describe('значки снаряжения и портреты классов',
   it('для каждого семейства предметов игры есть значок', () => {
     for (const g of GEAR) expect(GEAR_SYMBOLS, g.family).toContain(`id="gx-${g.family}"`);
   });
-  it('у классов своё оружие и для него есть значок', () => {
+  it('оружие не зависит от класса', () => {
     const sword = GEAR.find((g) => g.slot === 'weapon')!;
-    const fam = (['w', 'm', 'b', 'p'] as const).map((c) => gearIconFamily(sword, c));
-    expect(fam).toEqual(['sword', 'staff', 'lute', 'hammer']);
-    for (const f of fam) expect(GEAR_SYMBOLS).toContain(`id="gx-${f}"`);
-    expect(gearIconFamily(sword, null)).toBe('sword');
+    expect((['w', 'm', 'b', 'p'] as const).map((c) => gearIconFamily(sword, c))).toEqual(['sword', 'sword', 'sword', 'sword']);
   });
   it('доспех и шлем не меняют значок по классу', () => {
     const armor = GEAR.find((g) => g.family === 'armor')!;

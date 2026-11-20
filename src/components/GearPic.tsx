@@ -4,15 +4,14 @@ import { GearIcon, RARITY_VARS } from './GearIcon';
 import { bardArmor, mageArmor, paladinArmor, warriorArmor } from './HeroArmor';
 import { GEM, Head, PAL } from './HeroBody';
 import { headgear } from './HeroHeadgear';
-import { weaponArt } from './HeroWeapons';
+import { WEAPON_BOX, weaponArt } from './HeroWeapons';
 
 type C = 'w' | 'm' | 'b' | 'p';
 // какую часть рисунка героя показывать как предмет (координаты фигуры 240 × 380)
-const WBOX: Record<C, string> = { w: '150 10 90 230', m: '-6 -10 150 210', b: '90 90 130 210', p: '140 20 110 230' };
 const ABOX: Record<C, string> = { w: '40 100 160 150', m: '40 100 160 190', b: '40 100 160 170', p: '40 100 160 150' };
 const HBOX: Record<C, string> = { w: '70 30 100 90', m: '50 -34 140 130', b: '55 -14 130 120', p: '70 -6 100 120' };
 
-type Item = Pick<GearItem, 'slot' | 'family' | 'rarity'> & { effect?: unknown };
+type Item = Pick<GearItem, 'slot' | 'family' | 'rarity'> & { effect?: unknown; variant?: number };
 
 /** Картинка предмета для списков: у оружия, доспеха, шлема и сапог рисуется вид именно этого класса и этой редкости, у остальных значок. */
 export function GearPic({ item, cls, size = 64, label }: { item: Item; cls: string | null; size?: number; label?: string }) {
@@ -25,7 +24,7 @@ export function GearPic({ item, cls, size = 64, label }: { item: Item; cls: stri
   const wrap = (box: string, body: React.ReactNode) => (
     <svg className="gear-pic" width={size} height={size} viewBox={box} preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible', ...vars }} {...a11y}>{body}</svg>
   );
-  if (item.slot === 'weapon') return wrap(WBOX[c], <g>{weaponArt(c, tier)}</g>);
+  if (item.slot === 'weapon') return wrap(WEAPON_BOX[item.family] ?? '-44 -150 88 190', <g>{weaponArt(item.family, (item as { variant?: number }).variant ?? 1, tier)}</g>);
   if (item.family === 'armor') {
     const P = { w: warriorArmor, m: mageArmor, b: bardArmor, p: paladinArmor }[c](tier, gem);
     return wrap(ABOX[c], <g>{P.torso}{P.shoulders}</g>);

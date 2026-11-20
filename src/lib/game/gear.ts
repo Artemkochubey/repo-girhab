@@ -34,9 +34,10 @@ export type GearEffect =
   | { type: 'loot'; pct: number }                             // +к шансу снаряжения за победу
   | { type: 'winHeal'; hp: number };                          // +здоровья за победу
 
-export interface GearItem { id: string; slot: Slot; rarity: GearRarity; family: string; name: string; emoji: string; text: string; effect: GearEffect }
+export interface GearItem { id: string; slot: Slot; rarity: GearRarity; family: string; variant: number; name: string; emoji: string; text: string; effect: GearEffect }
 
 type Gender = 'm' | 'f' | 'n' | 'p';
+type G = Gender;
 const ADJ: Record<Gender, string[]> = {
   m: ['Простой', 'Крепкий', 'Эпический', 'Легендарный'], f: ['Простая', 'Крепкая', 'Эпическая', 'Легендарная'],
   n: ['Простое', 'Крепкое', 'Эпическое', 'Легендарное'], p: ['Простые', 'Крепкие', 'Эпические', 'Легендарные'],
@@ -67,10 +68,24 @@ const FAMILIES: Family[] = [
   { id: 'medal', slot: 'amulet', noun: 'медальон', gender: 'm', emoji: '🏅', make: (i) => ({ type: 'winHeal', hp: at(winV, i) }), text: (e) => `+${(e as { hp: number }).hp} здоровья за победу` },
 ];
 
-export const GEAR: GearItem[] = FAMILIES.flatMap((f) => GEAR_RARITIES.map((rarity, i): GearItem => {
+/**
+ * Виды оружия: у каждого из пяти оружий по три внешних вида в каждой редкости (эффект один и тот же, различается рисунок и название).
+ * Первый вид сохраняет прежний номер предмета (`sword-legend`), остальные получают `-2` и `-3`, поэтому старые записи остаются верными.
+ */
+export const WEAPON_VARIANTS: Record<string, [string, G][]> = {
+  sword: [['меч', 'm'], ['палаш', 'm'], ['рапира', 'f']],
+  hammer: [['молот', 'm'], ['булава', 'f'], ['кувалда', 'f']],
+  staff: [['посох', 'm'], ['жезл', 'm'], ['скипетр', 'm']],
+  brush: [['кисть', 'f'], ['широкая кисть', 'f'], ['перо', 'n']],
+  banner: [['знамя', 'n'], ['штандарт', 'm'], ['вымпел', 'm']],
+};
+export const WEAPON_VARIANT_COUNT = 3;
+export const gearId = (family: string, rarity: GearRarity, variant = 1): string => (variant <= 1 ? `${family}-${rarity}` : `${family}-${rarity}-${variant}`);
+
+export const GEAR: GearItem[] = FAMILIES.flatMap((f) => (WEAPON_VARIANTS[f.id] ?? [[f.noun, f.gender] as [string, G]]).flatMap(([noun, gender], vi) => GEAR_RARITIES.map((rarity, i): GearItem => {
   const effect = f.make(i);
-  return { id: `${f.id}-${rarity}`, slot: f.slot, rarity, family: f.id, name: `${at(ADJ[f.gender], i)} ${f.noun}`, emoji: f.emoji, text: f.text(effect), effect };
-}));
+  return { id: gearId(f.id, rarity, vi + 1), slot: f.slot, rarity, family: f.id, variant: vi + 1, name: `${at(ADJ[gender], i)} ${noun}`, emoji: f.emoji, text: f.text(effect), effect };
+})));
 export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g.id === id);
 
 export interface GearBonus {
@@ -167,8 +182,12 @@ function pickRarity(w: Weights, r: number): GearRarity {
 /** Предмет по двум числам [0,1): редкость по весам, семейство поровну. */
 export function pickGear(w: Weights, r1: number, r2: number): GearItem {
   const rarity = pickRarity(w, r1);
-  const fam = FAMILIES[Math.min(FAMILIES.length - 1, Math.floor(r2 * FAMILIES.length))] as Family;
-  return gearById(`${fam.id}-${rarity}`)!;
+  const x = r2 * FAMILIES.length;
+  const idx = Math.min(FAMILIES.length - 1, Math.floor(x));
+  const fam = FAMILIES[idx] as Family;
+  // вид оружия берётся из дробной части того же числа, поэтому сигнатура и остальная добыча не меняются
+  const variant = WEAPON_VARIANTS[fam.id] ? Math.min(WEAPON_VARIANT_COUNT, 1 + Math.floor(Math.max(0, x - idx) * WEAPON_VARIANT_COUNT)) : 1;
+  return gearById(gearId(fam.id, rarity, variant))!;
 }
 /** Детерминированный предмет по ключу (боссы): один и тот же ключ всегда даёт один и тот же предмет. */
 export function gearFromKey(key: string, w: Weights): GearItem { const r = seededRandom('gear:' + key); return pickGear(w, r(), r()); }
@@ -240,32 +259,20 @@ export function mergeCheck(items: { key: string; itemId: string }[]): { ok: true
   if (items.some((x) => x.itemId !== first.id)) return { ok: false, error: 'Сливать можно только одинаковые предметы' };
   const next = nextRarity(first.rarity);
   if (!next) return { ok: false, error: 'Легендарные предметы не сливаются: выше уже некуда' };
-  return { ok: true, resultId: `${first.family}-${next}` };
+  return { ok: true, resultId: gearId(first.family, next, first.variant) };
 }
 
 // --- названия по классам: один и тот же предмет у разных классов выглядит и называется по-разному (как типы брони в WoW) ---
 import type { Cls } from './classes';
-type G = 'm' | 'f' | 'n' | 'p';
-const ADJ_BY: Record<G, string[]> = {
-  m: ['Простой', 'Крепкий', 'Эпический', 'Легендарный'], f: ['Простая', 'Крепкая', 'Эпическая', 'Легендарная'],
-  n: ['Простое', 'Крепкое', 'Эпическое', 'Легендарное'], p: ['Простые', 'Крепкие', 'Эпические', 'Легендарные'],
-};
 /** Название предмета по классу героя. Для нового вида (family) и класса: [существительное, род, эмодзи]. */
 const CLASS_NOUN: Record<string, Record<Cls, [string, G, string]>> = {
-  weapon: { w: ['меч', 'm', '🗡'], m: ['посох', 'm', '🪄'], b: ['лира', 'f', '🪕'], p: ['булава', 'f', '🔨'] },
   armor: { w: ['доспех', 'm', '🦺'], m: ['мантия', 'f', '🥻'], b: ['колет', 'm', '🧥'], p: ['латы', 'p', '🛡'] },
   shield: { w: ['щит', 'm', '🛡'], m: ['барьер', 'm', '🔮'], b: ['баклер', 'm', '🥁'], p: ['щит веры', 'm', '✝️'] },
   helm: { w: ['шлем', 'm', '⛑'], m: ['шляпа', 'f', '🎩'], b: ['берет', 'm', '🧢'], p: ['крылатый шлем', 'm', '👼'] },
   boots: { w: ['сапоги', 'p', '👢'], m: ['туфли', 'p', '🩴'], b: ['ботфорты', 'p', '🥾'], p: ['сабатоны', 'p', '👢'] },
 };
 /** Названия оружия и доспеха по классу и редкости: у каждого свой вид (меч, палаш, фламберг, клеймор и т.д.). */
-export const TIER_NAMES: Record<'weapon' | 'armor' | 'helm' | 'boots' | 'shield', Record<Cls, [string, string, string, string]>> = {
-  weapon: {
-    w: ['Короткий меч', 'Палаш', 'Фламберг', 'Клеймор'],
-    m: ['Деревянный посох', 'Посох с кристаллом', 'Посох звёздного кольца', 'Посох архимага'],
-    b: ['Простая лютня', 'Лютня мастера', 'Серебряная лира', 'Золотая лира'],
-    p: ['Дубина', 'Шипастая булава', 'Боевой молот', 'Солнечный скипетр'],
-  },
+export const TIER_NAMES: Record<'armor' | 'helm' | 'boots' | 'shield', Record<Cls, [string, string, string, string]>> = {
   armor: {
     w: ['Стёганка', 'Кольчуга', 'Латный доспех', 'Доспех героя'],
     m: ['Простая ряса', 'Ряса с поясом', 'Звёздная мантия', 'Одеяние архимага'],
@@ -291,25 +298,18 @@ export const TIER_NAMES: Record<'weapon' | 'armor' | 'helm' | 'boots' | 'shield'
     p: ['Простой щит веры', 'Щит с крестом', 'Крылатый щит', 'Щит рассвета'],
   },
 };
-const DOMAIN_OF_WEAPON: Record<Domain, string> = { body: 'силы', mind: 'мудрости', art: 'вдохновения', will: 'воли' };
 
 /** Какой значок рисовать: у классов своё оружие (посох мага, булава паладина, лютня барда), остальное по семейству предмета. */
-export function gearIconFamily(item: Pick<GearItem, 'slot' | 'family'>, cls: Cls | null): string {
-  if (item.slot !== 'weapon' || !cls) return item.family;
-  return { w: 'sword', m: 'staff', b: 'lute', p: 'hammer' }[cls];
+export function gearIconFamily(item: Pick<GearItem, 'slot' | 'family'>, _cls: Cls | null): string {
+  return item.family;   // оружие больше не зависит от класса: у каждого оружия свои виды
 }
 
 export function gearDisplay(item: Pick<GearItem, 'slot' | 'family' | 'rarity' | 'name' | 'emoji'> & { effect: { type: string; domain?: Domain } }, cls: Cls | null): { name: string; emoji: string } {
   const ri = GEAR_RARITIES.indexOf(item.rarity);
   if (!cls) return { name: item.name, emoji: item.emoji };
-  const kind = item.slot === 'weapon' ? 'weapon' : item.family === 'armor' ? 'armor' : item.family === 'shield' ? 'shield' : item.family === 'helm' ? 'helm' : item.family === 'boots' ? 'boots' : null;
+  const kind = item.family === 'armor' ? 'armor' : item.family === 'shield' ? 'shield' : item.family === 'helm' ? 'helm' : item.family === 'boots' ? 'boots' : null;
   const n = kind ? CLASS_NOUN[kind]?.[cls] : null;
   if (!n) return { name: item.name, emoji: item.emoji };
-  if (kind === 'weapon' || kind === 'armor' || kind === 'helm' || kind === 'boots' || kind === 'shield') {
-    const base = TIER_NAMES[kind][cls][ri] as string;
-    const suffix = kind === 'weapon' && item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
-    return { name: `${base}${suffix}`, emoji: n[2] };
-  }
-  const suffix = item.effect.type === 'dmgDomain' && item.effect.domain ? ` ${DOMAIN_OF_WEAPON[item.effect.domain]}` : '';
-  return { name: `${ADJ_BY[n[1]][ri]} ${n[0]}${suffix}`, emoji: n[2] };
+  // оружие у всех классов одно и то же (см. WEAPON_VARIANTS); по классу меняются доспех, щит, шлем и сапоги
+  return { name: TIER_NAMES[kind!][cls][ri] as string, emoji: n[2] };
 }
