@@ -1,4 +1,5 @@
 'use client';
+import { useStoredRange } from '@/lib/useStoredRange';
 import { useMemo, useState } from 'react';
 import { BrainFigure, BrainLegend } from '@/components/BrainFigure';
 import { useGame } from '@/components/Shell';
@@ -14,7 +15,7 @@ export default function Mind() {
   const { s, act, date } = useGame();
   const d = s.detail!;
   const [kind, setKind] = useState<string>(STUDY_KINDS[0]);
-  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('day');
+  const [range, setRange] = useStoredRange<(typeof RANGES)[number]['id']>('range_mind', 'day', RANGES.map((r) => r.id));
   const [hover, setHover] = useState<RegionId | null>(null);
   const [picked, setPicked] = useState<RegionId | null>(null);
   const days = RANGES.find((r) => r.id === range)!.days;

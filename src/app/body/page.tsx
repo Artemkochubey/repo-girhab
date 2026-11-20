@@ -1,4 +1,5 @@
 'use client';
+import { useStoredRange } from '@/lib/useStoredRange';
 import { useEffect, useMemo, useState } from 'react';
 import { BodyFigure, LoadLegend } from '@/components/BodyFigure';
 import { useGame } from '@/components/Shell';
@@ -28,7 +29,7 @@ const dayTitle = (date: string, today: string) => {
 export default function Body() {
   const { s, act, toast } = useGame();
   const d = s.detail!;
-  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('day');
+  const [range, setRange] = useStoredRange<(typeof RANGES)[number]['id']>('range_body', 'day', RANGES.map((r) => r.id));
   const [view, setView] = useState<View>('front');
   const [cat, setCat] = useState<ExerciseCategory>('Силовые');
   const [exercise, setExerciseRaw] = useState<string | null>(null);
