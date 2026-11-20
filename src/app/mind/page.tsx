@@ -14,7 +14,7 @@ export default function Mind() {
   const { s, act, date } = useGame();
   const d = s.detail!;
   const [kind, setKind] = useState<string>(STUDY_KINDS[0]);
-  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('week');
+  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('day');
   const [hover, setHover] = useState<RegionId | null>(null);
   const [picked, setPicked] = useState<RegionId | null>(null);
   const days = RANGES.find((r) => r.id === range)!.days;

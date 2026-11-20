@@ -28,7 +28,7 @@ const dayTitle = (date: string, today: string) => {
 export default function Body() {
   const { s, act, toast } = useGame();
   const d = s.detail!;
-  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('week');
+  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('day');
   const [view, setView] = useState<View>('front');
   const [cat, setCat] = useState<ExerciseCategory>('Силовые');
   const [exercise, setExerciseRaw] = useState<string | null>(null);
