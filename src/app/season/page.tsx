@@ -1,5 +1,4 @@
 'use client';
-import { Avatar } from '@/components/Face';
 import { useGame } from '@/components/Shell';
 import { Bar, Section } from '@/components/ui';
 import { MIN_DAYS, MIN_RATIO, seasonName } from '@/lib/game/seasons';
@@ -19,7 +18,7 @@ function Board({ season, big }: { season: SeasonDto; big?: boolean }) {
         return (
           <li key={r.memberId} className={`${m.id === s.me ? 'me' : ''} ${r.rank === 1 && r.eligible ? 'first' : ''}`}>
             <span className="pos">{r.eligible && r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
-            <span className="who" style={{ color: m.color }}><Avatar m={m} size={26} /> <b>{m.name}</b>{m.id === s.me ? ' (вы)' : ''}</span>
+            <span className="who" style={{ color: m.color }}>{m.emoji} <b>{m.name}</b>{m.id === s.me ? ' (вы)' : ''}</span>
             <b className="pct">{Math.round(r.ratio * 100)}%</b>
             <div className="bar"><div style={{ width: `${Math.min(100, (r.ratio / top) * 100)}%`, background: m.color }} /></div>
             <small className="muted">{r.points} оч. · дней с нормой {r.normDays} из {r.days}{big ? ` · лучший день ${r.bestDay}` : ''}{prize}{!r.eligible && !season.finished ? '' : !r.eligible ? ' · вне зачёта' : ''}</small>

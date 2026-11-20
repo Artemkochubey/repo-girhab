@@ -114,9 +114,3 @@ export function FaceBadge({ face, size = 48, color }: { face: FaceConfig; size?:
     </svg>
   );
 }
-
-/** Герой в списке: лицо, если выбрано, иначе смайлик. */
-export function Avatar({ m, size = 40 }: { m: { emoji: string; face?: FaceConfig | null; color?: string }; size?: number }) {
-  if (m.face) return <FaceBadge face={m.face} size={size} color={m.color} />;
-  return <span className="avatar-emoji" style={{ fontSize: size * 0.8, lineHeight: 1 }} aria-hidden>{m.emoji}</span>;
-}

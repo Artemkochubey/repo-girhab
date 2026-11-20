@@ -321,23 +321,24 @@ describe('действия', () => {
     expect(err(() => runAction(db, kid, 'setAvatar', { color: 'red' }))?.status).toBe(400);
     runAction(db, dad, 'setAvatar', { memberId: 2, emoji: '🦄' });
   });
-  it('лицо: пол и черты сохраняются, лишнее отклоняется, смайлик снимает лицо', () => {
+  it('лицо героя хранится отдельно от аватара профиля, лишнее отклоняется', () => {
     const face = { skin: 2, hair: 'braids', hairColor: 7, eyes: 'happy', eyeColor: 1, mouth: 'grin', extras: ['glasses', 'freckles'] };
-    runAction(db, kid, 'setAvatar', { gender: 'f', face });
     const row = () => db.select().from(s.member).all()[1]!;
-    expect(row()).toMatchObject({ gender: 'f', emoji: '👩' });
+    const emoji0 = row().emoji;
+    runAction(db, kid, 'setFace', { gender: 'f', face });
+    expect(row()).toMatchObject({ gender: 'f', emoji: emoji0 });                  // смайлик профиля не тронут
     expect(JSON.parse(row().face!)).toEqual(face);
-    expect(err(() => runAction(db, kid, 'setAvatar', { gender: 'm', face }))?.status).toBe(400);              // косы только у девочек
-    expect(err(() => runAction(db, kid, 'setAvatar', { gender: 'f', face: { ...face, extras: ['beard'] } }))?.status).toBe(400);
-    expect(err(() => runAction(db, kid, 'setAvatar', { gender: 'x' }))?.status).toBe(400);
-    expect(err(() => runAction(db, kid, 'setAvatar', { memberId: 1, gender: 'm', face: { ...face, hair: 'short', extras: [] } }))?.status).toBe(403);
-    runAction(db, kid, 'setAvatar', { gender: 'm', face: { ...face, hair: 'spiky', extras: ['beard'] } });   // смена пола с подходящими чертами
-    expect(row()).toMatchObject({ gender: 'm', emoji: '🧑' });
-    runAction(db, kid, 'setAvatar', { emoji: '🐉' });
-    expect(row()).toMatchObject({ emoji: '🐉', face: null });
-    runAction(db, kid, 'setAvatar', { gender: 'f', face });
+    expect(err(() => runAction(db, kid, 'setFace', { gender: 'm', face }))?.status).toBe(400);   // косы только у девочек
+    expect(err(() => runAction(db, kid, 'setFace', { gender: 'f', face: { ...face, extras: ['beard'] } }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'setFace', { gender: 'x' }))?.status).toBe(400);
+    expect(err(() => runAction(db, kid, 'setFace', { memberId: 1, gender: 'm', face: { ...face, hair: 'short', extras: [] } }))?.status).toBe(403);
+    runAction(db, kid, 'setFace', { gender: 'm', face: { ...face, hair: 'spiky', extras: ['beard'] } });   // смена пола с подходящими чертами
+    expect(row().gender).toBe('m');
+    runAction(db, kid, 'setAvatar', { emoji: '🐉' });                             // смена смайлика не трогает лицо
+    expect(row()).toMatchObject({ emoji: '🐉', gender: 'm' });
+    expect(row().face).not.toBeNull();
     const { raw, family } = loadFamily(db, NOW);
-    expect(tvState(raw, family).members.find((m) => m.id === 2)!.face).toMatchObject({ hair: 'braids', gender: 'f' });   // лицо доходит до ТВ
+    expect(tvState(raw, family).members.find((m) => m.id === 2)!.face).toMatchObject({ hair: 'spiky', gender: 'm' });   // лицо доходит до ТВ
   });
   it('магазин: покупка, нехватка очков, выдача и отмена', () => {
     const itemId = (runAction(db, dad, 'saveShopItem', { name: 'Кино', emoji: '🎬', price: 100, currency: 'points' }) as { id: number }).id;

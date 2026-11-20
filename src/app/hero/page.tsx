@@ -1,5 +1,4 @@
 'use client';
-import { Avatar } from '@/components/Face';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useGame } from '@/components/Shell';
@@ -9,6 +8,9 @@ import { MountainClimb } from '@/components/MountainClimb';
 import { rankFor } from '@/lib/game/ranks';
 import { xpNeed } from '@/lib/game/level';
 import { AvatarPicker } from '@/components/AvatarPicker';
+import { FacePicker } from '@/components/FacePicker';
+import { HeroFigure } from '@/components/HeroFigure';
+import { lookOf } from '@/lib/client';
 import { Bar, Fold, Radar } from '@/components/ui';
 import { Hint } from '@/components/Hints';
 import { CLASS_INFO, CLASS_NAMES, SUBCLASS_NAMES, canChangeClass, subBonus, type Cls } from '@/lib/game/classes';
@@ -24,6 +26,7 @@ export default function Hero() {
   const h = d.hero;
   const [picking, setPicking] = useState<Cls | null>(null);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const [pickFace, setPickFace] = useState(false);
   // подкласс: сразу показываем выбор (не дожидаясь ответа сервера) и играем эффект
   const [optSub, setOptSub] = useState<Cls | null | undefined>(undefined);
   const [burst, setBurst] = useState<Cls | null>(null);
@@ -45,16 +48,25 @@ export default function Hero() {
   return (
     <>
       {pickAvatar && <AvatarPicker memberId={me.id} onClose={() => setPickAvatar(false)} />}
+      {pickFace && <FacePicker memberId={me.id} onClose={() => setPickFace(false)} />}
       <section className="card hero" style={{ borderColor: me.color }}>
         <button className="big avatar-btn" onClick={() => setPickAvatar(true)} aria-label="Сменить аватар" title="Сменить аватар">
-          <Avatar m={me} size={84} /><span className="edit">✏️</span>
+          {me.emoji}<span className="edit">✏️</span>
         </button>
         <div className="grow">
           <h1 className="title">{me.name} · ур. {d.level} <small className="gold">🏅 {d.achievements.filter((a) => a.earnedOn).length}</small></h1>
-          {!me.face && <p><button className="btn ghost sm" onClick={() => setPickAvatar(true)}>🎭 Создать лицо героя</button></p>}
           <p className="rank">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</p>
           <p>{h.cls ? CLASS_NAMES[h.cls] : 'Класс не выбран'}{subName ? ` · ${subName}` : ''}{!h.cls && <> <button className="btn" onClick={askClass}>Выбрать класс</button></>}</p>
           <Bar value={d.into} max={d.span} label={`${d.into} / ${d.span} XP`} />
+        </div>
+      </section>
+
+      <section className="card herolook" style={{ borderColor: me.color }}>
+        <HeroFigure look={lookOf(d.gear)} color={me.color} emoji={me.emoji} face={me.face} cls={h.cls} size={104} />
+        <div className="grow">
+          <b>Мой герой в бою</b>
+          <p className="muted small">{me.face ? 'Лицо и снаряжение видны в боях и на ТВ.' : 'Создайте лицо героя: пол, причёску, глаза. Оно видно в боях и на ТВ.'} Аватар профиля (смайлик вверху) меняется отдельно.</p>
+          <button className="btn" onClick={() => setPickFace(true)}>🎭 {me.face ? 'Изменить лицо' : 'Создать лицо'}</button>
         </div>
       </section>
 
@@ -134,7 +146,7 @@ export default function Hero() {
 
       <Fold title="⛰ Восхождение" right={<span className="muted">{rankFor(d.level, d.xp).rank.emoji} {rankFor(d.level, d.xp).rank.name}</span>}>
         {(() => {
-          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, face: m.face, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
+          const climbers = s.members.map((m) => ({ id: m.id, name: m.name, emoji: m.emoji, color: m.color, level: m.id === me.id ? d.level : m.level, xp: m.id === me.id ? d.xp : m.xp, me: m.id === me.id }));
           return <><MountainClimb climbers={climbers} /><ClimbRoster climbers={climbers} /></>;
         })()}
         {(() => {

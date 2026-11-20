@@ -36,8 +36,6 @@ export const EXTRAS: { id: string; name: string; for: Gender[] }[] = [
 
 export const hairFor = (g: Gender) => HAIR_STYLES.filter((h) => h.for.includes(g));
 export const extrasFor = (g: Gender) => EXTRAS.filter((e) => e.for.includes(g));
-/** Смайлик для текстовых мест (подписи, уведомления), где лицо не нарисовать. */
-export const genderEmoji = (g: Gender) => (g === 'f' ? '👩' : '🧑');
 
 export const defaultFace = (g: Gender): FaceConfig => ({ skin: 1, hair: g === 'f' ? 'long' : 'short', hairColor: 1, eyes: 'round', eyeColor: 0, mouth: 'smile', extras: [] });
 

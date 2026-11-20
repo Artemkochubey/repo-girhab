@@ -315,3 +315,4 @@ button.yh-cell { cursor: pointer; } .yh-cell.today { outline: 1.5px solid #fff; 
 .face-preview .face-badge { width: 120px; height: 120px; }
 h1.title.row { display: flex; align-items: center; gap: 10px; }
 .r-av { overflow: hidden; }
+.herolook { grid-auto-flow: column; grid-template-columns: auto 1fr; align-items: center; border-width: 2px; } .herolook p { margin: 4px 0 10px; }
