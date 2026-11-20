@@ -34,14 +34,17 @@ export function weaponArt(cls: 'w' | 'm' | 'b' | 'p', tier: number): ReactNode {
         </g>
       );
     }
-    const c = t === 2 ? 'gx-a' : 'gx-au';
+    // лира: уже и правее туловища, с тёмным контуром, чтобы не сливалась с одеждой; руки барда лежат поверх
+    const edge = { stroke: '#3a2400', strokeWidth: 2.200, strokeOpacity: 0.55 };
+    const frame = t === 2 ? 'gx-a' : 'gx-a';
+    const trim = t === 2 ? 'gx-b' : 'gx-au';
     return (
-      <g transform="rotate(-14 150 232)">
-        {t === 3 && <ellipse cx="150" cy="222" rx="54" ry="74" className="gx-g" opacity=".22" />}
-        <path className={c} d="M118 136 Q104 214 128 270 L138 266 Q118 214 130 142Z" /><path className={c} d="M182 136 Q196 214 172 270 L162 266 Q182 214 170 142Z" />
-        <rect className={c} x="112" y="128" width="76" height="12" rx="6" /><rect className="gx-b" x="128" y="262" width="44" height="22" rx="6" />
-        {[136, 143, 150, 157, 164].map((x) => <path key={x} d={`M${x} 140 V266`} stroke="#fff1c2" strokeWidth="1.400" opacity=".85" />)}
-        {t === 3 && <><circle className="gx-g" cx="150" cy="134" r="8" /><path className="gx-a" d="M112 134 Q92 132 84 114 Q104 116 114 126Z" /><path className="gx-a" d="M188 134 Q208 132 216 114 Q196 116 186 126Z" /></>}
+      <g transform="translate(14 14) rotate(-10 150 205) translate(150 205) scale(0.82) translate(-150 -205)">
+        {t === 3 && <ellipse cx="150" cy="208" rx="52" ry="84" className="gx-g" opacity=".2" />}
+        <path className={frame} {...edge} d="M118 136 Q104 214 128 270 L138 266 Q118 214 130 142Z" /><path className={frame} {...edge} d="M182 136 Q196 214 172 270 L162 266 Q182 214 170 142Z" />
+        <rect className={trim} {...edge} x="112" y="128" width="76" height="12" rx="6" /><rect className={trim} {...edge} x="128" y="262" width="44" height="22" rx="6" />
+        {[136, 143, 150, 157, 164].map((x) => <path key={x} d={`M${x} 140 V266`} stroke="#fff1c2" strokeWidth="1.600" opacity=".9" />)}
+        {t === 3 && <><circle className="gx-g" cx="150" cy="134" r="8" /><path className="gx-au" d="M112 134 Q92 132 84 114 Q104 116 114 126Z" /><path className="gx-au" d="M188 134 Q208 132 216 114 Q196 116 186 126Z" /></>}
         {t === 2 && <circle className="gx-g" cx="150" cy="134" r="5.500" />}
       </g>
     );
