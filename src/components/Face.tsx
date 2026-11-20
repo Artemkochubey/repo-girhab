@@ -7,6 +7,7 @@ const mix = (hex: string, k: number) => {
   return `rgb(${c.join(',')})`;
 };
 const INK = '#2a1a10';
+const CAP = 'M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z';
 const LIP = '#7a2b2b';
 
 /** Причёска, которая рисуется за головой (длинные волосы, хвосты, косы). */
@@ -18,6 +19,13 @@ function HairBack({ id, c }: { id: string; c: string }) {
     case 'bob': return <path d="M19 50 Q14 84 30 88 L70 88 Q86 84 81 50 Q79 28 50 20 Q21 28 19 50Z" {...o} />;
     case 'braids': return <g {...o}>{[66, 78, 90].map((y, i) => <ellipse key={`l${i}`} cx={20 - (i % 2)} cy={y} rx="5.5" ry="7" />)}{[66, 78, 90].map((y, i) => <ellipse key={`r${i}`} cx={80 + (i % 2)} cy={y} rx="5.5" ry="7" />)}</g>;
     case 'pigtails': return <g {...o}><circle cx="12" cy="52" r="10" /><circle cx="88" cy="52" r="10" /></g>;
+    case 'wavy': return <path d="M19 52 Q10 68 20 80 Q10 92 24 98 L76 98 Q90 92 80 80 Q90 68 81 52 Q80 30 50 20 Q20 30 19 52Z" {...o} />;
+    case 'halfup': return <path d="M19 52 Q12 92 26 98 L74 98 Q88 92 81 52 Q80 30 50 20 Q20 30 19 52Z" {...o} />;
+    case 'curlylong': return <g {...o}><path d="M19 52 Q12 92 26 98 L74 98 Q88 92 81 52 Q80 30 50 20 Q20 30 19 52Z" />{[[16, 60], [14, 75], [20, 90], [33, 96], [50, 98], [67, 96], [80, 90], [86, 75], [84, 60]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="8" />)}</g>;
+    case 'fringe': return <path d="M19 50 Q14 84 30 88 L70 88 Q86 84 81 50 Q79 28 50 20 Q21 28 19 50Z" {...o} />;
+    case 'sidebraid': return <g {...o}>{[[73, 68], [75, 79], [77, 90]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="5.2" ry="6.8" />)}<circle cx="78" cy="98" r="2.6" fill="#ff6fb0" stroke="none" /></g>;
+    case 'sidepony': return <path d="M28 30 Q2 36 8 68 Q10 82 18 92 Q18 68 27 52Z" {...o} />;
+    case 'dreads': return <g fill="none" stroke={c} strokeWidth="6" strokeLinecap="round">{['M22 48 L15 90', 'M28 54 L23 97', 'M72 54 L77 97', 'M78 48 L85 90'].map((d, i) => <path key={i} d={d} />)}</g>;
     default: return null;
   }
 }
@@ -36,6 +44,20 @@ function HairFront({ id, c }: { id: string; c: string }) {
     case 'buns': return <g {...o}><circle cx="27" cy="21" r="10" /><circle cx="73" cy="21" r="10" /><path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z" /></g>;
     case 'ponytail': return <g {...o}><path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z" /><circle cx="75" cy="34" r="3.4" fill="#ff6fb0" stroke="none" /></g>;
     case 'pigtails': return <g {...o}><path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z" /><circle cx="19" cy="46" r="2.6" fill="#ff6fb0" stroke="none" /><circle cx="81" cy="46" r="2.6" fill="#ff6fb0" stroke="none" /></g>;
+    case 'afro': return <g {...o}>{[[50, 15, 16], [30, 21, 14], [70, 21, 14], [18, 37, 12], [82, 37, 12], [13, 54, 9], [87, 54, 9], [40, 11, 12], [60, 11, 12]].map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} />)}</g>;
+    case 'mohawk': return <g {...o}><path d="M24 48 Q24 28 50 26 Q76 28 76 48 Q70 38 50 36 Q30 38 24 48Z" opacity="0.35" /><path d="M40 36 L38 14 L44 26 L46 6 L50 24 L54 6 L56 26 L62 14 L60 36Z" /></g>;
+    case 'undercut': return <g {...o}><path d="M24 48 Q24 28 50 26 Q76 28 76 48 Q70 38 50 36 Q30 38 24 48Z" opacity="0.4" /><path d="M28 46 Q26 18 56 16 Q84 18 78 40 Q66 30 44 34 Q34 36 28 46Z" /></g>;
+    case 'slick': return <g {...o}><path d="M22 52 Q18 22 50 17 Q82 22 78 52 Q74 34 50 30 Q26 34 22 52Z" /><path d="M34 25 Q50 20 66 25 M30 31 Q50 26 70 31" fill="none" stroke={mix(c, 0.25)} strokeWidth="1.2" /></g>;
+    case 'messy': return <path d="M21 54 Q16 20 50 15 Q84 20 79 54 L72 38 L67 43 L61 34 L54 42 L46 34 L40 43 L34 36 L28 40Z" {...o} />;
+    case 'topknot': return <g {...o}><circle cx="50" cy="11" r="9" /><path d={CAP} /><path d="M44 18 H56" stroke="#ff6fb0" strokeWidth="2.4" /></g>;
+    case 'wavy': return <path d={CAP} {...o} />;
+    case 'sidebraid': return <path d={CAP} {...o} />;
+    case 'sidepony': return <g {...o}><path d={CAP} /><circle cx="26" cy="35" r="3.4" fill="#ff6fb0" stroke="none" /></g>;
+    case 'dreads': return <path d={CAP} {...o} />;
+    case 'fringe': return <path d="M21 54 Q17 18 50 15 Q83 18 79 54 L76 41 L24 41Z" {...o} />;
+    case 'halfup': return <g {...o}><circle cx="50" cy="12" r="7.5" /><path d={CAP} /></g>;
+    case 'curlylong': return <path d={CAP} {...o} />;
+    case 'bun': return <g {...o}><circle cx="50" cy="10" r="11" /><path d="M44 8 Q50 14 56 8" fill="none" stroke={mix(c, -0.35)} strokeWidth="1" /><path d={CAP} /></g>;
     case 'braids': case 'long': case 'short': default:
       return <path d="M21 54 Q17 20 50 17 Q83 20 79 54 Q74 40 58 34 Q50 40 42 34 Q26 40 21 54Z" {...o} />;
   }

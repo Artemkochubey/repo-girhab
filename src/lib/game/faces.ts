@@ -18,6 +18,11 @@ export const HAIR_COLORS = [
   { name: 'Чёрный', hex: '#2a2118' }, { name: 'Тёмно-русый', hex: '#5a3a22' }, { name: 'Каштановый', hex: '#8a5a2b' }, { name: 'Светлый', hex: '#e0b95a' },
   { name: 'Рыжий', hex: '#c4572a' }, { name: 'Седой', hex: '#b8b8c4' }, { name: 'Синий', hex: '#3a6bff' }, { name: 'Розовый', hex: '#ff6fb0' },
   { name: 'Фиолетовый', hex: '#8f5cff' }, { name: 'Зелёный', hex: '#3fcf9a' },
+  // новые цвета добавляются в конец: сохранённые лица хранят номер цвета
+  { name: 'Платиновый', hex: '#f2ecd8' }, { name: 'Медный', hex: '#b5651d' }, { name: 'Бордовый', hex: '#7d1f3a' }, { name: 'Красный', hex: '#d6342c' },
+  { name: 'Оранжевый', hex: '#ff8a2b' }, { name: 'Голубой', hex: '#6cc3ff' }, { name: 'Бирюзовый', hex: '#19c2c2' }, { name: 'Тёмно-синий', hex: '#1d2a6b' },
+  { name: 'Мятный', hex: '#8be3c0' }, { name: 'Лавандовый', hex: '#b79cff' }, { name: 'Малиновый', hex: '#e0307f' }, { name: 'Серебристый', hex: '#d5d9e6' },
+  { name: 'Шоколадный', hex: '#3b2416' }, { name: 'Лаймовый', hex: '#a8e03a' },
 ];
 export const EYE_COLORS = [{ name: 'Карие', hex: '#5a3a22' }, { name: 'Синие', hex: '#3a7bff' }, { name: 'Зелёные', hex: '#3fa86a' }, { name: 'Серые', hex: '#8a96a8' }, { name: 'Янтарные', hex: '#c98a2b' }];
 
@@ -26,6 +31,10 @@ export const HAIR_STYLES: { id: string; name: string; for: Gender[] }[] = [
   { id: 'curly', name: 'Кудри', for: ['m', 'f'] }, { id: 'buzz', name: 'Под машинку', for: ['m'] }, { id: 'bald', name: 'Лысая', for: ['m'] },
   { id: 'long', name: 'Длинная', for: ['m', 'f'] }, { id: 'ponytail', name: 'Хвост', for: ['f'] }, { id: 'bob', name: 'Каре', for: ['f'] },
   { id: 'braids', name: 'Косы', for: ['f'] }, { id: 'buns', name: 'Пучки', for: ['f'] }, { id: 'pigtails', name: 'Хвостики', for: ['f'] }, { id: 'pixie', name: 'Пикси', for: ['f'] },
+  { id: 'afro', name: 'Афро', for: ['m', 'f'] }, { id: 'mohawk', name: 'Ирокез', for: ['m', 'f'] }, { id: 'undercut', name: 'Андеркат', for: ['m'] }, { id: 'slick', name: 'Зачёс назад', for: ['m'] },
+  { id: 'messy', name: 'Растрёпанная', for: ['m', 'f'] }, { id: 'topknot', name: 'Пучок на макушке', for: ['m', 'f'] }, { id: 'wavy', name: 'Волнистая', for: ['m', 'f'] },
+  { id: 'dreads', name: 'Дреды', for: ['m', 'f'] }, { id: 'sidebraid', name: 'Коса набок', for: ['f'] }, { id: 'sidepony', name: 'Боковой хвост', for: ['f'] },
+  { id: 'fringe', name: 'Каре с чёлкой', for: ['f'] }, { id: 'halfup', name: 'Полу-хвост', for: ['f'] }, { id: 'curlylong', name: 'Длинные кудри', for: ['f'] }, { id: 'bun', name: 'Пучок', for: ['f'] },
 ];
 export const EYE_STYLES = [{ id: 'round', name: 'Круглые' }, { id: 'happy', name: 'Весёлые' }, { id: 'sleepy', name: 'Сонные' }, { id: 'wide', name: 'Большие' }, { id: 'wink', name: 'Подмигивает' }];
 export const MOUTH_STYLES = [{ id: 'smile', name: 'Улыбка' }, { id: 'grin', name: 'Ухмылка' }, { id: 'open', name: 'Смеётся' }, { id: 'smirk', name: 'Хитрая' }, { id: 'calm', name: 'Спокойный' }, { id: 'tongue', name: 'Язык' }];
