@@ -10,7 +10,7 @@ export const RARITY_VARS: Record<Rarity, Record<string, string>> = {
   epic: { '--m1': '#ecdcff', '--m2': '#9a63ff', '--gm': '#ff7ad9', '--gl': '#b07bff', '--r1': '1', '--r2': '1', '--r3': '0' },
   legend: { '--m1': '#fff1c2', '--m2': '#e0a73a', '--gm': '#ff9a4a', '--gl': '#ffcf5a', '--r1': '1', '--r2': '1', '--r3': '1' },
 };
-const FAMILIES = new Set(['sword', 'hammer', 'staff', 'brush', 'banner', 'armor', 'shield', 'helm', 'crown', 'boots', 'sandals', 'amulet', 'medal', 'lute']);
+const FAMILIES = new Set(['sword', 'hammer', 'staff', 'armor', 'shield', 'helm', 'crown', 'boots', 'sandals', 'amulet', 'medal', 'lute']);
 
 /** Один раз на странице: набор значков, на которые ссылаются все GearIcon. */
 export function GearSymbols() {

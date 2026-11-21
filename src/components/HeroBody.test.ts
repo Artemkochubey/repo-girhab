@@ -26,8 +26,9 @@ describe('фигура героя в бою', () => {
   it('удар включает взмах оружия, а у мага ещё вспышку у посоха', () => {
     expect(draw('w', full('rare'), { attack: true })).toContain('hf-w-atk');
     expect(draw('w', full('rare'))).not.toContain('hf-w-atk');
-    expect(draw('m', full('rare'), { attack: true })).toContain('hf-flare');
-    expect(draw('b', full('rare'), { attack: true })).toContain('hf-note');
+    expect(draw('m', { weapon: 'staff-rare' }, { attack: true })).toContain('hf-flare');
+    expect(draw('b', { weapon: 'lyre-rare' }, { attack: true })).toContain('hf-note');
+    expect(draw('b', { weapon: 'sword-rare' }, { attack: true })).not.toContain('hf-note');
   });
   it('выбранное лицо рисуется вместо простого', () => {
     expect(draw('w', {}, { face: defaultFace('m') })).not.toBe(draw('w', {}));

@@ -59,7 +59,7 @@ function Weapon({ cls, item, attack }: { cls: Cls | null; item: GearItem | null;
       <g transform={place}>
         {weaponArt(item.family, item.variant ?? 1, tierOf(item))}
         {attack && <circle className="hf-flare" cx="0" cy={WEAPON_TOP[item.family] ?? -100} r="18" fill={GLOW[item.rarity]} />}
-        {attack && c === 'b' && <><text className="hf-note" x="-70" y="-60" fontSize="30" fill="#8ff0d9">♪</text><text className="hf-note n2" x="30" y="-70" fontSize="26" fill="#ffe39a">♫</text></>}
+        {attack && item.family === 'lyre' && <><text className="hf-note" x="-70" y="-60" fontSize="30" fill="#8ff0d9">♪</text><text className="hf-note n2" x="30" y="-70" fontSize="26" fill="#ffe39a">♫</text></>}
       </g>
     </g>
   );

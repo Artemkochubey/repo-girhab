@@ -208,9 +208,9 @@ input, textarea, select { background: rgba(8, 5, 28, .7); border-color: rgba(200
   .hf-cls { animation: cls-float 2.6s ease-in-out infinite; }
   .hf-w { animation: hf-wsway 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 85%; }
   .hf-w-staff { transform-origin: 50% 70%; }
-  .hf-w-atk.hf-w-sword, .hf-w-atk.hf-w-hammer, .hf-w-atk.hf-w-banner, .hf-w-atk.hf-w-stick { animation: hf-slash .45s ease-in-out 3; transform-origin: 50% 88%; }
+  .hf-w-atk.hf-w-sword, .hf-w-atk.hf-w-hammer, .hf-w-atk.hf-w-mace, .hf-w-atk.hf-w-stick { animation: hf-slash .45s ease-in-out 3; transform-origin: 50% 88%; }
   .hf-w-atk.hf-w-staff { animation: hf-thrust .45s ease-in-out 3; }
-  .hf-w-atk.hf-w-brush { animation: hf-strum .22s ease-in-out 6; transform-origin: 50% 80%; }
+  .hf-w-atk.hf-w-lyre { animation: hf-strum .22s ease-in-out 6; transform-origin: 50% 80%; }
   .hf-flare { animation: hf-flare .5s ease-out 3; transform-box: fill-box; transform-origin: center; opacity: 0; }
   .hf-note { animation: hf-note 1.4s ease-out 2 both; } .hf-note.n2 { animation-delay: .3s; }
   .hf-shield { animation: hf-breathe 3.6s ease-in-out infinite; }

@@ -9,8 +9,8 @@ const star = (x: number, y: number, s: number) => <path key={`${x}${y}`} transfo
 const grip = (len = 18) => <><rect x="-3.500" y="0" width="7" height={len} rx="2" fill="#5a2f8f" /><circle cx="0" cy={len + 3} r="5" className="gx-au" /></>;
 
 /** Куда смотрит верх оружия (для вспышки при ударе) и область для картинки предмета в списках. */
-export const WEAPON_TOP: Record<string, number> = { sword: -128, hammer: -112, staff: -160, brush: -104, banner: -150 };
-export const WEAPON_BOX: Record<string, string> = { sword: '-44 -150 88 190', hammer: '-48 -134 96 176', staff: '-52 -176 104 150', brush: '-44 -118 88 160', banner: '-20 -170 108 160' };
+export const WEAPON_TOP: Record<string, number> = { sword: -128, hammer: -120, staff: -160, lyre: -104, mace: -118 };
+export const WEAPON_BOX: Record<string, string> = { sword: '-44 -150 88 190', hammer: '-52 -134 96 176', staff: '-52 -176 104 150', lyre: '-44 -116 88 140', mace: '-52 -142 104 176' };
 
 export function weaponArt(family: string, variant: number, tier: number): ReactNode {
   const t = Math.max(0, tier), v = Math.max(1, Math.min(3, variant));
@@ -38,11 +38,10 @@ export function weaponArt(family: string, variant: number, tier: number): ReactN
       {t >= 2 && <><path className="gx-a" d="M-16 -112 L-10 -128 L-4 -112Z" /><path className="gx-a" d="M4 -112 L10 -128 L16 -112Z" /></>}
       <rect className="gx-a" x="-26" y="-114" width="52" height="30" rx="6" /><rect className="gx-b" x="0" y="-114" width="26" height="30" rx="6" /><rect className="gx-wh" x="-22" y="-111" width="34" height="3" rx="1.500" />{gem(0, -99, 6)}
       {t >= 3 && <><path d="M-20 -108 L-12 -100 L-17 -94 L-8 -88" stroke="var(--gm)" strokeWidth="2" fill="none" /><path d="M20 -108 L12 -100 L17 -94 L8 -88" stroke="var(--gm)" strokeWidth="2" fill="none" />{star(40, -128, 1)}</>}</>;
-    if (v === 2) return <>{handle}{[0, 45, 90, 135, 180, 225, 270, 315].map((a) => <path key={a} className="gx-b" d="M-4 -19 L0 -34 L4 -19Z" transform={`translate(0 -100) rotate(${a})`} />)}
-      <circle className="gx-a" cx="0" cy="-100" r="19" /><path className="gx-b" d="M0 -119 A19 19 0 0 1 0 -81Z" />{gem(0, -100, 7)}
-      {t >= 2 && <><path className="gx-a" d="M-10 -126 L0 -144 L10 -126Z" /></>}{t >= 3 && <>{star(-34, -126, 1)}{star(34, -76, .9)}</>}</>;
-    return <>{handle}<rect className="gx-b" x="-18" y="-130" width="36" height="52" rx="8" /><rect className="gx-a" x="-18" y="-130" width="20" height="52" rx="8" /><rect className="gx-au" x="-22" y="-118" width="44" height="6" rx="2" /><rect className="gx-au" x="-22" y="-96" width="44" height="6" rx="2" />{gem(0, -107, 6)}
+    if (v === 2) return <>{handle}<rect className="gx-b" x="-18" y="-130" width="36" height="52" rx="8" /><rect className="gx-a" x="-18" y="-130" width="20" height="52" rx="8" /><rect className="gx-au" x="-22" y="-118" width="44" height="6" rx="2" /><rect className="gx-au" x="-22" y="-96" width="44" height="6" rx="2" />{gem(0, -107, 6)}
       {t >= 2 && <><path className="gx-a" d="M-18 -130 L-10 -146 L-2 -130Z" /><path className="gx-a" d="M2 -130 L10 -146 L18 -130Z" /></>}{t >= 3 && <>{star(32, -140, 1.100)}{star(-32, -92, .8)}</>}</>;
+    return <>{handle}<path className="gx-a" d="M-10 -116 L-46 -106 L-10 -94Z" /><path className="gx-b" d="M-10 -116 L-46 -106 L-28 -105Z" opacity=".5" /><rect className="gx-b" x="-10" y="-122" width="20" height="34" rx="4" /><rect className="gx-a" x="10" y="-124" width="18" height="38" rx="3" /><rect className="gx-au" x="-12" y="-106" width="40" height="5" rx="2" />{gem(0, -103, 5)}
+      {t >= 2 && <path className="gx-a" d="M-6 -122 L0 -140 L6 -122Z" />}{t >= 3 && <>{star(40, -130, 1.100)}{star(-40, -86, .8)}</>}</>;
   }
   if (family === 'staff') {
     const shaft = (top: number) => <><rect className="gx-wd" x="-3.500" y={top} width="7" height={170 - top} rx="3" /><rect className="gx-wd2" x="0" y={top} width="3.500" height={170 - top} /></>;
@@ -55,22 +54,33 @@ export function weaponArt(family: string, variant: number, tier: number): ReactN
     return <>{shaft(-80)}<path d="M-22 -134 A24 24 0 1 0 22 -134 A18 18 0 1 1 -22 -134Z" fill="#f2c46b" /><circle className="gx-g" cx="0" cy="-122" r="10" /><circle className="gx-wh" cx="-3" cy="-125" r="3.500" />
       {t >= 2 && <><path className="gx-a" d="M-12 -86 Q-32 -84 -40 -104 Q-24 -102 -12 -94Z" /><path className="gx-a" d="M12 -86 Q32 -84 40 -104 Q24 -102 12 -94Z" /></>}{t >= 1 && <circle className="gx-a" cx="0" cy="-86" r="4" />}{t >= 3 && <>{star(0, -158, 1.200)}{star(-34, -112, .9)}{star(34, -112, .9)}<ellipse cx="0" cy="-122" rx="32" ry="8" fill="none" stroke="var(--gm)" strokeWidth="2" opacity=".8" /></>}</>;
   }
-  if (family === 'brush') {
-    const handle = (len: number) => <><path className="gx-wd" d="M-4.500 -28 H4.500 L5.500 28 Q0 36 -5.500 28Z" /><path className="gx-wd2" d="M0 -28 H4.500 L5.500 28 Q3 31 0 32Z" /></>;
-    if (v === 1) return <>{handle(0)}<rect className="gx-b" x="-6.500" y="-44" width="13" height="18" rx="2" /><rect className="gx-a" x="-6.500" y="-40" width="13" height="3" /><rect className="gx-au" x="-6.500" y="-32" width="13" height="2" />
-      <path className="gx-g" d="M-6.500 -44 Q-9 -76 0 -100 Q9 -76 6.500 -44Z" /><path className="gx-wh" d="M-3 -48 Q-5 -72 0 -90 Q-1 -70 -1 -48Z" />
-      {t >= 1 && <><circle className="gx-g" cx="22" cy="-76" r="4.500" /><circle className="gx-g" cx="30" cy="-58" r="3" /></>}{t >= 2 && <path d="M12 -20 Q30 -30 22 -46 Q14 -54 6 -46" stroke="var(--gm)" strokeWidth="3" fill="none" strokeLinecap="round" />}{t >= 3 && <>{star(-26, -92, 1.100)}{star(30, -100, .9)}</>}</>;
-    if (v === 2) return <>{handle(0)}<rect className="gx-b" x="-12" y="-46" width="24" height="18" rx="2" /><rect className="gx-au" x="-12" y="-38" width="24" height="3" />
-      <path className="gx-g" d="M-12 -46 L-14 -86 Q0 -92 14 -86 L12 -46Z" /><path className="gx-wh" d="M-8 -50 L-9 -80 Q-4 -83 0 -83 L0 -50Z" />{t >= 1 && <><circle className="gx-g" cx="26" cy="-66" r="4" /><circle className="gx-g" cx="32" cy="-48" r="3" /></>}
-      {t >= 2 && <path className="gx-a" d="M12 -34 Q28 -34 34 -46 Q26 -44 14 -42Z" />}{t >= 3 && <>{star(-28, -84, 1)}{star(26, -96, 1.100)}</>}</>;
-    return <><path className="gx-wd" d="M-3 -28 H3 L4 30 Q0 36 -4 30Z" /><path className="gx-g" d="M0 -118 Q-24 -84 -10 -30 L-3 -28 H3 L10 -30 Q24 -84 0 -118Z" /><path d="M0 -112 V-30" stroke="#fff" strokeOpacity=".7" strokeWidth="1.500" /><path d="M-6 -84 L-14 -78 M-8 -66 L-16 -62 M6 -84 L14 -78 M8 -66 L16 -62" stroke="#fff" strokeOpacity=".5" strokeWidth="1.400" />
-      <rect className="gx-au" x="-5" y="-34" width="10" height="4" rx="1.500" />{t >= 1 && <circle className="gx-g" cx="0" cy="-22" r="3.500" />}{t >= 2 && <><path className="gx-a" d="M-8 -46 Q-26 -44 -32 -60 Q-18 -58 -8 -54Z" /><path className="gx-a" d="M8 -46 Q26 -44 32 -60 Q18 -58 8 -54Z" /></>}{t >= 3 && <>{star(-30, -100, 1.100)}{star(26, -112, 1)}</>}</>;
+  if (family === 'lyre') {
+    const body = t === 0 ? '#a8742a' : '#f2c46b';
+    const edge = { stroke: '#3a2400', strokeWidth: 2, strokeOpacity: 0.55 };
+    if (v === 1) return <>
+      <rect className="gx-wd" x="-4.500" y="-98" width="9" height="62" rx="2" /><rect className="gx-wd2" x="-9" y="-108" width="18" height="16" rx="4" />
+      <circle className="gx-au" cx="-12" cy="-102" r="2.500" /><circle className="gx-au" cx="12" cy="-102" r="2.500" /><circle className="gx-au" cx="-12" cy="-94" r="2.500" /><circle className="gx-au" cx="12" cy="-94" r="2.500" />
+      <ellipse cx="0" cy="-12" rx="26" ry="30" fill={body} {...edge} /><ellipse cx="0" cy="-12" rx="19" ry="23" fill={t === 0 ? '#8a5a1e' : '#c98a1d'} />
+      {t >= 1 ? <><circle className="gx-a" cx="0" cy="-12" r="12" /><circle className="gx-g" cx="0" cy="-12" r="5.500" /></> : <circle cx="0" cy="-12" r="8" fill="#3a2400" />}
+      <path d="M-1.600 -96 V16 M1.600 -96 V16" stroke="#fff1c2" strokeWidth="1" opacity=".7" />
+      {t >= 2 && <>{star(-40, -70, 1)}<circle className="gx-g" cx="38" cy="-52" r="4" /><rect className="gx-g" x="40" y="-76" width="2.500" height="24" /></>}{t >= 3 && star(42, -92, 1.100)}</>;
+    if (v === 2) return <>
+      <path className="gx-a" {...edge} d="M-30 -96 Q-42 -46 -22 -14 L-14 -18 Q-30 -46 -22 -92Z" /><path className="gx-a" {...edge} d="M30 -96 Q42 -46 22 -14 L14 -18 Q30 -46 22 -92Z" />
+      <rect className={t >= 3 ? 'gx-au' : 'gx-b'} {...edge} x="-34" y="-102" width="68" height="10" rx="5" /><rect className={t >= 3 ? 'gx-au' : 'gx-b'} {...edge} x="-20" y="-18" width="40" height="18" rx="5" />
+      {[-14, -7, 0, 7, 14].map((x) => <path key={x} d={`M${x} -92 V-18`} stroke="#fff1c2" strokeWidth="1.600" opacity=".9" />)}
+      {t >= 1 && <circle className="gx-g" cx="0" cy="-97" r="5.500" />}{t >= 2 && <><path className="gx-au" d="M-34 -97 Q-50 -98 -56 -114 Q-42 -112 -32 -104Z" /><path className="gx-au" d="M34 -97 Q50 -98 56 -114 Q42 -112 32 -104Z" /></>}{t >= 3 && <>{star(-46, -60, 1)}{star(46, -70, 1.100)}</>}</>;
+    return <>
+      <path className="gx-a" {...edge} d="M-26 -104 Q16 -118 32 -70 L32 -6 L18 -6 L16 -64 Q8 -94 -16 -96 L-16 -8 L-26 -8Z" /><rect className={t >= 3 ? 'gx-au' : 'gx-b'} {...edge} x="-28" y="-10" width="62" height="12" rx="4" />
+      {[-9, -2, 5, 12].map((x, i) => <path key={x} d={`M${x} ${-92 + i * 8} V-10`} stroke="#fff1c2" strokeWidth="1.500" opacity=".9" />)}
+      {t >= 1 && <circle className="gx-g" cx="-10" cy="-100" r="4.500" />}{t >= 2 && <path className="gx-au" d="M32 -70 Q50 -76 52 -92 Q40 -88 30 -80Z" />}{t >= 3 && <>{star(-44, -80, 1)}{star(48, -40, 1)}</>}</>;
   }
-  // знамя
-  const pole = <><rect className="gx-wd" x="-2.500" y="-148" width="5" height="176" rx="2" /><rect className="gx-wd2" x="0" y="-148" width="2.500" height="176" /><path className="gx-au" d="M0 -162 L5 -148 H-5Z" /><circle className="gx-au" cx="0" cy="31" r="4" /></>;
-  if (v === 1) return <>{pole}{t >= 2 && <path className="gx-a" d="M2 -70 H44 L36 -62 L44 -54 H2Z" />}<path className="gx-b" d="M2 -144 H56 L44 -122 L56 -100 H2Z" /><path className="gx-a" d="M2 -144 H56 L52 -139 H2Z" /><path className="gx-au" d="M26 -135 L29 -128 L36 -127 L31 -122 L33 -115 L26 -119 L19 -115 L21 -122 L16 -127 L23 -128Z" />
-    {t >= 1 && <><rect className="gx-au" x="8" y="-100" width="2" height="9" /><rect className="gx-au" x="22" y="-100" width="2" height="9" /><rect className="gx-au" x="40" y="-114" width="2" height="7" /></>}{t >= 3 && <>{star(70, -146, 1)}{star(60, -74, .8)}<path d="M20 -118 V-106 M14 -112 H26" stroke="var(--gm)" strokeWidth="2" /></>}</>;
-  if (v === 2) return <>{pole}<rect className="gx-au" x="-2" y="-144" width="62" height="5" rx="2" /><path className="gx-b" d="M4 -139 H56 V-90 L30 -100 L4 -90Z" /><path className="gx-a" d="M4 -139 H30 V-100 L4 -90Z" /><circle className="gx-au" cx="30" cy="-120" r="8" />{gem(30, -120, 4)}
-    {t >= 2 && <path className="gx-au" d="M4 -90 L30 -100 L56 -90 L56 -86 L30 -96 L4 -86Z" />}{t >= 1 && <><rect className="gx-au" x="10" y="-90" width="2" height="9" /><rect className="gx-au" x="48" y="-90" width="2" height="9" /></>}{t >= 3 && <>{star(70, -146, 1)}{star(66, -96, .8)}</>}</>;
-  return <>{pole}<path className="gx-b" d="M2 -140 L86 -124 L2 -108Z" /><path className="gx-a" d="M2 -140 L86 -124 L44 -132Z" />{gem(20, -124, 3.500)}{t >= 2 && <path className="gx-a" d="M2 -100 L58 -88 L2 -76Z" />}{t >= 1 && <><path className="gx-au" d="M86 -124 L96 -124" stroke="#f2c46b" strokeWidth="3" /></>}{t >= 3 && <>{star(92, -146, 1)}{star(60, -66, .8)}</>}</>;
+  // булава (Дисциплина)
+  const mhandle = <><rect className="gx-wd" x="-4" y="-84" width="8" height="112" rx="3" /><rect className="gx-au" x="-4.500" y="-2" width="9" height="3" /><rect className="gx-au" x="-4.500" y="10" width="9" height="3" /><circle className="gx-au" cx="0" cy="31" r="5" /></>;
+  const spikes = (n: number, r: number, len: number, cy: number) => Array.from({ length: n }, (_, k) => <path key={k} className="gx-b" d={`M-4 ${-r} L0 ${-r - len} L4 ${-r}Z`} transform={`translate(0 ${cy}) rotate(${(360 / n) * k})`} />);
+  if (v === 1) return <>{mhandle}{spikes(8, 19, 15, -100)}<circle className="gx-a" cx="0" cy="-100" r="19" /><path className="gx-b" d="M0 -119 A19 19 0 0 1 0 -81Z" />{gem(0, -100, 7)}{t >= 2 && <path className="gx-a" d="M-10 -126 L0 -144 L10 -126Z" />}{t >= 3 && <>{star(-34, -126, 1)}{star(34, -76, .9)}</>}</>;
+  if (v === 2) return <>{mhandle}{spikes(10, 15, 30, -98)}<circle className="gx-a" cx="0" cy="-98" r="15" /><path className="gx-b" d="M0 -113 A15 15 0 0 1 0 -83Z" /><path className="gx-au" d="M-6 -84 H6 V-74 H-6Z" />{gem(0, -98, 6)}{t >= 3 && <>{star(-42, -128, 1.100)}{star(44, -70, .9)}</>}</>;
+  return <><rect className="gx-wd" x="-4" y="-44" width="8" height="72" rx="3" /><rect className="gx-au" x="-4.500" y="-44" width="9" height="4" /><circle className="gx-au" cx="0" cy="31" r="5" />
+    <path d="M0 -46 Q-26 -70 -16 -92" stroke="#c3cde6" strokeWidth="3.500" fill="none" strokeLinecap="round" strokeDasharray="6 3" />
+    {spikes(8, 14, 14, -108).map((x, i) => <g key={i} transform="translate(-16 0)">{x}</g>)}<circle className="gx-a" cx="-16" cy="-108" r="14" /><path className="gx-b" d="M-16 -122 A14 14 0 0 1 -16 -94Z" />{gem(-16, -108, 5.500)}
+    {t >= 2 && <path className="gx-a" d="M-4 -46 Q14 -56 24 -76 Q10 -66 -4 -58Z" />}{t >= 3 && <>{star(18, -130, 1.100)}{star(-46, -64, .9)}</>}</>;
 }

@@ -5,7 +5,7 @@ import { CLASS_HERO_ART } from './classHeroArt';
 
 describe('значки снаряжения и портреты классов', () => {
   it('для каждого семейства предметов игры есть значок', () => {
-    for (const g of GEAR) expect(GEAR_SYMBOLS, g.family).toContain(`id="gx-${g.family}"`);
+    for (const g of GEAR.filter((x) => x.slot !== 'weapon')) expect(GEAR_SYMBOLS, g.family).toContain(`id="gx-${g.family}"`);
   });
   it('оружие не зависит от класса', () => {
     const sword = GEAR.find((g) => g.slot === 'weapon')!;

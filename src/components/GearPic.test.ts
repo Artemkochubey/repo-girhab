@@ -21,7 +21,7 @@ describe('картинки предметов в списках', () => {
   });
   it('у каждого оружия три разных вида в каждой редкости', () => {
     const strip = (x: string) => x.replace(/--[a-z0-9]+:#[0-9a-f]{6}/gi, '');
-    for (const fam of ['sword', 'hammer', 'staff', 'brush', 'banner']) for (const r of ['common', 'rare', 'epic', 'legend']) {
+    for (const fam of ['sword', 'hammer', 'staff', 'lyre', 'mace']) for (const r of ['common', 'rare', 'epic', 'legend']) {
       const imgs = [fam + '-' + r, fam + '-' + r + '-2', fam + '-' + r + '-3'].map((id) => strip(draw(id, 'w')));
       expect(new Set(imgs).size, `${fam} ${r}`).toBe(3);
     }

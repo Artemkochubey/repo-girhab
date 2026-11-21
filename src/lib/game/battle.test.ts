@@ -212,7 +212,7 @@ describe('элитные и праздничные орды', () => {
   });
 
   it('виды оружия: три вида на оружие и редкость, с одним эффектом; старые номера предметов остаются первым видом', () => {
-    for (const fam of ['sword', 'hammer', 'staff', 'brush', 'banner']) {
+    for (const fam of ['sword', 'hammer', 'staff', 'lyre', 'mace']) {
       for (const r of GEAR_RARITIES) {
         const vs = GEAR.filter((g) => g.family === fam && g.rarity === r);
         expect(vs.map((g) => g.variant)).toEqual([1, 2, 3]);

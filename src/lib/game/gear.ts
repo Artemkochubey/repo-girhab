@@ -55,7 +55,7 @@ const at = <T,>(a: T[], i: number) => a[i] as T;
 const FAMILIES: Family[] = [
   { id: 'sword', slot: 'weapon', noun: 'меч', gender: 'm', emoji: '🗡', make: (i) => ({ type: 'dmg', pct: at(dmgV, i) }), text: (e) => `Урон всеми очками +${pc((e as { pct: number }).pct)}` },
   ...(['body', 'mind', 'art', 'will'] as Domain[]).map((d): Family => {
-    const n = { body: ['hammer', 'молот', 'm', '🔨'], mind: ['staff', 'посох', 'm', '🪄'], art: ['brush', 'кисть', 'f', '🖌'], will: ['banner', 'знамя', 'n', '🚩'] }[d] as [string, string, Gender, string];
+    const n = { body: ['hammer', 'молот', 'm', '🔨'], mind: ['staff', 'посох', 'm', '🪄'], art: ['lyre', 'лютня', 'f', '🎵'], will: ['mace', 'булава', 'f', '🔨'] }[d] as [string, string, Gender, string];
     return { id: n[0], slot: 'weapon', noun: n[1], gender: n[2], emoji: n[3], make: (i) => ({ type: 'dmgDomain', domain: d, pct: at(domV, i) }), text: (e) => `Урон очками сферы «${DOMAIN_INFO[d].name}» +${pc((e as { pct: number }).pct)}` };
   }),
   { id: 'armor', slot: 'armor', noun: 'доспех', gender: 'm', emoji: '🦺', make: (i) => ({ type: 'guard', pct: at(guardV, i) }), text: (e) => `Поражение отнимает на ${pc((e as { pct: number }).pct)} меньше здоровья` },
@@ -74,10 +74,10 @@ const FAMILIES: Family[] = [
  */
 export const WEAPON_VARIANTS: Record<string, [string, G][]> = {
   sword: [['меч', 'm'], ['палаш', 'm'], ['рапира', 'f']],
-  hammer: [['молот', 'm'], ['булава', 'f'], ['кувалда', 'f']],
-  staff: [['посох', 'm'], ['жезл', 'm'], ['скипетр', 'm']],
-  brush: [['кисть', 'f'], ['широкая кисть', 'f'], ['перо', 'n']],
-  banner: [['знамя', 'n'], ['штандарт', 'm'], ['вымпел', 'm']],
+  hammer: [['молот', 'm'], ['кувалда', 'f'], ['клевец', 'm']],
+  staff: [['посох', 'm'], ['жезл', 'm'], ['посох с луной', 'm']],
+  lyre: [['лютня', 'f'], ['лира', 'f'], ['арфа', 'f']],
+  mace: [['булава', 'f'], ['моргенштерн', 'm'], ['кистень', 'm']],
 };
 export const WEAPON_VARIANT_COUNT = 3;
 export const gearId = (family: string, rarity: GearRarity, variant = 1): string => (variant <= 1 ? `${family}-${rarity}` : `${family}-${rarity}-${variant}`);
@@ -86,7 +86,10 @@ export const GEAR: GearItem[] = FAMILIES.flatMap((f) => (WEAPON_VARIANTS[f.id] ?
   const effect = f.make(i);
   return { id: gearId(f.id, rarity, vi + 1), slot: f.slot, rarity, family: f.id, variant: vi + 1, name: `${at(ADJ[gender], i)} ${noun}`, emoji: f.emoji, text: f.text(effect), effect };
 })));
-export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g.id === id);
+/** Старые номера предметов: знамя стало булавой, кисть лютней (тот же эффект, та же редкость и вид). */
+const OLD_FAMILY: [string, string][] = [['banner-', 'mace-'], ['brush-', 'lyre-']];
+export const canonicalGearId = (id: string): string => { for (const [o, n] of OLD_FAMILY) if (id.startsWith(o)) return n + id.slice(o.length); return id; };
+export const gearById = (id: string): GearItem | undefined => { const c = canonicalGearId(id); return GEAR.find((g) => g.id === c); };
 
 export interface GearBonus {
   dmg: number; dmgDomain: Record<Domain, number>; guard: number; hordeHp: number; weak: number; heal: number;
@@ -235,13 +238,13 @@ export function deriveGear(i: {
   merges?: MergeRow[];
 }): GearOwned[] {
   const out: GearEntry[] = [];
-  for (const b of i.battles) if (b.drop && gearById(b.drop)) out.push({ key: `battle:${b.date}`, itemId: b.drop, source: 'battle', date: b.date });
+  for (const b of i.battles) if (b.drop && gearById(b.drop)) out.push({ key: `battle:${b.date}`, itemId: canonicalGearId(b.drop), source: 'battle', date: b.date });
   for (const d of i.bossWins) if (i.since && d >= i.since) out.push({ key: `boss:${d}`, itemId: gearFromKey(`boss:${d}`, BOSS_DROP).id, source: 'boss', date: d });
-  for (const c of i.chests) if (c.gear && gearById(c.gear)) out.push({ key: `chest:${c.n}`, itemId: c.gear, source: 'chest', date: c.date });
+  for (const c of i.chests) if (c.gear && gearById(c.gear)) out.push({ key: `chest:${c.n}`, itemId: canonicalGearId(c.gear), source: 'chest', date: c.date });
   // слияния: «съеденные» предметы уходят из инвентаря, результат появляется под ключом merge:id
   const eaten = new Set((i.merges ?? []).flatMap((m) => m.consumed));
   const kept = out.filter((e) => !eaten.has(e.key));
-  for (const m of i.merges ?? []) if (gearById(m.itemId) && !eaten.has(`merge:${m.id}`)) kept.push({ key: `merge:${m.id}`, itemId: m.itemId, source: 'merge', date: m.date });
+  for (const m of i.merges ?? []) if (gearById(m.itemId) && !eaten.has(`merge:${m.id}`)) kept.push({ key: `merge:${m.id}`, itemId: canonicalGearId(m.itemId), source: 'merge', date: m.date });
   const eq = new Set(i.equipped.map((e) => e.key));
   return kept.sort((a, b) => (a.date === b.date ? (a.key < b.key ? -1 : 1) : a.date < b.date ? -1 : 1)).map((e) => ({ ...e, equipped: eq.has(e.key) }));
 }
@@ -256,7 +259,7 @@ export function mergeCheck(items: { key: string; itemId: string }[]): { ok: true
   if (new Set(items.map((x) => x.key)).size !== MERGE_COUNT) return { ok: false, error: 'Предметы должны быть разными' };
   const first = gearById(items[0]!.itemId);
   if (!first) return { ok: false, error: 'Неизвестный предмет' };
-  if (items.some((x) => x.itemId !== first.id)) return { ok: false, error: 'Сливать можно только одинаковые предметы' };
+  if (items.some((x) => canonicalGearId(x.itemId) !== first.id)) return { ok: false, error: 'Сливать можно только одинаковые предметы' };
   const next = nextRarity(first.rarity);
   if (!next) return { ok: false, error: 'Легендарные предметы не сливаются: выше уже некуда' };
   return { ok: true, resultId: gearId(first.family, next, first.variant) };
