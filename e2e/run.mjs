@@ -163,6 +163,62 @@ await check('задачи на день: родитель задаёт, геро
   ok(st.detail.chests.fromTasks === 1, 'сундук за задачу должен учитываться');
   await p.goto(base + '/tasks'); await p.waitForSelector('h1:has-text("Мои задачи на день")');
 });
+await check('ТВ-режим: фокус на загрузке, стрелки и OK, окно ловит фокус, Escape, режим мыши, полный экран', async () => {
+  const tvCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+  const t = await tvCtx.newPage();
+  const active = () => t.evaluate(() => { const a = document.activeElement; return a ? `${a.tagName}|${(a.textContent || '').trim().slice(0, 30)}|${a.closest('main') ? 'main' : a.closest('.modal') ? 'modal' : a.closest('header') ? 'header' : 'other'}` : ''; });
+  const key = async (k) => { await t.keyboard.press(k); await t.waitForTimeout(250); };
+  await t.goto(base + '/'); await t.waitForSelector('main .card.pick'); await t.waitForTimeout(500);
+  ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'on', 'ТВ-режим должен быть включён по умолчанию');
+  ok((await t.evaluate(() => getComputedStyle(document.body).cursor)) === 'none', 'курсор должен быть скрыт');
+  ok((await active()).endsWith('|main'), `фокус должен стоять на первом элементе экрана, а стоит ${await active()}`);
+  const first = await active();
+  await key('ArrowRight'); const second = await active();
+  ok(second !== first && second.endsWith('|main'), 'стрелка вправо должна двигать фокус к соседней карточке');
+  await key('ArrowLeft'); ok((await active()) === first, 'стрелка влево должна вернуть фокус');
+  // OK выбирает героя: на новом экране фокус ставится сам
+  await key('Enter'); await t.waitForSelector('.mark-tile, .classmodal', { timeout: 15000 }); await t.waitForTimeout(800);
+  // окно выбора класса (у нового героя класса ещё нет): фокус внутри окна и не выходит за его пределы
+  if (await t.$('.classmodal')) {
+    ok((await active()).endsWith('|modal'), 'при открытии окна фокус должен уйти внутрь окна');
+    for (let i = 0; i < 12; i++) await key(i % 3 === 0 ? 'ArrowRight' : 'ArrowDown');
+    ok((await active()).endsWith('|modal'), 'фокус не должен выходить за пределы открытого окна');
+    await key('Escape'); await t.waitForTimeout(500);
+    ok(!(await t.$('.classmodal')), 'Escape должен закрывать окно');
+    ok(!(await active()).endsWith('|modal'), 'после закрытия окна фокус возвращается на страницу');
+  }
+  await t.waitForSelector('main .mark-tile');
+  // переход на другой экран по OK: фокус сам встаёт на первый элемент нового экрана, Escape возвращает назад
+  const tab = t.locator('nav.tabs a', { hasText: 'Бой' });
+  await tab.focus(); await key('Enter'); await t.waitForURL('**/battle'); await t.waitForTimeout(1200);
+  ok((await active()).endsWith('|main'), `на новом экране фокус должен встать на первый элемент: ${await active()}`);
+  await key('Escape'); await t.waitForTimeout(800);
+  ok(new URL(t.url()).pathname === '/', 'Escape на внутреннем экране должен вернуть назад');
+  // вертикальная навигация по геометрии: вниз с карточки отметок идёт на следующий блок
+  await t.waitForSelector('main .mark-tile'); await t.locator('main .mark-tile').first().focus();
+  const before = await active(); await key('ArrowDown'); ok((await active()) !== before, 'стрелка вниз должна двигать фокус');
+  // мышиный режим: клавиша M выключает ТВ-режим, курсор возвращается, стрелки перестают перехватываться
+  await t.locator('main .mark-tile').first().focus();
+  await key('m'); ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'off', 'клавиша M должна выйти в мышиный режим');
+  ok((await t.evaluate(() => getComputedStyle(document.body).cursor)) !== 'none', 'в мышином режиме курсор виден');
+  const kept = await active(); await key('ArrowRight'); ok((await active()) === kept, 'в мышином режиме стрелки не двигают фокус');
+  await t.reload(); await t.waitForSelector('main .mark-tile');
+  ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'off', 'выбор мышиного режима должен сохраняться');
+  await t.goto(base + '/?tv=1'); await t.waitForSelector('main .mark-tile');
+  ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'on', 'адрес ?tv=1 включает ТВ-режим обратно');
+  // полный экран только усиливает режим и не выключает его при выходе
+  await t.mouse.click(5, 5);
+  const fsOk = await t.evaluate(async () => { try { await document.documentElement.requestFullscreen(); return true; } catch { return false; } });
+  if (fsOk) {
+    await t.waitForTimeout(400);
+    ok((await t.evaluate(() => document.documentElement.dataset.fs)) === 'on', 'в полном экране должен включиться признак fs');
+    ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'on', 'ТВ-режим остаётся включённым');
+    await t.evaluate(() => document.exitFullscreen()); await t.waitForTimeout(400);
+    ok((await t.evaluate(() => document.documentElement.dataset.tv)) === 'on', 'выход из полного экрана не выключает ТВ-режим');
+    ok((await t.evaluate(() => document.documentElement.dataset.fs)) === undefined, 'после выхода признак fs снят');
+  } else console.log('   (браузер не дал включить полный экран, эта часть пропущена)');
+  await tvCtx.close();
+});
 await check('нет связи: полоса предупреждения появляется и исчезает', async () => {
   await p.goto(base + '/'); await p.waitForSelector('.mark-tile'); await dismiss();
   await ctx.setOffline(true);

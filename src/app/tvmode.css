@@ -1,0 +1,55 @@
+/* ТВ-режим сайта (включён по умолчанию): крупный интерфейс, курсор скрыт, заметный фокус для пульта.
+   Включается атрибутом data-tv="on" на <html> (см. src/lib/tvMode.ts), полный экран добавляет data-fs. Мышиный режим: data-tv="off". */
+
+html[data-tv='on'], html[data-tv='on'] * { cursor: none !important; }
+html[data-tv='on'] .skip-link { display: none; }
+html[data-fs='on'] .tv-toggle, html[data-fs='on'] .brand-ver { display: none; }
+
+/* крупно и просторно на больших экранах (на телефоне размеры не трогаем: ТВ-режим там только про управление) */
+@media (min-width: 1000px) {
+  html[data-tv='on'] { font-size: 24px; }
+  html[data-tv='on'] body { font-size: 1rem; line-height: 1.4; }
+  html[data-tv='on'] .top { padding: 0.5rem 5vw; gap: 0.6rem; }
+  html[data-tv='on'] .top nav.tabs a { padding: 0.5rem 1rem; font-size: 1rem; border-radius: 0.8rem; }
+  html[data-tv='on'] .top .chip { font-size: 0.9rem; }
+  html[data-tv='on'] main.wrap { max-width: min(1700px, 100%); padding: 1.2rem 5vw 3rem; gap: 1.1rem; }
+  html[data-tv='on'][data-fs='on'] main.wrap { padding: 1.6rem 6.5vw 3.4rem; }
+  html[data-tv='on'] .grid { grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.9rem; }
+  html[data-tv='on'] .card { padding: 1rem 1.1rem; border-radius: 1.1rem; }
+  html[data-tv='on'] .btn, html[data-tv='on'] .chip, html[data-tv='on'] .seg button, html[data-tv='on'] .deed { min-height: 2.6rem; padding: 0.45rem 1.1rem; font-size: 0.95rem; }
+  html[data-tv='on'] .btn.sm { min-height: 2.2rem; font-size: 0.85rem; }
+  html[data-tv='on'] input, html[data-tv='on'] select, html[data-tv='on'] textarea { min-height: 2.6rem; font-size: 0.95rem; }
+  html[data-tv='on'] .quick-fab { right: 5vw; bottom: 2.4vh; font-size: 1rem; padding: 0.7rem 1.3rem; }
+  html[data-tv='on'] .mark-tile, html[data-tv='on'] .kid-big { border-radius: 1.2rem; }
+}
+/* 4K: ещё крупнее */
+@media (min-width: 2400px) { html[data-tv='on'] { font-size: 36px; } }
+
+/* видимый фокус: рамка, свечение и лёгкое увеличение; и для :focus-visible, и для фокуса из кода (.is-focused) */
+html[data-tv='on'] :where(a, button, input, select, textarea, summary, [tabindex], [data-tv-focusable]) { transition: transform .16s ease, box-shadow .16s ease, outline-color .16s ease; }
+html[data-tv='on'] :where(a, button, input, select, textarea, summary, [tabindex], [data-tv-focusable]):focus-visible,
+html[data-tv='on'] .is-focused {
+  outline: 4px solid #fff; outline-offset: 3px;
+  box-shadow: 0 0 0 8px rgba(242, 196, 107, .6), 0 0 32px 10px rgba(242, 196, 107, .5);
+  transform: scale(1.05);
+}
+html[data-tv='on'] :where(input, select, textarea, summary, .card, .arsenal-cell, .fq, .setrow):focus-visible,
+html[data-tv='on'] :where(input, select, textarea, summary, .card, .arsenal-cell, .fq, .setrow).is-focused { transform: scale(1.015); }
+html[data-tv='on'] .top nav.tabs a:focus-visible, html[data-tv='on'] .top nav.tabs a.is-focused { transform: scale(1.08); background: rgba(242, 196, 107, .22); color: #fff; }
+html[data-tv='on'] .modal { backdrop-filter: blur(6px); }
+@media (prefers-reduced-motion: reduce) {
+  html[data-tv='on'] :where(a, button, input, select, textarea, summary, [tabindex], [data-tv-focusable]) { transition: none; }
+  html[data-tv='on'] :where(a, button, input, select, textarea, summary, [tabindex], [data-tv-focusable]):focus-visible, html[data-tv='on'] .is-focused { transform: none; }
+}
+
+/* кнопка выхода в мышиный режим и подсказка при загрузке */
+.tv-toggle { white-space: nowrap; }
+.tv-hint-bar {
+  position: fixed; left: 50%; bottom: 3vh; transform: translateX(-50%); z-index: 40; display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; justify-content: center;
+  padding: .55rem 1.4rem; border-radius: 999px; font-size: .8rem; color: #f4efff; background: rgba(24, 16, 64, .92); border: 1px solid rgba(242, 196, 107, .5);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .5); pointer-events: none; animation: tv-hint-in .5s ease-out;
+}
+.tv-hint-bar kbd { display: inline-block; min-width: 1.5em; margin: 0 .12em; padding: .05em .4em; border-radius: .35em; border: 1px solid rgba(255, 255, 255, .45); background: rgba(255, 255, 255, .1); font: inherit; text-align: center; }
+@keyframes tv-hint-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (max-width: 720px) { .tv-hint-bar { bottom: 110px; width: calc(100% - 24px); border-radius: 18px; } }
+@media (prefers-reduced-motion: reduce) { .tv-hint-bar { animation: none; } }

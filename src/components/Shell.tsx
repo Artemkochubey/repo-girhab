@@ -1,5 +1,6 @@
 'use client';
 import { GearSymbols } from './GearIcon';
+import { TVToggle } from './TVMode';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -145,6 +146,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="brand"><span className="brand-name">{APP_EMOJI} {APP_NAME}</span><span className="brand-ver">демо v{APP_VERSION}</span></div>
         <nav className="tabs" aria-label="Разделы">{TABS.map((t) => <Link key={t.id} href={t.href} className={activeTab(path) === t.id ? 'on' : ''} aria-current={activeTab(path) === t.id ? 'page' : undefined}><span className="em">{t.emoji}</span><span className="lb">{t.label}</span>{t.id === 'more' && newVersion && <i className="new-dot" aria-label="есть новое" />}</Link>)}</nav>
         <div className="who">
+          <TVToggle />
           <button className="chip" onClick={async () => { await post('/api/session', { memberId: null }); reload(); }}>{me.emoji} {me.name} ⇄</button>
           {s.parent
             ? <button className="chip gold" onClick={async () => { await post('/api/pin', {}, 'DELETE'); reload(); }}>🔓 Родитель</button>
